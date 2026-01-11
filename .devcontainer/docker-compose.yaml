@@ -1,11 +1,9 @@
-name: newproject
+name: zenstack-live
 
 volumes:
   postgres-data:
-  valkey-data:
-  caddy-data:
-  caddy-config:
-
+  redis-data:
+  redis-insight:
 
 networks:
   workspace:
@@ -13,27 +11,28 @@ networks:
 
 services:
   workspace:
-    container_name: newproject-workspace
+    container_name: zenstack-live-workspace
     image: mcr.microsoft.com/devcontainers/javascript-node:24
     volumes:
       - ..:/workspace:cached
-    env_file: ../packages/env/.env
+    env_file: ./.env
     command: sleep infinity
-    ports:
-      - 3000:3000
-      - 3001:3001
     networks:
       - workspace
 
   postgres:
-    container_name: newproject-postgres
+    container_name: zenstack-live-postgres
     image: postgres:18
     volumes:
       - postgres-data:/var/lib/postgresql/
       - ./postgres/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
-    env_file: ../packages/env/.env
+    env_file: ./.env
     networks:
       - workspace
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
     ports:
       - 5432:5432
     healthcheck:
@@ -42,52 +41,58 @@ services:
       timeout: 5s
       retries: 5
 
-  valkey:
-    container_name: newproject-valkey
-    image: valkey/valkey:9.0
-    volumes:
-      - valkey-data:/data/
-    env_file: ../packages/env/.env
+  redis:
+    container_name: zenstack-live-redis
+    image: redis:6.2
+    command: redis-server
     networks:
       - workspace
     ports:
       - 6379:6379
-    healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
-  umami:
-    container_name: newproject-umami
-    image: ghcr.io/umami-software/umami:postgresql-latest
-    ports:
-      - 3002:3000
-    environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/umami
-      DATABASE_TYPE: postgresql
-      APP_SECRET: "SECRET"
+  redis-insight:
+    container_name: zenstack-live-redis-insight
+    image: redis/redisinsight:2.54
     depends_on:
-      postgres:
-        condition: service_healthy
-    init: true
+      - redis
     networks:
       - workspace
-    healthcheck:
-      test: [ "CMD-SHELL", "curl http://localhost:3000/api/heartbeat" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  caddy:
-    image: caddy:2.10.2
     ports:
-      - 80:80
-      - 443:443
+      - 5540:5540
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
-      - caddy-data:/data
-      - caddy-config:/config
+      - redis-insight:/data
+
+  debezium:
+    container_name: zenstack-live-debezium
+    image: debezium/server:3.0.0.Final
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_USER: default
+      DEBEZIUM_FORMAT_SCHEMAS_ENABLE: false
+      DEBEZIUM_SINK_REDIS_ADDRESS: redis:6379
+      DEBEZIUM_SINK_REDIS_PASSWORD:
+      DEBEZIUM_SINK_REDIS_SSL_ENABLED: false
+      DEBEZIUM_SINK_REDIS_WAIT_RETRY_ENABLED: true
+      DEBEZIUM_SINK_TYPE: redis
+      DEBEZIUM_SOURCE_CONNECTOR_CLASS: io.debezium.connector.postgresql.PostgresConnector
+      DEBEZIUM_SOURCE_DATABASE_DBNAME: postgres
+      DEBEZIUM_SOURCE_DATABASE_HOSTNAME: postgres
+      DEBEZIUM_SOURCE_DATABASE_PASSWORD: postgres
+      DEBEZIUM_SOURCE_DATABASE_PORT: 5432
+      DEBEZIUM_SOURCE_DATABASE_SERVER_NAME: zenstack
+      DEBEZIUM_SOURCE_DATABASE_USER: postgres
+      DEBEZIUM_SOURCE_OFFSET_FLUSH_INTERVAL_MS: 0
+      DEBEZIUM_SOURCE_PLUGIN_NAME: pgoutput
+      DEBEZIUM_SOURCE_SCHEMA_WHITELIST: public
+      DEBEZIUM_SOURCE_SNAPSHOT_MODE: no_data
+      DEBEZIUM_SOURCE_TOPIC_PREFIX: zenstack.table
+      DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL: io.debezium.storage.redis.history.RedisSchemaHistory
+      DEBEZIUM_SOURCE_OFFSET_STORAGE: io.debezium.storage.redis.offset.RedisOffsetBackingStore
+      DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY: zenstack.metadata.offsets
+      SCHEMA_INCLUDE_LIST: public
     networks:
       - workspace
-    command: caddy run --watch --config /etc/caddy/Caddyfile
+    ports:
+      - 8083:8083

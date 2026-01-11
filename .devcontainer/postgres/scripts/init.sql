@@ -1,3 +1,1 @@
-CREATE DATABASE newproject;
-CREATE DATABASE payload;
-CREATE DATABASE umami;
+CREATE DATABASE postgres;

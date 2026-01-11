@@ -24,6 +24,7 @@
     "eslint/sort-keys": "off",
     "eslint/func-style": "off",
     "eslint/no-ternary": "off",
+    "eslint/id-length": "off",
     "eslint/no-empty-function": "off",
     "eslint/capitalized-comments": "off",
     "react/only-export-components": "off",

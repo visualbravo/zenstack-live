@@ -1,0 +1,1 @@
+INSERT INTO "User" VALUES('12', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'user@2mail.com', 'oldname')

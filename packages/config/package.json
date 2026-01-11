@@ -1,5 +1,5 @@
 {
-  "name": "@newproject/config",
+  "name": "@zenstack-live/config",
   "type": "module",
   "private": true,
   "exports": {

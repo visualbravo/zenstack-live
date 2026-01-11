@@ -21,7 +21,7 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": true,
     "isolatedModules": true,
-    "customConditions": ["@newproject/source"]
+    "customConditions": ["@zenstack-live/source"]
   },
   "exclude": ["**/dist", "**/node_modules"]
 }
