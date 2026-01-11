@@ -1,0 +1,43 @@
+{
+  "name": "@newproject/env",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsdown",
+    "watch": "tsdown --watch",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix --fix-suggestions",
+    "format:fix": "oxfmt",
+    "test": "bun test",
+    "test:watch": "bun test --watch"
+  },
+  "dependencies": {
+    "@t3-oss/env-core": "^0.13.8",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@newproject/config": "workspace:*"
+  },
+  "exports": {
+    "./client": {
+      "@newproject/source": "./src/client.ts",
+      "default": "./dist/client.mjs"
+    },
+    "./server": {
+      "@newproject/source": "./src/server.ts",
+      "default": "./dist/server.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "packageManager": "bun@1.3.5",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "exports": {
+      "./client": "./dist/client.mjs",
+      "./server": "./dist/server.mjs",
+      "./package.json": "./package.json"
+    }
+  }
+}

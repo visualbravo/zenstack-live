@@ -1,0 +1,18 @@
+{
+  "projectName": "@newproject/web",
+  "mode": "file-router",
+  "typescript": true,
+  "tailwind": true,
+  "packageManager": "bun",
+  "addOnOptions": {},
+  "git": true,
+  "version": 1,
+  "framework": "react-cra",
+  "chosenAddOns": [
+    "cloudflare",
+    "start",
+    "tanstack-query",
+    "shadcn",
+    "form"
+  ]
+}

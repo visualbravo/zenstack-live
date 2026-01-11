@@ -1,0 +1,71 @@
+{
+  "name": "@newproject/database",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsdown",
+    "watch": "tsdown --watch",
+    "zen:generate": "zen generate",
+    "zen:reset": "zen migrate reset --force",
+    "prisma:studio": "prisma studio",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix --fix-suggestions",
+    "format:fix": "oxfmt",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "seed": "bun run ./scripts/seed.ts",
+    "prezen:generate": "rm -rf ./src/.generated",
+    "postzen:reset": "bun run seed",
+    "prebuild": "bun run zen:generate"
+  },
+  "dependencies": {
+    "@newproject/env": "workspace:*",
+    "@zenstackhq/orm": "3.0.0",
+    "@zenstackhq/plugin-policy": "3.0.0",
+    "@zenstackhq/schema": "3.0.0",
+    "kysely": "0.28.9",
+    "pg": "8.16.3"
+  },
+  "devDependencies": {
+    "prisma": "7.2.0",
+    "@prisma/studio": "0.511.0",
+    "@newproject/config": "workspace:*",
+    "@types/pg": "8.16.0",
+    "@zenstackhq/cli": "3.0.0"
+  },
+  "zenstack": {
+    "output": "./src/.generated"
+  },
+  "exports": {
+    ".": {
+      "@newproject/source": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./input": {
+      "@newproject/source": "./src/input.ts",
+      "default": "./dist/input.mjs"
+    },
+    "./models": {
+      "@newproject/source": "./src/models.ts",
+      "default": "./dist/models.mjs"
+    },
+    "./schema": {
+      "@newproject/source": "./src/schema.ts",
+      "default": "./dist/schema.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "packageManager": "bun@1.3.5",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./input": "./dist/input.mjs",
+      "./models": "./dist/models.mjs",
+      "./schema": "./dist/schema.mjs",
+      "./package.json": "./package.json"
+    }
+  }
+}

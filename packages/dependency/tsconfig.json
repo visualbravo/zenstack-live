@@ -1,0 +1,11 @@
+{
+  "extends": "@newproject/config/ts",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "paths": {
+      "*": ["./*"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

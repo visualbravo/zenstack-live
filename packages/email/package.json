@@ -1,0 +1,50 @@
+{
+  "name": "@newproject/email",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "email dev -d ./src/emails",
+    "build": "tsdown",
+    "export": "email export",
+    "watch": "tsdown --watch",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix --fix-suggestions",
+    "format:fix": "oxfmt",
+    "test": "bun test",
+    "test:watch": "bun test --watch"
+  },
+  "dependencies": {
+    "@newproject/env": "workspace:*",
+    "@react-email/components": "1.0.1",
+    "resend": "6.5.2"
+  },
+  "devDependencies": {
+    "@react-email/preview-server": "5.0.5",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@newproject/config": "workspace:*",
+    "react-email": "5.0.5"
+  },
+  "packageManager": "bun@1.3.5",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "@newproject/source": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./emails/example": {
+      "@newproject/source": "./src/emails/example.tsx",
+      "default": "./dist/emails/example.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./emails/example": "./dist/emails/example.mjs",
+      "./package.json": "./package.json"
+    }
+  }
+}

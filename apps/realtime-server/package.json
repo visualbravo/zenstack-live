@@ -1,0 +1,14 @@
+{
+  "name": "@newproject/realtime-server",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot ./src/index.ts"
+  },
+  "dependencies": {
+    "@newproject/realtime": "workspace:*",
+    "@newproject/env": "workspace:*",
+    "@newproject/database": "workspace:*",
+    "@newproject/analytics": "workspace:*",
+    "@socket.io/bun-engine": "0.1.0"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "name": "@newproject/next",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --bun next dev --turbopack --port 3000",
+    "build": "bun --bun next build --turbopack",
+    "start": "bun --bun next start --port 3000",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix --fix-suggestions",
+    "payload:generate": "bun x payload generate:types",
+    "payload:fresh": "bun x payload migrate:fresh --force-accept-warning",
+    "payload:seed": "bun run ./scripts/payload/seed.ts",
+    "prebuild": "bun run payload:generate"
+  },
+  "dependencies": {
+    "@newproject/analytics": "workspace:*",
+    "@newproject/auth": "workspace:*",
+    "@newproject/database": "workspace:*",
+    "@newproject/dayjs": "workspace:*",
+    "@newproject/env": "workspace:*",
+    "@newproject/realtime": "workspace:*",
+    "@newproject/ui": "workspace:*",
+    "@payloadcms/db-postgres": "3.69.0",
+    "@payloadcms/next": "3.69.0",
+    "@payloadcms/richtext-lexical": "3.69.0",
+    "@svgr/webpack": "8.1.0",
+    "better-auth": "catalog:",
+    "graphql": "16.12.0",
+    "next": "16.1.1",
+    "payload": "3.69.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "sharp": "0.34.5"
+  },
+  "devDependencies": {
+    "@newproject/config": "workspace:*",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^25.0.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/umami": "^2.10.1",
+    "babel-plugin-react-compiler": "1.0.0",
+    "esbuild": "0.27.2",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3"
+  }
+}

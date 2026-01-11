@@ -1,0 +1,93 @@
+name: newproject
+
+volumes:
+  postgres-data:
+  valkey-data:
+  caddy-data:
+  caddy-config:
+
+
+networks:
+  workspace:
+    external: false
+
+services:
+  workspace:
+    container_name: newproject-workspace
+    image: mcr.microsoft.com/devcontainers/javascript-node:24
+    volumes:
+      - ..:/workspace:cached
+    env_file: ../packages/env/.env
+    command: sleep infinity
+    ports:
+      - 3000:3000
+      - 3001:3001
+    networks:
+      - workspace
+
+  postgres:
+    container_name: newproject-postgres
+    image: postgres:18
+    volumes:
+      - postgres-data:/var/lib/postgresql/
+      - ./postgres/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    env_file: ../packages/env/.env
+    networks:
+      - workspace
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  valkey:
+    container_name: newproject-valkey
+    image: valkey/valkey:9.0
+    volumes:
+      - valkey-data:/data/
+    env_file: ../packages/env/.env
+    networks:
+      - workspace
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  umami:
+    container_name: newproject-umami
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    ports:
+      - 3002:3000
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/umami
+      DATABASE_TYPE: postgresql
+      APP_SECRET: "SECRET"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    init: true
+    networks:
+      - workspace
+    healthcheck:
+      test: [ "CMD-SHELL", "curl http://localhost:3000/api/heartbeat" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  caddy:
+    image: caddy:2.10.2
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - workspace
+    command: caddy run --watch --config /etc/caddy/Caddyfile

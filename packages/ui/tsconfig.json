@@ -1,0 +1,17 @@
+{
+  "extends": "@newproject/config/ts",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "paths": {
+      "*": ["./*"],
+      "@/*": ["./src/*"],
+      "@newproject/ui/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "./src/**/*.{ts,tsx}",
+    "./test/**/*.{ts,tsx}",
+    "./scripts/**/*.ts"
+  ]
+}
