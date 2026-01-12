@@ -59,6 +59,12 @@ export class SchemaType implements SchemaDef {
           type: 'Boolean',
           optional: true,
         },
+        tags: {
+          name: 'tags',
+          type: 'String',
+          optional: true,
+          array: true,
+        },
         role: {
           name: 'role',
           type: 'Role',

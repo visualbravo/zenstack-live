@@ -17,6 +17,14 @@ type PrimitiveFilter<T> = {
   not?: T | PrimitiveFilter<T>
 }
 
+type PrimitiveArrayFilter<T> = {
+  equals?: T[]
+  has?: T
+  hasEvery?: T[]
+  hasSome?: T[]
+  isEmpty?: boolean
+}
+
 type EnumFilter = Pick<PrimitiveFilter<string>, 'equals' | 'in' | 'notIn' | 'not'>
 
 type StringFilter = {
@@ -84,7 +92,12 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
 
       switch (field.type) {
         case 'String':
-          schemaFields[key] = QueryCompiler.compileString(value as string | PrimitiveFilter<string>)
+          if (field.array) {
+            schemaFields[key] = QueryCompiler.compileStringArray(value as PrimitiveArrayFilter<string>)
+          }
+          else {
+            schemaFields[key] = QueryCompiler.compileString(value as string | PrimitiveFilter<string>)
+          }
           break
         case 'Boolean':
           schemaFields[key] = QueryCompiler.compileBoolean(
@@ -208,6 +221,52 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
 
     if (typeof value.not !== 'undefined') {
       schema = schema.refine(v => !this.compileString(value.not!).safeParse(v).success)
+    }
+
+    return schema
+  }
+
+  static compileStringArray(value: PrimitiveArrayFilter<string>) {
+    if (value.isEmpty === true) {
+      return z.string().array().length(0)
+    }
+
+    let schema = z.string().array()
+
+    if (typeof value.equals !== 'undefined') {
+      schema = schema.refine(v => {
+        for (let i = 0; i < value.equals!.length; i++) {
+          if (v[i] !== value.equals![i]) {
+            return false
+          }
+        }
+
+        return true
+      })
+    }
+
+    if (typeof value.hasEvery !== 'undefined') {
+      schema = schema.refine(v => {
+        const vSet = new Set(v)
+        const valueSet = new Set(value.hasEvery!)
+
+        return vSet.isSupersetOf(valueSet)
+      })
+    }
+
+    if (typeof value.hasSome !== 'undefined') {
+      schema = schema.refine(v => {
+        const vSet = new Set(v)
+        const valueSet = new Set(value.hasSome!)
+
+        return vSet.intersection(valueSet).size > 0
+      })
+    }
+
+    if (typeof value.has !== 'undefined') {
+      schema = schema.refine(v => {
+        return v.includes(value.has!)
+      })
     }
 
     return schema
@@ -365,11 +424,11 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     }
 
     if (typeof value.in !== 'undefined') {
-      schema = schema.refine(v => value.in?.includes(v))
+      schema = schema.refine(v => value.in?.some(v2 => v2.getTime() === v.getTime()))
     }
 
     if (typeof value.notIn !== 'undefined') {
-      schema = schema.refine(v => !value.notIn?.includes(v))
+      schema = schema.refine(v => value.notIn?.some(v2 => v2.getTime() !== v.getTime()))
     }
 
     if (typeof value.not !== 'undefined') {
