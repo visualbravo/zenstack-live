@@ -2446,6 +2446,372 @@ describe('EventDiscriminator', () => {
         ),
       ).toBe(false)
     })
+
+    test('hasEvery', () => {
+      expect(
+        matches(
+          {
+            type: 'created',
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              tags: ['tall', 'smart'],
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              tags: {
+                hasEvery: ['smart'],
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              tags: ['tall', 'smart'],
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              tags: {
+                hasEvery: ['tall', 'smart'],
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              tags: ['tall', 'smart'],
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              tags: {
+                hasEvery: ['smart', 'kind'],
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              tags: ['tall', 'smart'],
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              tags: {
+                hasEvery: [],
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+
+    test('hasSome', () => {
+      expect(
+        matches(
+          {
+            type: 'created',
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              tags: ['tall', 'smart'],
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              tags: {
+                hasSome: ['smart'],
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              tags: ['tall', 'smart'],
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              tags: {
+                hasSome: ['short', 'smart'],
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              tags: ['tall', 'smart'],
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              tags: {
+                hasSome: ['short', 'kind'],
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              tags: ['tall', 'smart'],
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              tags: {
+                hasSome: [],
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+    })
+
+    test('isEmpty', () => {
+      expect(
+        matches(
+          {
+            type: 'created',
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              tags: ['tall', 'smart'],
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              tags: {
+                isEmpty: false,
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              tags: ['tall', 'smart'],
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              tags: {
+                isEmpty: true,
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+            before: null,
+            after: {
+              id: '2',
+              email: 'empty@test.com',
+              age: 25,
+              tags: [],
+              verified: false,
+              name: 'alex',
+              meta: null,
+              role: 'USER',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            date: new Date(),
+            id: '2',
+          },
+          {
+            created: {
+              tags: {
+                isEmpty: true,
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+            before: null,
+            after: {
+              id: '2',
+              email: 'empty@test.com',
+              age: 25,
+              tags: [],
+              verified: false,
+              name: 'alex',
+              meta: null,
+              role: 'USER',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            date: new Date(),
+            id: '2',
+          },
+          {
+            created: {
+              tags: {
+                isEmpty: false,
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
   })
 
   describe('Int', () => {

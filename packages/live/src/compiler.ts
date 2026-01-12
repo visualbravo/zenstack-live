@@ -93,19 +93,33 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
       switch (field.type) {
         case 'String':
           if (field.array) {
-            schemaFields[key] = QueryCompiler.compileStringArray(value as PrimitiveArrayFilter<string>)
-          }
-          else {
-            schemaFields[key] = QueryCompiler.compileString(value as string | PrimitiveFilter<string>)
+            schemaFields[key] = QueryCompiler.compileStringArray(
+              value as PrimitiveArrayFilter<string>,
+            )
+          } else {
+            schemaFields[key] = QueryCompiler.compileString(
+              value as string | PrimitiveFilter<string>,
+            )
           }
           break
         case 'Boolean':
-          schemaFields[key] = QueryCompiler.compileBoolean(
-            value as boolean | PrimitiveFilter<boolean>,
-          )
+          if (field.array) {
+            schemaFields[key] = QueryCompiler.compileBooleanArray(
+              value as PrimitiveArrayFilter<boolean>,
+            )
+          } else {
+            schemaFields[key] = QueryCompiler.compileBoolean(
+              value as boolean | PrimitiveFilter<boolean>,
+            )
+          }
           break
         case 'Int':
-          schemaFields[key] = QueryCompiler.compileInt(value as number | IntFilter)
+          if (field.array) {
+            schemaFields[key] = QueryCompiler.compileIntArray(value as PrimitiveArrayFilter<number>)
+          }
+          else {
+            schemaFields[key] = QueryCompiler.compileInt(value as number | IntFilter)
+          }
           break
         case 'BigInt':
           schemaFields[key] = QueryCompiler.compileBigInt(value as bigint | IntFilter)
@@ -290,6 +304,52 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     return schema
   }
 
+  static compileBooleanArray(value: PrimitiveArrayFilter<boolean>) {
+    if (value.isEmpty === true) {
+      return z.boolean().array().length(0)
+    }
+
+    let schema = z.boolean().array()
+
+    if (typeof value.equals !== 'undefined') {
+      schema = schema.refine(v => {
+        for (let i = 0; i < value.equals!.length; i++) {
+          if (v[i] !== value.equals![i]) {
+            return false
+          }
+        }
+
+        return true
+      })
+    }
+
+    if (typeof value.hasEvery !== 'undefined') {
+      schema = schema.refine(v => {
+        const vSet = new Set(v)
+        const valueSet = new Set(value.hasEvery!)
+
+        return vSet.isSupersetOf(valueSet)
+      })
+    }
+
+    if (typeof value.hasSome !== 'undefined') {
+      schema = schema.refine(v => {
+        const vSet = new Set(v)
+        const valueSet = new Set(value.hasSome!)
+
+        return vSet.intersection(valueSet).size > 0
+      })
+    }
+
+    if (typeof value.has !== 'undefined') {
+      schema = schema.refine(v => {
+        return v.includes(value.has!)
+      })
+    }
+
+    return schema
+  }
+
   static compileEnum(value: string | EnumFilter) {
     if (typeof value === 'string') {
       return z.literal(value)
@@ -353,6 +413,52 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
 
     if (typeof value.not !== 'undefined') {
       schema = schema.refine(v => !this.compileInt(value.not!).safeParse(v).success)
+    }
+
+    return schema
+  }
+
+  static compileIntArray(value: PrimitiveArrayFilter<number>) {
+    if (value.isEmpty === true) {
+      return z.number().array().length(0)
+    }
+
+    let schema = z.number().array()
+
+    if (typeof value.equals !== 'undefined') {
+      schema = schema.refine(v => {
+        for (let i = 0; i < value.equals!.length; i++) {
+          if (v[i] !== value.equals![i]) {
+            return false
+          }
+        }
+
+        return true
+      })
+    }
+
+    if (typeof value.hasEvery !== 'undefined') {
+      schema = schema.refine(v => {
+        const vSet = new Set(v)
+        const valueSet = new Set(value.hasEvery!)
+
+        return vSet.isSupersetOf(valueSet)
+      })
+    }
+
+    if (typeof value.hasSome !== 'undefined') {
+      schema = schema.refine(v => {
+        const vSet = new Set(v)
+        const valueSet = new Set(value.hasSome!)
+
+        return vSet.intersection(valueSet).size > 0
+      })
+    }
+
+    if (typeof value.has !== 'undefined') {
+      schema = schema.refine(v => {
+        return v.includes(value.has!)
+      })
     }
 
     return schema
