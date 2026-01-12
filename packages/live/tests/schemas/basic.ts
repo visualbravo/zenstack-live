@@ -54,6 +54,11 @@ export class SchemaType implements SchemaDef {
           type: 'Int',
           optional: true,
         },
+        verified: {
+          name: 'verified',
+          type: 'Boolean',
+          optional: true,
+        },
         role: {
           name: 'role',
           type: 'Role',

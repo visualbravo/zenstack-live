@@ -1,3 +1,4 @@
+// oxlint-disable max-lines
 // oxlint-disable no-implicit-coercion
 // oxlint-disable no-continue
 // oxlint-disable max-statements
@@ -23,7 +24,7 @@ export type QueryCompilerOptions<Schema extends SchemaDef, ModelName extends Get
 }
 
 type PrimitiveFilter<T> = {
-  equals?: T
+  equals?: T | null
   in?: T[]
   notIn?: T[]
   lt?: T
@@ -42,12 +43,9 @@ type StringFilter = {
   mode?: 'default' | 'insensitive'
 } & PrimitiveFilter<string>
 
-type IntFilter = {
-  contains?: string
-  startsWith?: string
-  endsWith?: string
-  mode?: 'default' | 'insensitive'
-} & PrimitiveFilter<number>
+type IntFilter = PrimitiveFilter<number>
+
+type BooleanFilter = Pick<PrimitiveFilter<boolean>, 'equals' | 'not'>
 
 const operatorNames = new Set(['AND', 'OR', 'NOT'])
 
@@ -61,9 +59,36 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
   compile(where: any) {
     const schemaFields: Record<string, unknown> = {}
     const model = this.options.schema.models[this.options.modelName]!
+    let andSchemas: z.ZodSchema[] | undefined
+    let notSchemas: z.ZodSchema[] | undefined
+    let orSchemas: z.ZodSchema[] | undefined
 
     for (const [key, value] of Object.entries(where)) {
       if (operatorNames.has(key)) {
+        if (key === 'AND') {
+          if (Array.isArray(value)) {
+            andSchemas = value.map(where => this.compile(where))
+          } else {
+            andSchemas = [this.compile(value)]
+          }
+
+          continue
+        }
+
+        if (key === 'NOT') {
+          if (Array.isArray(value)) {
+            notSchemas = value.map(where => this.compile(where))
+          } else {
+            notSchemas = [this.compile(value)]
+          }
+
+          continue
+        }
+
+        if (key === 'OR' && Array.isArray(value)) {
+          orSchemas = value.map(where => this.compile(where))
+        }
+
         continue
       }
 
@@ -78,8 +103,16 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
         case 'String':
           schemaFields[key] = QueryCompiler.compileString(value as string | PrimitiveFilter<string>)
           break
+        case 'Boolean':
+          schemaFields[key] = QueryCompiler.compileBoolean(
+            value as boolean | PrimitiveFilter<boolean>,
+          )
+          break
         case 'Int':
-          schemaFields[key] = QueryCompiler.compileInt(value as number | PrimitiveFilter<number>)
+          schemaFields[key] = QueryCompiler.compileInt(value as number | IntFilter)
+          break
+        case 'BigInt':
+          schemaFields[key] = QueryCompiler.compileBigInt(value as bigint | IntFilter)
           break
         case 'DateTime':
           schemaFields[key] = QueryCompiler.compileDateTime(value as Date | PrimitiveFilter<Date>)
@@ -87,7 +120,46 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
       }
     }
 
-    return z.object(schemaFields)
+    const localSchema = z.object(schemaFields)
+
+    return z.any().refine(payload => {
+      if (!localSchema.safeParse(payload).success) {
+        return false
+      }
+
+      if (andSchemas) {
+        for (const schema of andSchemas) {
+          if (!schema.safeParse(payload).success) {
+            return false
+          }
+        }
+      }
+
+      if (orSchemas && orSchemas.length > 0) {
+        let matched = false
+
+        for (const schema of orSchemas) {
+          if (schema.safeParse(payload).success) {
+            matched = true
+            break
+          }
+        }
+
+        if (!matched) {
+          return false
+        }
+      }
+
+      if (notSchemas) {
+        for (const schema of notSchemas) {
+          if (schema.safeParse(payload).success) {
+            return false
+          }
+        }
+      }
+
+      return true
+    })
   }
 
   static compileString(value: string | StringFilter) {
@@ -158,6 +230,26 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     return schema
   }
 
+  static compileBoolean(value: boolean | BooleanFilter) {
+    if (typeof value === 'boolean') {
+      return z.literal(value)
+    }
+
+    if (typeof value.equals !== 'undefined') {
+      return z.literal(value.equals)
+    }
+
+    let schema = z.boolean()
+
+    if (typeof value.not !== 'undefined') {
+      const { success } = this.compileBoolean(value.not).safeParse(value.not)
+
+      schema = schema.refine(() => !success)
+    }
+
+    return schema
+  }
+
   static compileEnum(value: string | EnumFilter) {
     if (typeof value === 'string') {
       return z.literal(value)
@@ -219,6 +311,46 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
 
     if (typeof value.notIn !== 'undefined') {
       schema = schema.refine(v => !value.notIn?.includes(v))
+    }
+
+    if (typeof value.not !== 'undefined') {
+      const { success } = this.compileInt(value.not).safeParse(value.not)
+
+      schema = schema.refine(() => !success)
+    }
+
+    return schema
+  }
+
+  private static isBigInt(value: unknown): value is bigint {
+    return value instanceof BigInt
+  }
+
+  static compileBigInt(value: bigint | IntFilter) {
+    if (this.isBigInt(value)) {
+      return z.literal(value)
+    }
+
+    if (typeof value.equals !== 'undefined') {
+      return z.literal(value.equals)
+    }
+
+    let schema = z.bigint()
+
+    if (typeof value.gt !== 'undefined') {
+      schema = schema.refine(v => v > value.gt!)
+    }
+
+    if (typeof value.gte !== 'undefined') {
+      schema = schema.refine(v => v >= value.gte!)
+    }
+
+    if (typeof value.lt !== 'undefined') {
+      schema = schema.refine(v => v < value.lt!)
+    }
+
+    if (typeof value.lte !== 'undefined') {
+      schema = schema.refine(v => v <= value.lte!)
     }
 
     if (typeof value.not !== 'undefined') {

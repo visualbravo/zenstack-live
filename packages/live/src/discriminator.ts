@@ -9,14 +9,19 @@ import type { LiveStreamOptions, ZenStackLiveEvent } from '.'
 import { QueryCompiler } from './compiler'
 import { z } from 'zod/v4'
 
+export type EventDiscriminatorOptions<
+  Schema extends SchemaDef,
+  ModelName extends GetModels<Schema>,
+> = Omit<LiveStreamOptions<Schema, ModelName>, 'redis' | 'id' | 'clientId'>
+
 export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetModels<Schema>> {
-  private readonly streamOptions: LiveStreamOptions<Schema, ModelName>
+  private readonly streamOptions: EventDiscriminatorOptions<Schema, ModelName>
   private readonly queryCompiler: QueryCompiler<Schema, ModelName>
   private readonly createdSchema?: z.ZodSchema
   private readonly updatedSchema?: z.ZodSchema
   private readonly deletedSchema?: z.ZodSchema
 
-  constructor(streamOptions: LiveStreamOptions<Schema, ModelName>) {
+  constructor(streamOptions: EventDiscriminatorOptions<Schema, ModelName>) {
     this.streamOptions = streamOptions
 
     this.queryCompiler = new QueryCompiler({
@@ -43,13 +48,9 @@ export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetM
     }
 
     if (event.type === 'created' && this.createdSchema) {
-      const { success } = this.createdSchema.safeParse(event.after)
-
-      return success
+      return this.createdSchema.safeParse(event.after).success
     } else if (event.type === 'deleted' && this.deletedSchema) {
-      const { success } = this.deletedSchema.safeParse(event.before)
-
-      return success
+      return this.deletedSchema.safeParse(event.before).success
     }
   }
 }
