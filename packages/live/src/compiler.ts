@@ -1,18 +1,5 @@
-// oxlint-disable max-lines
-// oxlint-disable no-implicit-coercion
-// oxlint-disable no-continue
-// oxlint-disable max-statements
-// oxlint-disable default-case
-// oxlint-disable no-non-null-assertion
-// oxlint-disable no-empty
-// oxlint-disable no-lone-blocks
-// oxlint-disable no-extraneous-class
-// oxlint-disable no-explicit-any
-// oxlint-disable init-declarations
-// oxlint-disable no-unused-vars
-
 import type { SchemaDef, GetModels } from '@zenstackhq/schema'
-import {z} from 'zod/v4'
+import { z } from 'zod/v4'
 
 export type QueryCompilerOptions<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   schema: Schema
@@ -112,6 +99,8 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
           break
         case 'DateTime':
           schemaFields[key] = QueryCompiler.compileDateTime(value as Date | PrimitiveFilter<Date>)
+          break
+        default:
           break
       }
     }

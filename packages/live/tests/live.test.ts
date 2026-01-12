@@ -49,19 +49,9 @@ describe('live', () => {
       id: 'all-user-changes',
 
       created: {
-        OR: [
-          {
-            email: {
-              contains: '.com'
-            }
-          },
-
-          {
-            id: {
-              gte: '1,'
-            }
-          },
-        ],
+        age: {
+          
+        }
       },
     })
 
