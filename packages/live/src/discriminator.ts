@@ -47,7 +47,7 @@ export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetM
 
       return success
     } else if (event.type === 'deleted' && this.deletedSchema) {
-      const { success } = this.deletedSchema.safeParse(event.after)
+      const { success } = this.deletedSchema.safeParse(event.before)
 
       return success
     }

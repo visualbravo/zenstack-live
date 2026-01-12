@@ -7,7 +7,6 @@ import { SqliteDialect } from '@zenstackhq/orm/dialects/sqlite'
 import { parse } from 'lossless-json'
 // @ts-expect-error
 import SQLite from 'better-sqlite3'
-import { object, string, symbol, z } from 'zod'
 import { Redis } from 'ioredis'
 import Decimal from 'decimal.js'
 import hash from 'stable-hash'
@@ -114,7 +113,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
       updated: options.updated,
       deleted: options.deleted,
     })
-  
+
     this.options = options
     this.modelName = options.model
     this.streamName = `zenstack.table.public.${this.modelName}`
@@ -125,7 +124,13 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
 
   private async makeConsumerGroup() {
     try {
-      await this.options.redis.xgroup('CREATE', this.streamName, this.consumerGroupName, '$', 'MKSTREAM')
+      await this.options.redis.xgroup(
+        'CREATE',
+        this.streamName,
+        this.consumerGroupName,
+        '$',
+        'MKSTREAM',
+      )
     } catch (error) {
       if (
         error instanceof Error &&
@@ -206,6 +211,14 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
     for (const [fieldName, field] of Object.entries(
       this.options.schema.models[this.modelName]!.fields,
     )) {
+      if (field.relation) {
+        continue
+      }
+
+      if ([null, undefined, NaN].includes(payload[fieldName])) {
+        payload[fieldName] = null
+      }
+
       switch (field.type) {
         case 'BigInt':
           payload[fieldName] = BigInt(payload[fieldName])

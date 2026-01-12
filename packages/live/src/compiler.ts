@@ -1,3 +1,4 @@
+// oxlint-disable no-implicit-coercion
 // oxlint-disable no-continue
 // oxlint-disable max-statements
 // oxlint-disable default-case
@@ -32,6 +33,8 @@ type PrimitiveFilter<T> = {
   not?: T | PrimitiveFilter<T>
 }
 
+type EnumFilter = Pick<PrimitiveFilter<string>, 'equals' | 'in' | 'notIn' | 'not'>
+
 type StringFilter = {
   contains?: string
   startsWith?: string
@@ -60,7 +63,16 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     const model = this.options.schema.models[this.options.modelName]!
 
     for (const [key, value] of Object.entries(where)) {
+      if (operatorNames.has(key)) {
+        continue
+      }
+
       const field = Object.values(model.fields).find(field => field.name === key)!
+      const isEnum = !!this.options.schema.enums?.[field.type]
+
+      if (isEnum) {
+        continue
+      }
 
       switch (field.type) {
         case 'String':
@@ -83,11 +95,11 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
       return z.literal(value)
     }
 
-    let schema = z.string()
-
     if (typeof value.equals !== 'undefined') {
       return z.literal(value.equals)
     }
+
+    let schema = z.string()
 
     if (typeof value.startsWith !== 'undefined') {
       if (value.mode === 'insensitive') {
@@ -146,16 +158,44 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     return schema
   }
 
+  static compileEnum(value: string | EnumFilter) {
+    if (typeof value === 'string') {
+      return z.literal(value)
+    }
+
+    if (typeof value.equals !== 'undefined') {
+      return z.literal(value.equals)
+    }
+
+    let schema = z.string()
+
+    if (typeof value.in !== 'undefined') {
+      schema = schema.refine(v => value.in?.includes(v))
+    }
+
+    if (typeof value.notIn !== 'undefined') {
+      schema = schema.refine(v => !value.notIn?.includes(v))
+    }
+
+    if (typeof value.not !== 'undefined') {
+      const { success } = this.compileEnum(value.not).safeParse(value.not)
+
+      schema = schema.refine(() => !success)
+    }
+
+    return schema
+  }
+
   static compileInt(value: number | IntFilter) {
     if (typeof value === 'number') {
       return z.literal(value)
     }
 
-    let schema = z.number()
-
     if (typeof value.equals !== 'undefined') {
       return z.literal(value.equals)
     }
+
+    let schema = z.number()
 
     if (typeof value.gt !== 'undefined') {
       schema = schema.refine(v => v > value.gt!)
@@ -195,11 +235,11 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
       return z.date().refine(v => v === value)
     }
 
-    let schema = z.date()
-
     if (typeof value.equals !== 'undefined') {
-      schema.refine(v => v === value)
+      return z.date().refine(v => v === value)
     }
+
+    let schema = z.date()
 
     if (typeof value.gt !== 'undefined') {
       schema = schema.refine(v => v > value.gt!)
