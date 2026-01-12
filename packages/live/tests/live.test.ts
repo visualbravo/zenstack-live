@@ -28,6 +28,7 @@ describe('live', () => {
 
     live = new ZenStackLive({
       schema,
+      id: 'zenstack',
 
       redis: {
         url: process.env['REDIS_URL'] as string,
@@ -48,8 +49,8 @@ describe('live', () => {
       id: 'all-user-changes',
 
       created: {},
-      deleted: {},
       updated: {},
+      deleted: {},
     })
 
     for await (const event of stream) {

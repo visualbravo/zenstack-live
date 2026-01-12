@@ -7,9 +7,10 @@ import { SqliteDialect } from '@zenstackhq/orm/dialects/sqlite'
 import { parse } from 'lossless-json'
 // @ts-expect-error
 import SQLite from 'better-sqlite3'
-import { object, string, z } from 'zod'
+import { object, string, symbol, z } from 'zod'
 import { Redis } from 'ioredis'
 import Decimal from 'decimal.js'
+import hash from 'stable-hash'
 import type {
   XReadGroupResponse,
   XAutoClaimResult,
@@ -20,6 +21,7 @@ import type {
   DebeziumShortEventType,
   DebeziumSource,
 } from './internal'
+import { EventDiscriminator } from './discriminator'
 
 const operationMap: Record<DebeziumShortEventType, DatabaseEventType> = {
   c: 'created',
@@ -29,11 +31,10 @@ const operationMap: Record<DebeziumShortEventType, DatabaseEventType> = {
 
 export type DatabaseEventType = 'created' | 'updated' | 'deleted'
 
-export type LiveSubscriptionOptions<
-  Schema extends SchemaDef,
-  ModelName extends GetModels<Schema>,
-> = {
+export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   model: ModelName
+  redis: Redis
+  schema: Schema
   id: string
   created?: WhereInput<Schema, ModelName, true>
   updated?: {
@@ -41,22 +42,6 @@ export type LiveSubscriptionOptions<
     after?: WhereInput<Schema, ModelName, true>
   }
   deleted?: WhereInput<Schema, ModelName, true>
-}
-
-export class LiveSubscription<Schema extends SchemaDef, ModelName extends GetModels<Schema>> {
-  private readonly options: LiveSubscriptionOptions<Schema, ModelName>
-  private readonly modelName: ModelName
-  private readonly streamName: string
-  private readonly consumerName: string
-  private readonly consumerGroupName: string
-
-  constructor(options: LiveSubscriptionOptions<Schema, ModelName>) {
-    this.options = options
-    this.modelName = options.model
-    this.streamName = `zenstack.table.public.${this.modelName}`
-    this.consumerName = 'zenstack'
-    this.consumerGroupName = `zenstack.table.public.${this.modelName}.${this.options.id}`
-  }
 }
 
 export type RecordCreatedEvent<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
@@ -102,80 +87,45 @@ export type RecordResultMap<Schema extends SchemaDef, ModelName extends GetModel
 
 export type ZenStackLiveOptions<Schema extends SchemaDef> = {
   schema: Schema
+
+  /**
+   * This client's unique ID. Used for horizontal scaling.
+   */
+  id: string
+
   redis: {
     url: string
   }
 }
 
-export class ZenStackLive<Schema extends SchemaDef> {
-  private readonly options: ZenStackLiveOptions<Schema>
-  private readonly redis: Redis
+export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Schema>> {
+  private readonly options: LiveStreamOptions<Schema, ModelName>
+  private readonly modelName: ModelName
+  private readonly streamName: string
+  private readonly consumerName: string
+  private readonly consumerGroupName: string
+  private readonly discriminator: EventDiscriminator<Schema, ModelName>
 
-  constructor(options: ZenStackLiveOptions<Schema>) {
+  constructor(options: LiveStreamOptions<Schema, ModelName>) {
+    const hashed = hash({
+      id: options.id,
+      model: options.model,
+      created: options.created,
+      updated: options.updated,
+      deleted: options.deleted,
+    })
+  
     this.options = options
-    this.redis = new Redis(options.redis.url)
+    this.modelName = options.model
+    this.streamName = `zenstack.table.public.${this.modelName}`
+    this.consumerName = `zenstack.${options.id}`
+    this.consumerGroupName = `zenstack.table.public.${this.modelName}.${hashed}`
+    this.discriminator = new EventDiscriminator(options)
   }
 
-  async *stream<ModelName extends GetModels<Schema>>(
-    subscription: LiveSubscriptionOptions<Schema, ModelName>,
-  ): AsyncIterable<RecordEvent<Schema, ModelName>> {
-    const modelName = subscription.model
-    const streamName = this.getStreamName(modelName)
-    const consumerName = 'zenstack'
-    const consumerGroupName = `zenstack.table.public.${modelName}.${subscription.id}`
-
-    await this.makeConsumerGroup(streamName, consumerGroupName)
-
-    while (this.redis.status === 'ready') {
-      const events = await this.getLatestEvents(
-        modelName,
-        streamName,
-        consumerGroupName,
-        consumerName,
-      )
-
-      if (events.length === 0) {
-        await this.sleep(2000)
-      }
-
-      for (const event of events) {
-        if (event.type === 'created') {
-          yield {
-            type: 'created',
-            id: event.id,
-            date: event.date,
-            // @ts-expect-error
-            created: event.after,
-          }
-        } else if (event.type === 'updated') {
-          yield {
-            type: 'updated',
-            id: event.id,
-            date: event.date,
-            // @ts-expect-error
-            before: event.before,
-            // @ts-expect-error
-
-            after: event.after,
-          }
-        } else if (event.type === 'deleted') {
-          yield {
-            type: 'deleted',
-            id: event.id,
-            date: event.date,
-            // @ts-expect-error
-            deleted: event.before,
-          }
-        }
-
-        await this.acknowledgeEvent(streamName, consumerGroupName, event.id)
-      }
-    }
-  }
-
-  private async makeConsumerGroup(streamName: string, consumerGroupName: string) {
+  private async makeConsumerGroup() {
     try {
-      await this.redis.xgroup('CREATE', streamName, consumerGroupName, '$', 'MKSTREAM')
+      await this.options.redis.xgroup('CREATE', this.streamName, this.consumerGroupName, '$', 'MKSTREAM')
     } catch (error) {
       if (
         error instanceof Error &&
@@ -188,17 +138,73 @@ export class ZenStackLive<Schema extends SchemaDef> {
     }
   }
 
+  private async acknowledgeEvent(eventId: string) {
+    await this.options.redis
+      .multi()
+      .xack(this.streamName, this.consumerGroupName, eventId)
+      .xdel(this.streamName, eventId)
+      .exec()
+  }
+
+  private parseJson<T>(json: string) {
+    return parse(json, undefined, {
+      parseNumber: value => {
+        return value
+      },
+    }) as T
+  }
+
   private async sleep(ms: number) {
     await new Promise(resolve => setTimeout(resolve, ms))
   }
 
-  private getStreamName(modelName: string) {
-    return `zenstack.table.public.${modelName}`
+  async *[Symbol.asyncIterator]() {
+    await this.makeConsumerGroup()
+
+    while (this.options.redis.status === 'ready') {
+      const events = await this.getLatestEvents()
+
+      if (events.length === 0) {
+        await this.sleep(1000)
+      }
+
+      for (const event of events) {
+        if (!this.discriminator.eventMatchesWhere(event)) {
+          continue
+        }
+
+        if (event.type === 'created') {
+          yield {
+            type: 'created',
+            id: event.id,
+            date: event.date,
+            created: event.after,
+          }
+        } else if (event.type === 'updated') {
+          yield {
+            type: 'updated',
+            id: event.id,
+            date: event.date,
+            before: event.before,
+            after: event.after,
+          }
+        } else if (event.type === 'deleted') {
+          yield {
+            type: 'deleted',
+            id: event.id,
+            date: event.date,
+            deleted: event.before,
+          }
+        }
+
+        await this.acknowledgeEvent(event.id)
+      }
+    }
   }
 
-  private hydratePayload(modelName: string, payload: any) {
+  private hydratePayload(payload: any) {
     for (const [fieldName, fieldDef] of Object.entries(
-      this.options.schema.models[modelName]!.fields,
+      this.options.schema.models[this.modelName]!.fields,
     )) {
       switch (fieldDef.type) {
         case 'BigInt':
@@ -219,37 +225,27 @@ export class ZenStackLive<Schema extends SchemaDef> {
         case 'Float':
           payload[fieldName] = parseFloat(payload[fieldName])
           break
-        default:
+        case 'Bytes':
           throw new Error(`Field "${fieldName}" has an unsupported type ("${fieldDef.type}")`)
+        case 'String':
+        case 'Json':
+          break
       }
     }
   }
 
-  public async acknowledgeEvent(streamName: string, consumerGroupName: string, eventId: string) {
-    await this.redis
-      .multi()
-      .xack(streamName, consumerGroupName, eventId)
-      .xdel(streamName, eventId)
-      .exec()
-  }
-
-  private async getLatestEvents(
-    modelName: string,
-    streamName: string,
-    consumerGroupName: string,
-    consumerName: string,
-  ) {
+  private async getLatestEvents() {
     const events: ZenStackLiveEvent[] = []
-    const xReadGroupResponse = (await this.redis.xreadgroup(
+    const xReadGroupResponse = (await this.options.redis.xreadgroup(
       'GROUP',
-      consumerGroupName,
-      consumerName,
+      this.consumerGroupName,
+      this.consumerName,
       'COUNT',
       5,
       'BLOCK',
       0,
       'STREAMS',
-      streamName,
+      this.streamName,
       '>',
     )) as XReadGroupResponse | null
 
@@ -262,7 +258,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
             continue
           }
 
-          let event = this.parseJson<any>(modelName, eventJson)
+          let event = this.parseJson<any>(eventJson)
 
           if (!event) {
             continue
@@ -271,12 +267,12 @@ export class ZenStackLive<Schema extends SchemaDef> {
           const operation = operationMap[event.op as DebeziumShortEventType]
 
           if (operation === 'created') {
-            this.hydratePayload(modelName, event.after)
+            this.hydratePayload(event.after)
           } else if (operation === 'updated') {
-            this.hydratePayload(modelName, event.before)
-            this.hydratePayload(modelName, event.after)
+            this.hydratePayload(event.before)
+            this.hydratePayload(event.after)
           } else {
-            this.hydratePayload(modelName, event.before)
+            this.hydratePayload(event.before)
           }
 
           events.push({
@@ -292,13 +288,25 @@ export class ZenStackLive<Schema extends SchemaDef> {
 
     return events
   }
+}
 
-  private parseJson<T>(modelName: string, json: string) {
-    return parse(json, undefined, {
-      parseNumber: value => {
-        return value
-      },
-    }) as T
+export class ZenStackLive<Schema extends SchemaDef> {
+  private readonly options: ZenStackLiveOptions<Schema>
+  private readonly redis: Redis
+
+  constructor(options: ZenStackLiveOptions<Schema>) {
+    this.options = options
+    this.redis = new Redis(options.redis.url)
+  }
+
+  stream<ModelName extends GetModels<Schema>>(
+    streamOptions: Omit<LiveStreamOptions<Schema, ModelName>, 'schema' | 'redis'>,
+  ) {
+    return new LiveStream({
+      ...streamOptions,
+      redis: this.redis,
+      schema: this.options.schema,
+    })
   }
 
   disconnect() {
