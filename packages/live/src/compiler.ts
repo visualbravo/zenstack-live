@@ -179,9 +179,9 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
 
     if (typeof value.endsWith !== 'undefined') {
       if (value.mode === 'insensitive') {
-        schema = schema.startsWith(value.endsWith.toLowerCase()).toLowerCase()
+        schema = schema.endsWith(value.endsWith.toLowerCase()).toLowerCase()
       } else {
-        schema = schema.startsWith(value.endsWith)
+        schema = schema.endsWith(value.endsWith)
       }
     }
 
@@ -262,7 +262,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     }
 
     if (typeof value.not !== 'undefined') {
-      schema = schema.refine(v => !this.compileEnum(value.not!).safeParse(v))
+      schema = schema.refine(v => !this.compileEnum(value.not!).safeParse(v).success)
     }
 
     return schema

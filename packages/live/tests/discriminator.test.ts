@@ -682,7 +682,7 @@ describe('EventDiscriminator', () => {
       ).toBe(false)
     })
 
-    test('not', () => {
+    test('nested not', () => {
       // Boolean
       expect(
         matches(
@@ -771,7 +771,7 @@ describe('EventDiscriminator', () => {
           {
             created: {
               email: {
-                not: 'test2@test.com'
+                not: 'test2@test.com',
               },
             },
           },
@@ -866,7 +866,346 @@ describe('EventDiscriminator', () => {
             created: {
               age: {
                 not: 18,
-              }
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+
+      // DateTime
+      const now = new Date()
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: now,
+              updatedAt: now,
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              createdAt: {
+                not: new Date(now.getTime() - 1000),
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: now,
+              updatedAt: now,
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              createdAt: {
+                not: now,
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+
+      // multiple, both equal
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              name: {
+                not: 'ymc',
+              },
+
+              age: {
+                not: 17,
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      // multiple, one not equal
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              name: {
+                not: 'ymc',
+              },
+              age: {
+                not: 18,
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+    })
+
+    test('nested not equals', () => {
+      // Boolean
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              verified: {
+                not: {
+                  equals: false,
+                },
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              verified: {
+                not: {
+                  equals: true,
+                },
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+
+      // String
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                not: {
+                  equals: 'test2@test.com',
+                },
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                not: {
+                  equals: 'test@test.com',
+                },
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+
+      // Int
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              age: {
+                not: {
+                  equals: 17,
+                },
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              age: {
+                not: {
+                  equals: 18,
+                },
+              },
             },
           },
         ),
@@ -900,7 +1239,7 @@ describe('EventDiscriminator', () => {
             created: {
               createdAt: {
                 not: {
-                  equals: new Date(now.getTime() - 1000)
+                  equals: new Date(now.getTime() - 1000),
                 },
               },
             },
@@ -1004,6 +1343,612 @@ describe('EventDiscriminator', () => {
               },
               age: {
                 not: 18,
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+    })
+  })
+
+  describe('string', () => {
+    test('startsWith', () => {
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                startsWith: 'test@',
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                startsWith: 'Test@',
+                mode: 'insensitive',
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                startsWith: 'Test@',
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                startsWith: 'test2@',
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+    })
+
+    test('endsWith', () => {
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                endsWith: '.com',
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                endsWith: '.Com',
+                mode: 'insensitive',
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                endsWith: '.Com',
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                endsWith: '.com2',
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+    })
+
+    test('contains', () => {
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                contains: '.com',
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                contains: '.Com',
+                mode: 'insensitive',
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                contains: '.Com',
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+    })
+
+    test('gt', () => {
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                gt: '1',
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                gt: 'test@test.com',
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+    })
+
+    test('gte', () => {
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                gte: '1',
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                gte: 'test@test.com',
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+
+    test('in', () => {
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                in: ['test@test.com'],
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                in: ['1', 'test@test.com'],
+              },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                in: [],
+              },
+            },
+          },
+        ),
+      ).toBe(false)
+
+      expect(
+        matches(
+          {
+            type: 'created',
+
+            before: null,
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            created: {
+              email: {
+                in: ['1', '2'],
               },
             },
           },
