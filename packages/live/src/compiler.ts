@@ -12,11 +12,7 @@
 // oxlint-disable no-unused-vars
 
 import type { SchemaDef, GetModels } from '@zenstackhq/schema'
-import type { WhereInput, ClientContract, SimplifiedPlainResult } from '@zenstackhq/orm'
-import { SqliteDialect } from '@zenstackhq/orm/dialects/sqlite'
-import { parse } from 'lossless-json'
-import type { LiveStreamOptions, ZenStackLiveEvent } from '.'
-import { z } from 'zod/v4'
+import {z} from 'zod/v4'
 
 export type QueryCompilerOptions<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   schema: Schema
@@ -364,11 +360,11 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
 
   static compileDateTime(value: Date | PrimitiveFilter<Date>) {
     if (value instanceof Date) {
-      return z.date().refine(v => v === value)
+      return z.date().refine(v => v.getTime() === value.getTime())
     }
 
-    if (typeof value.equals !== 'undefined') {
-      return z.date().refine(v => v === value)
+    if (value.equals instanceof Date) {
+      return z.date().refine(v => v.getTime() === value.equals!.getTime())
     }
 
     let schema = z.date()

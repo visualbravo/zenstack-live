@@ -1,10 +1,6 @@
 /* eslint-disable */
 
 import type { SchemaDef, GetModels } from '@zenstackhq/schema'
-import type { WhereInput, ClientContract, SimplifiedPlainResult } from '@zenstackhq/orm'
-import { ZenStackClient, InputValidator } from '@zenstackhq/orm'
-import { SqliteDialect } from '@zenstackhq/orm/dialects/sqlite'
-import { parse } from 'lossless-json'
 import type { LiveStreamOptions, ZenStackLiveEvent } from '.'
 import { QueryCompiler } from './compiler'
 import { z } from 'zod/v4'
