@@ -304,7 +304,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     }
 
     if (typeof value.not !== 'undefined') {
-      schema = schema.refine(v => !this.compileInt(value.not!).safeParse(v))
+      schema = schema.refine(v => !this.compileInt(value.not!).safeParse(v).success)
     }
 
     return schema
@@ -342,7 +342,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     }
 
     if (typeof value.not !== 'undefined') {
-      schema = schema.refine(v => !this.compileInt(value.not!).safeParse(v))
+      schema = schema.refine(v => !this.compileInt(value.not!).safeParse(v).success)
     }
 
     return schema
@@ -384,7 +384,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     }
 
     if (typeof value.not !== 'undefined') {
-      schema = schema.refine(v => !this.compileDateTime(value.not!).safeParse(v))
+      schema = schema.refine(v => !this.compileDateTime(value.not!).safeParse(v).success)
     }
 
     return schema

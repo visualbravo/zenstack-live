@@ -834,7 +834,7 @@ describe('EventDiscriminator', () => {
           {
             created: {
               age: {
-                equals: 18,
+                not: 17,
               },
             },
           },
@@ -865,8 +865,8 @@ describe('EventDiscriminator', () => {
           {
             created: {
               age: {
-                equals: 17,
-              },
+                not: 18,
+              }
             },
           },
         ),
@@ -899,7 +899,9 @@ describe('EventDiscriminator', () => {
           {
             created: {
               createdAt: {
-                equals: now,
+                not: {
+                  equals: new Date(now.getTime() - 1000)
+                },
               },
             },
           },
@@ -930,7 +932,7 @@ describe('EventDiscriminator', () => {
           {
             created: {
               createdAt: {
-                equals: new Date(now.getTime() - 1000),
+                not: now,
               },
             },
           },
@@ -962,11 +964,11 @@ describe('EventDiscriminator', () => {
           {
             created: {
               name: {
-                equals: 'sanny',
+                not: 'ymc',
               },
 
               age: {
-                equals: 18,
+                not: 17,
               },
             },
           },
@@ -998,10 +1000,10 @@ describe('EventDiscriminator', () => {
           {
             created: {
               name: {
-                equals: 'sanny',
+                not: 'ymc',
               },
               age: {
-                equals: 17,
+                not: 18,
               },
             },
           },
