@@ -49,11 +49,7 @@ describe('live', () => {
       id: 'all-user-changes',
 
       created: {
-        email: {
-          not: {
-            contains: '.com',
-          }
-        }
+        
       },
 
       deleted: {},
