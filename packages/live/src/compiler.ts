@@ -218,9 +218,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     }
 
     if (typeof value.not !== 'undefined') {
-      const { success } = this.compileString(value.not).safeParse(value.not)
-
-      schema = schema.refine(() => !success)
+      schema = schema.refine(v => !this.compileString(value.not!).safeParse(v).success)
     }
 
     return schema
@@ -238,9 +236,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     let schema = z.boolean()
 
     if (typeof value.not !== 'undefined') {
-      const { success } = this.compileBoolean(value.not).safeParse(value.not)
-
-      schema = schema.refine(() => !success)
+      schema = schema.refine(v => !this.compileBoolean(value.not!).safeParse(v).success)
     }
 
     return schema
@@ -266,9 +262,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     }
 
     if (typeof value.not !== 'undefined') {
-      const { success } = this.compileEnum(value.not).safeParse(value.not)
-
-      schema = schema.refine(() => !success)
+      schema = schema.refine(v => !this.compileEnum(value.not!).safeParse(v))
     }
 
     return schema
@@ -310,9 +304,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     }
 
     if (typeof value.not !== 'undefined') {
-      const { success } = this.compileInt(value.not).safeParse(value.not)
-
-      schema = schema.refine(() => !success)
+      schema = schema.refine(v => !this.compileInt(value.not!).safeParse(v))
     }
 
     return schema
@@ -350,9 +342,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     }
 
     if (typeof value.not !== 'undefined') {
-      const { success } = this.compileInt(value.not).safeParse(value.not)
-
-      schema = schema.refine(() => !success)
+      schema = schema.refine(v => !this.compileInt(value.not!).safeParse(v))
     }
 
     return schema
@@ -394,9 +384,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     }
 
     if (typeof value.not !== 'undefined') {
-      const { success } = this.compileDateTime(value.not).safeParse(value.not)
-
-      schema = schema.refine(() => !success)
+      schema = schema.refine(v => !this.compileDateTime(value.not!).safeParse(v))
     }
 
     return schema
