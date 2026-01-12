@@ -36,6 +36,7 @@ export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetMod
   redis: Redis
   schema: Schema
   id: string
+  clientId: string
   created?: WhereInput<Schema, ModelName, true>
   updated?: {
     before?: WhereInput<Schema, ModelName, true>
@@ -109,7 +110,6 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
   constructor(options: LiveStreamOptions<Schema, ModelName>) {
     const hashed = hash({
       id: options.id,
-      model: options.model,
       created: options.created,
       updated: options.updated,
       deleted: options.deleted,
@@ -118,7 +118,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
     this.options = options
     this.modelName = options.model
     this.streamName = `zenstack.table.public.${this.modelName}`
-    this.consumerName = `zenstack.${options.id}`
+    this.consumerName = `zenstack.${options.clientId}`
     this.consumerGroupName = `zenstack.table.public.${this.modelName}.${hashed}`
     this.discriminator = new EventDiscriminator(options)
   }
@@ -203,10 +203,10 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
   }
 
   private hydratePayload(payload: any) {
-    for (const [fieldName, fieldDef] of Object.entries(
+    for (const [fieldName, field] of Object.entries(
       this.options.schema.models[this.modelName]!.fields,
     )) {
-      switch (fieldDef.type) {
+      switch (field.type) {
         case 'BigInt':
           payload[fieldName] = BigInt(payload[fieldName])
           break
@@ -226,10 +226,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
           payload[fieldName] = parseFloat(payload[fieldName])
           break
         case 'Bytes':
-          throw new Error(`Field "${fieldName}" has an unsupported type ("${fieldDef.type}")`)
-        case 'String':
-        case 'Json':
-          break
+          throw new Error(`Field "${fieldName}" has an unsupported type ("${field.type}")`)
       }
     }
   }
@@ -300,11 +297,12 @@ export class ZenStackLive<Schema extends SchemaDef> {
   }
 
   stream<ModelName extends GetModels<Schema>>(
-    streamOptions: Omit<LiveStreamOptions<Schema, ModelName>, 'schema' | 'redis'>,
+    streamOptions: Omit<LiveStreamOptions<Schema, ModelName>, 'schema' | 'redis' | 'clientId'>,
   ) {
     return new LiveStream({
       ...streamOptions,
       redis: this.redis,
+      clientId: this.options.id,
       schema: this.options.schema,
     })
   }

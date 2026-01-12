@@ -48,8 +48,14 @@ describe('live', () => {
       model: 'User',
       id: 'all-user-changes',
 
-      created: {},
-      updated: {},
+      created: {
+        email: {
+          not: {
+            contains: '.com',
+          }
+        }
+      },
+
       deleted: {},
     })
 

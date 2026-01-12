@@ -1,1 +1,1 @@
-INSERT INTO "User" VALUES('12', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'user@2mail.com', 'oldname')
+INSERT INTO "User" VALUES('1', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'us@mail.com', 'oldname')
