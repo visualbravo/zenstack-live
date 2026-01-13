@@ -48,9 +48,17 @@ describe('live', () => {
       model: 'User',
       id: 'all-user-changes',
 
-      created: {
-        verified: {
+      // created: {
+      //   verified: {
           
+      //   }
+      // },
+
+      updated: {
+        after: {
+          email: {
+            contains: 'com',
+          }
         }
       },
     })

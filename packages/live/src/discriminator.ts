@@ -14,7 +14,8 @@ export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetM
   private readonly streamOptions: EventDiscriminatorOptions<Schema, ModelName>
   private readonly queryCompiler: QueryCompiler<Schema, ModelName>
   private readonly createdSchema?: z.ZodSchema
-  private readonly updatedSchema?: z.ZodSchema
+  private readonly updatedBeforeSchema?: z.ZodSchema
+  private readonly updatedAfterSchema?: z.ZodSchema
   private readonly deletedSchema?: z.ZodSchema
 
   constructor(streamOptions: EventDiscriminatorOptions<Schema, ModelName>) {
@@ -29,8 +30,12 @@ export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetM
       this.createdSchema = this.queryCompiler.compile(this.streamOptions.created)
     }
 
-    if (this.streamOptions.updated) {
-      this.updatedSchema = this.queryCompiler.compile(this.streamOptions.created)
+    if (this.streamOptions.updated?.before) {
+      this.updatedBeforeSchema = this.queryCompiler.compile(this.streamOptions.updated.before)
+    }
+
+    if (this.streamOptions.updated?.after) {
+      this.updatedAfterSchema = this.queryCompiler.compile(this.streamOptions.updated.after)
     }
 
     if (this.streamOptions.deleted) {
@@ -47,6 +52,22 @@ export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetM
       return this.createdSchema.safeParse(event.after).success
     } else if (event.type === 'deleted' && this.deletedSchema) {
       return this.deletedSchema.safeParse(event.before).success
+    } else if (event.type === 'updated') {
+      if (this.updatedBeforeSchema && this.updatedAfterSchema) {
+        return (
+          this.updatedBeforeSchema.safeParse(event.before).success &&
+          this.updatedAfterSchema.safeParse(event.after).success
+        )
+      } else if (!this.updatedBeforeSchema && this.updatedAfterSchema) {
+        return (
+          this.updatedAfterSchema.safeParse(event.after).success &&
+          !this.updatedAfterSchema.safeParse(event.before).success
+        )
+      } else if (this.updatedBeforeSchema) {
+        return this.updatedBeforeSchema.safeParse(event.before).success
+      } else if (!this.updatedBeforeSchema && !this.updatedAfterSchema) {
+        return true
+      }
     }
   }
 }
