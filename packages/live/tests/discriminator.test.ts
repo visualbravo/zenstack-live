@@ -1436,6 +1436,49 @@ describe('EventDiscriminator', () => {
           },
         ),
       ).toBe(true)
+
+      expect(
+        matches(
+          {
+            type: 'updated',
+
+            before: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              tags: [],
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            after: {
+              id: '1',
+              email: 'test@test.com',
+              age: 18,
+              verified: true,
+              name: 'sanny',
+              meta: null,
+              tags: [],
+              role: 'ADMIN',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+
+            date: new Date(),
+            id: '1',
+          },
+          {
+            updated: {
+              before: {
+                email: 'test@test.com',
+              },
+            },
+          },
+        ),
+      ).toBe(false)
     })
 
     test('after', () => {

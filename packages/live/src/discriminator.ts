@@ -58,16 +58,21 @@ export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetM
           this.updatedBeforeSchema.safeParse(event.before).success &&
           this.updatedAfterSchema.safeParse(event.after).success
         )
+      } else if (this.updatedBeforeSchema && !this.updatedAfterSchema) {
+        return (
+          this.updatedBeforeSchema.safeParse(event.before).success &&
+          !this.updatedBeforeSchema.safeParse(event.after).success
+        )
       } else if (!this.updatedBeforeSchema && this.updatedAfterSchema) {
         return (
           this.updatedAfterSchema.safeParse(event.after).success &&
           !this.updatedAfterSchema.safeParse(event.before).success
         )
-      } else if (this.updatedBeforeSchema) {
-        return this.updatedBeforeSchema.safeParse(event.before).success
       } else if (!this.updatedBeforeSchema && !this.updatedAfterSchema) {
         return true
       }
     }
+
+    return false
   }
 }
