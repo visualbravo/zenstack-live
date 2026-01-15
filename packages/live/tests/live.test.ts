@@ -55,9 +55,11 @@ describe('live', () => {
       // },
 
       updated: {
+        before: {},
+
         after: {
-          email: {
-            contains: 'com',
+          verified: {
+            
           }
         }
       },

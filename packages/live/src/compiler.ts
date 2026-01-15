@@ -6,7 +6,7 @@ export type QueryCompilerOptions<Schema extends SchemaDef, ModelName extends Get
   modelName: ModelName
 }
 
-type PrimitiveFilter<T> = {
+type CommonFilter<T> = {
   equals?: T | null
   in?: T[]
   notIn?: T[]
@@ -14,10 +14,10 @@ type PrimitiveFilter<T> = {
   lte?: T
   gt?: T
   gte?: T
-  not?: T | PrimitiveFilter<T>
+  not?: T | CommonFilter<T>
 }
 
-type PrimitiveArrayFilter<T> = {
+type CommonArrayFilter<T> = {
   equals?: T[]
   has?: T
   hasEvery?: T[]
@@ -25,18 +25,19 @@ type PrimitiveArrayFilter<T> = {
   isEmpty?: boolean
 }
 
-type EnumFilter = Pick<PrimitiveFilter<string>, 'equals' | 'in' | 'notIn' | 'not'>
+type EnumFilter = Pick<CommonFilter<string>, 'equals' | 'in' | 'notIn' | 'not'>
 
 type StringFilter = {
   contains?: string
   startsWith?: string
   endsWith?: string
   mode?: 'default' | 'insensitive'
-} & PrimitiveFilter<string>
+} & CommonFilter<string>
 
-type IntFilter = PrimitiveFilter<number>
+type IntFilter = CommonFilter<number>
+type BigIntFilter = CommonFilter<bigint>
 
-type BooleanFilter = Pick<PrimitiveFilter<boolean>, 'equals' | 'not'>
+type BooleanFilter = Pick<CommonFilter<boolean>, 'equals' | 'not'>
 
 const operatorNames = new Set(['AND', 'OR', 'NOT'])
 
@@ -94,38 +95,38 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
         case 'String':
           if (field.array) {
             schemaFields[key] = QueryCompiler.compileStringArray(
-              value as PrimitiveArrayFilter<string>,
+              value as CommonArrayFilter<string>,
             )
           } else {
             schemaFields[key] = QueryCompiler.compileString(
-              value as string | PrimitiveFilter<string>,
+              value as string | CommonFilter<string>,
             )
           }
           break
         case 'Boolean':
           if (field.array) {
             schemaFields[key] = QueryCompiler.compileBooleanArray(
-              value as PrimitiveArrayFilter<boolean>,
+              value as CommonArrayFilter<boolean>,
             )
           } else {
             schemaFields[key] = QueryCompiler.compileBoolean(
-              value as boolean | PrimitiveFilter<boolean>,
+              value as boolean | CommonFilter<boolean>,
             )
           }
           break
         case 'Int':
           if (field.array) {
-            schemaFields[key] = QueryCompiler.compileIntArray(value as PrimitiveArrayFilter<number>)
+            schemaFields[key] = QueryCompiler.compileIntArray(value as CommonArrayFilter<number>)
           }
           else {
             schemaFields[key] = QueryCompiler.compileInt(value as number | IntFilter)
           }
           break
         case 'BigInt':
-          schemaFields[key] = QueryCompiler.compileBigInt(value as bigint | IntFilter)
+          schemaFields[key] = QueryCompiler.compileBigInt(value as bigint | BigIntFilter)
           break
         case 'DateTime':
-          schemaFields[key] = QueryCompiler.compileDateTime(value as Date | PrimitiveFilter<Date>)
+          schemaFields[key] = QueryCompiler.compileDateTime(value as Date | CommonFilter<Date>)
           break
         default:
           break
@@ -240,7 +241,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     return schema
   }
 
-  static compileStringArray(value: PrimitiveArrayFilter<string>) {
+  static compileStringArray(value: CommonArrayFilter<string>) {
     if (value.isEmpty === true) {
       return z.string().array().length(0)
     }
@@ -304,7 +305,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     return schema
   }
 
-  static compileBooleanArray(value: PrimitiveArrayFilter<boolean>) {
+  static compileBooleanArray(value: CommonArrayFilter<boolean>) {
     if (value.isEmpty === true) {
       return z.boolean().array().length(0)
     }
@@ -418,7 +419,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     return schema
   }
 
-  static compileIntArray(value: PrimitiveArrayFilter<number>) {
+  static compileIntArray(value: CommonArrayFilter<number>) {
     if (value.isEmpty === true) {
       return z.number().array().length(0)
     }
@@ -468,7 +469,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     return value instanceof BigInt
   }
 
-  static compileBigInt(value: bigint | IntFilter) {
+  static compileBigInt(value: bigint | BigIntFilter) {
     if (this.isBigInt(value)) {
       return z.literal(value)
     }
@@ -496,13 +497,13 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     }
 
     if (typeof value.not !== 'undefined') {
-      schema = schema.refine(v => !this.compileInt(value.not!).safeParse(v).success)
+      schema = schema.refine(v => !this.compileBigInt(value.not!).safeParse(v).success)
     }
 
     return schema
   }
 
-  static compileDateTime(value: Date | PrimitiveFilter<Date>) {
+  static compileDateTime(value: Date | CommonFilter<Date>) {
     if (value instanceof Date) {
       return z.date().refine(v => v.getTime() === value.getTime())
     }
