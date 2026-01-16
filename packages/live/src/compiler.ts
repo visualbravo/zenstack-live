@@ -88,6 +88,11 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
       const isEnum = !!this.options.schema.enums?.[field.type]
 
       if (isEnum) {
+        if (field.array) {
+          schemaFields[key] = QueryCompiler.compileEnumArray(value as CommonArrayFilter<string>)
+        } else {
+          schemaFields[key] = QueryCompiler.compileEnum(value as string | EnumFilter)
+        }
         continue
       }
 
@@ -324,8 +329,8 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
 
     if (typeof value.equals !== 'undefined') {
       schema = schema.refine(v => {
-        for (let i = 0; i < value.equals!.length; i++) {
-          if (v[i] !== value.equals![i]) {
+        for (let i = 0; i < v!.length; i++) {
+          if (value.equals![i] !== v![i]) {
             return false
           }
         }
@@ -382,6 +387,52 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
 
     if (typeof value.not !== 'undefined') {
       schema = schema.refine(v => !this.compileEnum(value.not!).safeParse(v).success)
+    }
+
+    return schema
+  }
+
+  static compileEnumArray(value: CommonArrayFilter<string>) {
+    if (value.isEmpty === true) {
+      return z.string().array().length(0)
+    }
+
+    let schema = z.string().array()
+
+    if (typeof value.equals !== 'undefined') {
+      schema = schema.refine(v => {
+        for (let i = 0; i < v!.length; i++) {
+          if (value.equals![i] !== v![i]) {
+            return false
+          }
+        }
+
+        return true
+      })
+    }
+
+    if (typeof value.hasEvery !== 'undefined') {
+      schema = schema.refine(v => {
+        const vSet = new Set(v)
+        const valueSet = new Set(value.hasEvery!)
+
+        return vSet.isSupersetOf(valueSet)
+      })
+    }
+
+    if (typeof value.hasSome !== 'undefined') {
+      schema = schema.refine(v => {
+        const vSet = new Set(v)
+        const valueSet = new Set(value.hasSome!)
+
+        return vSet.intersection(valueSet).size > 0
+      })
+    }
+
+    if (typeof value.has !== 'undefined') {
+      schema = schema.refine(v => {
+        return v.includes(value.has!)
+      })
     }
 
     return schema
@@ -610,8 +661,8 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
 
     if (typeof value.equals !== 'undefined') {
       schema = schema.refine(v => {
-        for (let i = 0; i < value.equals!.length; i++) {
-          if (v[i] !== value.equals![i]) {
+        for (let i = 0; i < v!.length; i++) {
+          if (value.equals![i] !== v![i]) {
             return false
           }
         }

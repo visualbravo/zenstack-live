@@ -58,7 +58,7 @@ describe('live', () => {
         before: {},
 
         after: {
-          enum: {
+          enumArray: {
             
           }
         }

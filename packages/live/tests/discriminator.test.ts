@@ -1183,279 +1183,575 @@ describe('EventDiscriminator', () => {
   })
 
   describe('Float[]', () => {
-  const baseEvent = {
-    type: 'created',
-    before: null,
-    after: {
+    const baseEvent = {
+      type: 'created',
+      before: null,
+      after: {
+        id: '1',
+        string: 'string',
+        stringArray: ['stringArray'],
+        boolean: true,
+        booleanArray: [true],
+        dateTime: new Date('2024-01-01T00:00:00.000Z'),
+        enum: 'USER',
+        enumArray: ['USER'],
+        bigInt: BigInt(1),
+        bigIntArray: [BigInt(1)],
+        int: 1,
+        intArray: [1],
+        float: 1,
+        floatArray: [1.1, 2.2, 3.3],
+        json: {},
+      },
+      date: new Date('2024-01-01T00:00:00.000Z'),
       id: '1',
-      string: 'string',
-      stringArray: ['stringArray'],
-      boolean: true,
-      booleanArray: [true],
-      dateTime: new Date('2024-01-01T00:00:00.000Z'),
-      enum: 'USER',
-      enumArray: ['USER'],
-      bigInt: BigInt(1),
-      bigIntArray: [BigInt(1)],
-      int: 1,
-      intArray: [1],
-      float: 1,
-      floatArray: [1.1, 2.2, 3.3],
-      json: {},
-    },
-    date: new Date('2024-01-01T00:00:00.000Z'),
-    id: '1',
-  } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+    } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
 
-  test('has (positive)', () => {
-    expect(
-      matches(baseEvent, {
-        created: {
-          floatArray: { has: 2.2 },
-        },
-      }),
-    ).toBe(true)
-  })
-
-  test('has (negative)', () => {
-    expect(
-      matches(baseEvent, {
-        created: {
-          floatArray: { has: 9.9 },
-        },
-      }),
-    ).toBe(false)
-  })
-
-  test('hasEvery (positive)', () => {
-    expect(
-      matches(baseEvent, {
-        created: {
-          floatArray: { hasEvery: [1.1, 3.3] },
-        },
-      }),
-    ).toBe(true)
-  })
-
-  test('hasEvery (negative)', () => {
-    expect(
-      matches(baseEvent, {
-        created: {
-          floatArray: { hasEvery: [1.1, 9.9] },
-        },
-      }),
-    ).toBe(false)
-  })
-
-  test('hasSome (positive)', () => {
-    expect(
-      matches(baseEvent, {
-        created: {
-          floatArray: { hasSome: [0, 2.2] },
-        },
-      }),
-    ).toBe(true)
-  })
-
-  test('hasSome (negative)', () => {
-    expect(
-      matches(baseEvent, {
-        created: {
-          floatArray: { hasSome: [9.9, 10.1] },
-        },
-      }),
-    ).toBe(false)
-  })
-
-  test('isEmpty (false)', () => {
-    expect(
-      matches(baseEvent, {
-        created: {
-          floatArray: { isEmpty: false },
-        },
-      }),
-    ).toBe(true)
-  })
-
-  test('isEmpty (true)', () => {
-    expect(
-      matches(baseEvent, {
-        created: {
-          floatArray: { isEmpty: true },
-        },
-      }),
-    ).toBe(false)
-  })
-
-  test('equals (exact match)', () => {
-    expect(
-      matches(baseEvent, {
-        created: {
-          floatArray: { equals: [1.1, 2.2, 3.3] },
-        },
-      }),
-    ).toBe(true)
-  })
-
-  test('equals (order mismatch)', () => {
-    expect(
-      matches(baseEvent, {
-        created: {
-          floatArray: { equals: [3.3, 2.2, 1.1] },
-        },
-      }),
-    ).toBe(false)
-  })
-
-  test('equals (subset)', () => {
-    expect(
-      matches(baseEvent, {
-        created: {
-          floatArray: { equals: [1.1, 2.2] },
-        },
-      }),
-    ).toBe(false)
-  })
-
-  // test('not (nested positive)', () => {
-  //   expect(
-  //     matches(baseEvent, {
-  //       created: {
-  //         floatArray: {
-  //           not: { has: 9.9 },
-  //         },
-  //       },
-  //     }),
-  //   ).toBe(true)
-  // })
-
-  // test('not (nested negative)', () => {
-  //   expect(
-  //     matches(baseEvent, {
-  //       created: {
-  //         floatArray: {
-  //           not: { has: 1.1 },
-  //         },
-  //       },
-  //     }),
-  //   ).toBe(false)
-  // })
-
-  test('empty array equals (edge case)', () => {
-    expect(
-      matches(
-        {
-          ...baseEvent,
-          after: {
-            ...baseEvent.after,
-            floatArray: [],
-          },
-        },
-        {
+    test('has (positive)', () => {
+      expect(
+        matches(baseEvent, {
           created: {
-            floatArray: { equals: [] },
+            floatArray: { has: 2.2 },
           },
-        },
-      ),
-    ).toBe(true)
-  })
+        }),
+      ).toBe(true)
+    })
 
-  test('empty array isEmpty true (edge case)', () => {
-    expect(
-      matches(
-        {
-          ...baseEvent,
-          after: {
-            ...baseEvent.after,
-            floatArray: [],
+    test('has (negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            floatArray: { has: 9.9 },
           },
-        },
-        {
+        }),
+      ).toBe(false)
+    })
+
+    test('hasEvery (positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            floatArray: { hasEvery: [1.1, 3.3] },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('hasEvery (negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            floatArray: { hasEvery: [1.1, 9.9] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('hasSome (positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            floatArray: { hasSome: [0, 2.2] },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('hasSome (negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            floatArray: { hasSome: [9.9, 10.1] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('isEmpty (false)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            floatArray: { isEmpty: false },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('isEmpty (true)', () => {
+      expect(
+        matches(baseEvent, {
           created: {
             floatArray: { isEmpty: true },
           },
-        },
-      ),
-    ).toBe(true)
-  })
+        }),
+      ).toBe(false)
+    })
 
-  test('has on empty array (edge case)', () => {
-    expect(
-      matches(
-        {
-          ...baseEvent,
-          after: {
-            ...baseEvent.after,
-            floatArray: [],
-          },
-        },
-        {
+    test('equals (exact match)', () => {
+      expect(
+        matches(baseEvent, {
           created: {
-            floatArray: { has: 1.1 },
+            floatArray: { equals: [1.1, 2.2, 3.3] },
           },
-        },
-      ),
-    ).toBe(false)
-  })
+        }),
+      ).toBe(true)
+    })
 
-  test('negative and zero values (edge case)', () => {
-    expect(
-      matches(
-        {
-          ...baseEvent,
-          after: {
-            ...baseEvent.after,
-            floatArray: [-1.5, 0, 1.5],
-          },
-        },
-        {
+    test('equals (order mismatch)', () => {
+      expect(
+        matches(baseEvent, {
           created: {
-            floatArray: { hasEvery: [-1.5, 0] },
+            floatArray: { equals: [3.3, 2.2, 1.1] },
           },
-        },
-      ),
-    ).toBe(true)
-  })
+        }),
+      ).toBe(false)
+    })
 
-  test('decimal precision (edge case)', () => {
-    expect(
-      matches(
-        {
-          ...baseEvent,
-          after: {
-            ...baseEvent.after,
-            floatArray: [0.0001, 0.0002, 0.0003],
-          },
-        },
-        {
+    test('equals (subset)', () => {
+      expect(
+        matches(baseEvent, {
           created: {
-            floatArray: { hasSome: [0.0002] },
+            floatArray: { equals: [1.1, 2.2] },
           },
-        },
-      ),
-    ).toBe(true)
+        }),
+      ).toBe(false)
+    })
+
+    // test('not (nested positive)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         floatArray: {
+    //           not: { has: 9.9 },
+    //         },
+    //       },
+    //     }),
+    //   ).toBe(true)
+    // })
+
+    // test('not (nested negative)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         floatArray: {
+    //           not: { has: 1.1 },
+    //         },
+    //       },
+    //     }),
+    //   ).toBe(false)
+    // })
+
+    test('empty array equals (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              floatArray: [],
+            },
+          },
+          {
+            created: {
+              floatArray: { equals: [] },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+
+    test('empty array isEmpty true (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              floatArray: [],
+            },
+          },
+          {
+            created: {
+              floatArray: { isEmpty: true },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+
+    test('has on empty array (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              floatArray: [],
+            },
+          },
+          {
+            created: {
+              floatArray: { has: 1.1 },
+            },
+          },
+        ),
+      ).toBe(false)
+    })
+
+    test('negative and zero values (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              floatArray: [-1.5, 0, 1.5],
+            },
+          },
+          {
+            created: {
+              floatArray: { hasEvery: [-1.5, 0] },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+
+    test('decimal precision (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              floatArray: [0.0001, 0.0002, 0.0003],
+            },
+          },
+          {
+            created: {
+              floatArray: { hasSome: [0.0002] },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+
+    test('very large value (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              floatArray: [1e18, 2e18, 3e18],
+            },
+          },
+          {
+            created: {
+              floatArray: { hasSome: [2e18] },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
   })
 
-  test('very large value (edge case)', () => {
-    expect(
-      matches(
-        {
-          ...baseEvent,
-          after: {
-            ...baseEvent.after,
-            floatArray: [1e18, 2e18, 3e18],
-          },
-        },
-        {
+  describe('Enum', () => {
+    const baseEvent = {
+      type: 'created',
+      before: null,
+      after: {
+        id: '1',
+        string: 'string',
+        stringArray: ['stringArray'],
+        boolean: true,
+        booleanArray: [true],
+        dateTime: new Date('2024-01-01T00:00:00.000Z'),
+        enum: 'USER',
+        enumArray: ['USER'],
+        bigInt: BigInt(1),
+        bigIntArray: [BigInt(1)],
+        int: 1,
+        intArray: [1],
+        float: 1,
+        floatArray: [1],
+        json: {},
+      },
+      date: new Date('2024-01-01T00:00:00.000Z'),
+      id: '1',
+    } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+
+    test('top-level equals (matching value)', () => {
+      expect(
+        matches(baseEvent, {
           created: {
-            floatArray: { hasSome: [2e18] },
+            enum: 'USER',
           },
-        },
-      ),
-    ).toBe(true)
-  })
-})
+        }),
+      ).toBe(true)
+    })
 
+    test('top-level equals (non-matching value)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            enum: 'ADMIN',
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('equals (matching value)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            enum: { equals: 'USER' },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('equals (non-matching value)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            enum: { equals: 'ADMIN' },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('in (positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            enum: { in: ['USER', 'ADMIN'] },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('in (negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            enum: { in: ['ADMIN'] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('notIn (positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            enum: { notIn: ['ADMIN'] },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('notIn (negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            enum: { notIn: ['USER', 'ADMIN'] },
+          },
+        }),
+      ).toBe(false)
+    })
+  })
+
+  describe('Enum[]', () => {
+    const baseEvent = {
+      type: 'created',
+      before: null,
+      after: {
+        id: '1',
+        string: 'string',
+        stringArray: ['stringArray'],
+        boolean: true,
+        booleanArray: [true],
+        dateTime: new Date('2024-01-01T00:00:00.000Z'),
+        enum: 'USER',
+        enumArray: ['ADMIN', 'USER'],
+        bigInt: BigInt(1),
+        bigIntArray: [BigInt(1)],
+        int: 1,
+        intArray: [1],
+        float: 1,
+        floatArray: [1],
+        json: {},
+      },
+      date: new Date('2024-01-01T00:00:00.000Z'),
+      id: '1',
+    } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+
+    test('has (positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            enumArray: { has: 'USER' },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    // test('has (negative)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         enumArray: { has: 'GUEST' }, // non-existent enum
+    //       },
+    //     }),
+    //   ).toBe(false)
+    // })
+
+    test('hasEvery (positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            enumArray: { hasEvery: ['ADMIN', 'USER'] },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    // test('hasEvery (negative)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         enumArray: { hasEvery: ['ADMIN', 'GUEST'] },
+    //       },
+    //     }),
+    //   ).toBe(false)
+    // })
+
+    // test('hasSome (positive)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         enumArray: { hasSome: ['GUEST', 'USER'] },
+    //       },
+    //     }),
+    //   ).toBe(true)
+    // })
+
+    // test('hasSome (negative)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         enumArray: { hasSome: ['GUEST', 'MODERATOR'] },
+    //       },
+    //     }),
+    //   ).toBe(false)
+    // })
+
+    test('isEmpty (false)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            enumArray: { isEmpty: false },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('isEmpty (true)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            enumArray: { isEmpty: true },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('equals (exact match)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            enumArray: { equals: ['ADMIN', 'USER'] },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('equals (order mismatch)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            enumArray: { equals: ['USER', 'ADMIN'] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('equals (subset)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            enumArray: { equals: ['ADMIN'] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('empty array equals and isEmpty edge case', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              enumArray: [],
+            },
+          },
+          {
+            created: {
+              enumArray: { equals: [] },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              enumArray: [],
+            },
+          },
+          {
+            created: {
+              enumArray: { isEmpty: true },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+
+    test('has on empty array (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              enumArray: [],
+            },
+          },
+          {
+            created: {
+              enumArray: { has: 'ADMIN' },
+            },
+          },
+        ),
+      ).toBe(false)
+    })
+  })
 
   describe('BigInt', () => {
     const baseEvent = {

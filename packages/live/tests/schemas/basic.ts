@@ -99,7 +99,7 @@ export class SchemaType implements SchemaDef {
           default: 'USER',
         },
         enumArray: {
-          name: 'enum',
+          name: 'enumArray',
           type: 'Role',
           array: true,
           attributes: [
