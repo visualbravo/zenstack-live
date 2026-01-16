@@ -45,12 +45,12 @@ describe('live', () => {
       model: 'User',
       id: 'all-user-changes',
       created: {},
-      updated: {},
-      deleted: {},
     })
-
+    
     for await (const event of stream) {
-      console.log({ event })
+      // I want `event` to only be typed as a `RecordCreatedEvent` because I only specified `created`
+      // if I specified both `created` and `updated` then `event` should be a RecordCreatedEvent | RecordUpdatedEvent
+      
     }
   })
 })

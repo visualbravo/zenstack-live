@@ -51,20 +51,14 @@ export type RecordCreatedEvent<Schema extends SchemaDef, ModelName extends GetMo
   created: SimplifiedPlainResult<Schema, ModelName>
 }
 
-export type ZenStackLiveEvent<T extends Record<string, unknown> = {}> = {
-  id: string
-  date: Date
-  before: T | null
-  after: T | null
-  type: DatabaseEventType
-}
-
 export type RecordUpdatedEvent<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   type: 'updated'
   id: string
   date: Date
-  before: SimplifiedPlainResult<Schema, ModelName>
-  after: SimplifiedPlainResult<Schema, ModelName>
+  updated: {
+    before: SimplifiedPlainResult<Schema, ModelName>
+    after: SimplifiedPlainResult<Schema, ModelName>
+  }
 }
 
 export type RecordDeletedEvent<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
@@ -91,7 +85,7 @@ export type ZenStackLiveOptions<Schema extends SchemaDef> = {
   /**
    * This client's unique ID. Used for horizontal scaling.
    */
-  id: string
+  id?: string
 
   redis: {
     url: string
@@ -163,7 +157,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
     await new Promise(resolve => setTimeout(resolve, ms))
   }
 
-  async *[Symbol.asyncIterator]() {
+  async *[Symbol.asyncIterator](): AsyncIterator<RecordEvent<Schema, ModelName>> {
     await this.makeConsumerGroup()
 
     while (this.options.redis.status === 'ready') {
@@ -183,22 +177,24 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
             type: 'created',
             id: event.id,
             date: event.date,
-            created: event.after,
+            created: event.created,
           }
         } else if (event.type === 'updated') {
           yield {
             type: 'updated',
             id: event.id,
             date: event.date,
-            before: event.before,
-            after: event.after,
+            updated: {
+              before: event.updated.before,
+              after: event.updated.after,
+            },
           }
         } else if (event.type === 'deleted') {
           yield {
             type: 'deleted',
             id: event.id,
             date: event.date,
-            deleted: event.before,
+            deleted: event.deleted,
           }
         }
 
@@ -245,7 +241,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
   }
 
   private async getLatestEvents() {
-    const events: ZenStackLiveEvent<SimplifiedPlainResult<Schema, ModelName>>[] = []
+    const events: RecordEvent<Schema, ModelName>[] = []
     const xReadGroupResponse = (await this.options.redis.xreadgroup(
       'GROUP',
       this.consumerGroupName,
@@ -278,20 +274,44 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
 
           if (operation === 'created') {
             this.hydratePayload(event.after)
+
+            events.push({
+              type: 'created',
+              id: eventId,
+              date: new Date(Number(event.ts_ms)),
+              created: event.after,
+            })
           } else if (operation === 'updated') {
             this.hydratePayload(event.before)
             this.hydratePayload(event.after)
+
+            events.push({
+              type: 'updated',
+              id: eventId,
+              date: new Date(Number(event.ts_ms)),
+              updated: {
+                before: event.before,
+                after: event.after,
+              },
+            })
           } else {
             this.hydratePayload(event.before)
+
+            events.push({
+              type: 'deleted',
+              id: eventId,
+              date: new Date(Number(event.ts_ms)),
+              deleted: event.before,
+            })
           }
 
-          events.push({
-            id: eventId,
-            date: new Date(Number(event.ts_ms)),
-            before: event.before,
-            after: event.after,
-            type: operation,
-          })
+          // events.push({
+          //   id: eventId,
+          //   date: new Date(Number(event.ts_ms)),
+          //   before: event.before,
+          //   after: event.after,
+          //   type: operation,
+          // })
         }
       }
     }
@@ -315,7 +335,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
     return new LiveStream({
       ...streamOptions,
       redis: this.redis,
-      clientId: this.options.id,
+      clientId: this.options.id ?? 'zenstack',
       schema: this.options.schema,
     })
   }
