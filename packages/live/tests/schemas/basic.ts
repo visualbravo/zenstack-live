@@ -85,7 +85,7 @@ export class SchemaType implements SchemaDef {
           optional: true,
         },
         bigIntArray: {
-          name: 'bigInt',
+          name: 'bigIntArray',
           type: 'BigInt',
           optional: true,
           array: true,

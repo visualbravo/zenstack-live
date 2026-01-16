@@ -1,26 +1,12 @@
 // oxlint-disable max-statements
 // oxlint-disable max-lines
-import { describe, test, expect } from 'bun:test'
+import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
 import { schema } from './schemas/basic'
 import { EventDiscriminator, type EventDiscriminatorOptions } from '../src/discriminator'
-import type { SimplifiedPlainResult } from '@zenstackhq/orm'
 import type { ZenStackLiveEvent } from '../'
-
-function matches(
-  event: ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>,
-  options: Pick<
-    EventDiscriminatorOptions<typeof schema, 'User'>,
-    'created' | 'updated' | 'deleted'
-  >,
-) {
-  const discriminator = new EventDiscriminator({
-    schema,
-    model: 'User',
-    ...options,
-  })
-
-  return discriminator.eventMatchesWhere(event)
-}
+import { ZenStackClient, type ClientContract, type SimplifiedPlainResult } from '@zenstackhq/orm'
+import { PostgresDialect } from 'kysely'
+import { Pool } from 'pg'
 
 const baseDate = new Date('2024-01-01T00:00:00.000Z')
 const laterDate = new Date('2024-01-01T00:00:00.001Z')
@@ -49,6 +35,45 @@ const baseEvent = {
   date: baseDate,
   id: '1',
 } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+
+let client: ClientContract<typeof schema>
+
+function matches(
+  event: ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>,
+  options: Pick<
+    EventDiscriminatorOptions<typeof schema, 'User'>,
+    'created' | 'updated' | 'deleted'
+  >,
+) {
+  const discriminator = new EventDiscriminator({
+    schema,
+    model: 'User',
+    ...options,
+  })
+
+  return discriminator.eventMatchesWhere(event)
+}
+
+beforeAll(async () => {
+  client = new ZenStackClient(schema, {
+    dialect: new PostgresDialect({
+      pool: new Pool({
+        connectionString: process.env['POSTGRES_URL'],
+      }),
+    }),
+  })
+
+  await client.$pushSchema()
+  await Promise.all([
+    client.$queryRawUnsafe('ALTER TABLE "User" REPLICA IDENTITY FULL'),
+    client.$queryRawUnsafe('ALTER TABLE "Post" REPLICA IDENTITY FULL'),
+    client.$queryRawUnsafe('ALTER TABLE "Profile" REPLICA IDENTITY FULL'),
+  ])
+})
+
+afterAll(() => {
+  client.$disconnect()
+})
 
 describe('EventDiscriminator', () => {
   describe('String', () => {
