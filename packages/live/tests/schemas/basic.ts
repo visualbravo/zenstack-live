@@ -98,15 +98,15 @@ export class SchemaType implements SchemaDef {
           ],
           default: 'USER',
         },
-        enumArray: {
-          name: 'enumArray',
-          type: 'Role',
-          array: true,
-          attributes: [
-            { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('USER') }] },
-          ],
-          default: 'USER',
-        },
+        // enumArray: {
+        //   name: 'enumArray',
+        //   type: 'Role',
+        //   array: true,
+        //   attributes: [
+        //     { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('USER') }] },
+        //   ],
+        //   default: 'USER',
+        // },
         posts: {
           name: 'posts',
           type: 'Post',
