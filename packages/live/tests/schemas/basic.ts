@@ -57,6 +57,17 @@ export class SchemaType implements SchemaDef {
           array: true,
           optional: true,
         },
+        float: {
+          name: 'float',
+          type: 'Float',
+          optional: true,
+        },
+        floatArray: {
+          name: 'floatArray',
+          type: 'Float',
+          optional: true,
+          array: true,
+        },
         dateTime: {
           name: 'dateTime',
           type: 'DateTime',

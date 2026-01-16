@@ -117,6 +117,13 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
             schemaFields[key] = QueryCompiler.compileInt(value as number | IntFilter)
           }
           break
+        case 'Float':
+          if (field.array) {
+            schemaFields[key] = QueryCompiler.compileFloatArray(value as CommonArrayFilter<number>)
+          } else {
+            schemaFields[key] = QueryCompiler.compileFloat(value as number | IntFilter)
+          }
+          break
         case 'BigInt':
           if (field.array) {
             schemaFields[key] = QueryCompiler.compileBigIntArray(value as CommonArrayFilter<bigint>)
@@ -417,6 +424,94 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
 
     if (typeof value.not !== 'undefined') {
       schema = schema.refine(v => !this.compileInt(value.not!).safeParse(v).success)
+    }
+
+    return schema
+  }
+
+  static compileFloat(value: number | IntFilter) {
+    if (typeof value === 'number') {
+      return z.literal(value)
+    }
+
+    if (typeof value.equals !== 'undefined') {
+      return z.literal(value.equals)
+    }
+
+    let schema = z.float64()
+
+    if (typeof value.gt !== 'undefined') {
+      schema = schema.refine(v => v > value.gt!)
+    }
+
+    if (typeof value.gte !== 'undefined') {
+      schema = schema.refine(v => v >= value.gte!)
+    }
+
+    if (typeof value.lt !== 'undefined') {
+      schema = schema.refine(v => v < value.lt!)
+    }
+
+    if (typeof value.lte !== 'undefined') {
+      schema = schema.refine(v => v <= value.lte!)
+    }
+
+    if (typeof value.in !== 'undefined') {
+      schema = schema.refine(v => value.in?.includes(v))
+    }
+
+    if (typeof value.notIn !== 'undefined') {
+      schema = schema.refine(v => !value.notIn?.includes(v))
+    }
+
+    if (typeof value.not !== 'undefined') {
+      schema = schema.refine(v => !this.compileFloat(value.not!).safeParse(v).success)
+    }
+
+    return schema
+  }
+
+  static compileFloatArray(value: CommonArrayFilter<number>) {
+    if (value.isEmpty === true) {
+      return z.float64().array().length(0)
+    }
+
+    let schema = z.float64().array()
+
+    if (typeof value.equals !== 'undefined') {
+      schema = schema.refine(v => {
+        for (let i = 0; i < v!.length; i++) {
+          if (value.equals![i] !== v![i]) {
+            return false
+          }
+        }
+
+        return true
+      })
+    }
+
+    if (typeof value.hasEvery !== 'undefined') {
+      schema = schema.refine(v => {
+        const vSet = new Set(v)
+        const valueSet = new Set(value.hasEvery!)
+
+        return vSet.isSupersetOf(valueSet)
+      })
+    }
+
+    if (typeof value.hasSome !== 'undefined') {
+      schema = schema.refine(v => {
+        const vSet = new Set(v)
+        const valueSet = new Set(value.hasSome!)
+
+        return vSet.intersection(valueSet).size > 0
+      })
+    }
+
+    if (typeof value.has !== 'undefined') {
+      schema = schema.refine(v => {
+        return v.includes(value.has!)
+      })
     }
 
     return schema

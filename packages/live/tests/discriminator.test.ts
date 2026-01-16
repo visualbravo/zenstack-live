@@ -42,6 +42,8 @@ const baseEvent = {
     bigIntArray: [BigInt(1)],
     int: 1,
     intArray: [1],
+    float: 1,
+    floatArray: [1],
     json: {},
   },
   date: baseDate,
@@ -325,6 +327,8 @@ describe('EventDiscriminator', () => {
         bigIntArray: [BigInt(1)],
         int: 1,
         intArray: [1],
+        float: 1,
+        floatArray: [1],
         json: {},
       },
       date: new Date(),
@@ -718,6 +722,8 @@ describe('EventDiscriminator', () => {
         bigIntArray: [BigInt(1)],
         int: 1,
         intArray: [1, 2, 3],
+        float: 1,
+        floatArray: [1],
         json: {},
       },
       date: new Date(),
@@ -725,10 +731,487 @@ describe('EventDiscriminator', () => {
     } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
 
     test('has (positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            intArray: { has: 1 },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('has (negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            intArray: { has: 99 },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('hasEvery (positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            intArray: { hasEvery: [1, 3] },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('hasEvery (negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            intArray: { hasEvery: [1, 99] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('hasSome (positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            intArray: { hasSome: [99, 2] },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('hasSome (negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            intArray: { hasSome: [99, 100] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('isEmpty (false)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            intArray: { isEmpty: false },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('isEmpty (true)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            intArray: { isEmpty: true },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('equals (exact match)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            intArray: { equals: [1, 2, 3] },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('equals (order mismatch)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            intArray: { equals: [3, 2, 1] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('equals (subset)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            intArray: { equals: [1, 2] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    // test('not (nested positive)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         intArray: {
+    //           not: { has: 99 },
+    //         },
+    //       },
+    //     ),
+    //   ).toBe(true)
+    // })
+
+    // test('not (nested negative)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         intArray: {
+    //           not: { has: 1 },
+    //         },
+    //       },
+    //     ),
+    //   ).toBe(false)
+    // })
+
+    test('empty array equals (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              intArray: [],
+            },
+          },
+          {
+            created: {
+              intArray: { equals: [] },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+
+    test('empty array isEmpty true (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              intArray: [],
+            },
+          },
+          {
+            created: {
+              intArray: { isEmpty: true },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+
+    test('has on empty array (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              intArray: [],
+            },
+          },
+          {
+            created: {
+              intArray: { has: 1 },
+            },
+          },
+        ),
+      ).toBe(false)
+    })
+
+    test('negative and zero values (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              intArray: [-1, 0, 1],
+            },
+          },
+          {
+            created: {
+              intArray: { hasEvery: [-1, 0] },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+  })
+
+  describe('Float', () => {
+    test('equals (positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: { equals: 1 },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('equals (negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: { equals: 2 },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('top-level equals shorthand', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: 1,
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('in (positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: { in: [0, 1, 2] },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('in (negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: { in: [2, 3] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('notIn (positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: { notIn: [2, 3] },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('notIn (negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: { notIn: [1] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('lt (positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: { lt: 2 },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('lt (negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: { lt: 1 },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('lte (boundary)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: { lte: 1 },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('gt (positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: { gt: 0 },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('gt (negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: { gt: 1 },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('gte (boundary)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: { gte: 1 },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('not (scalar positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: { not: 2 },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('not (scalar negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: { not: 1 },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('not (nested filter)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            float: {
+              not: { gt: 0 },
+            },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('zero value (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              float: 0,
+            },
+          },
+          {
+            created: {
+              float: { equals: 0 },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+
+    test('negative value (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              float: -10.5,
+            },
+          },
+          {
+            created: {
+              float: { lt: 0 },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+
+    test('decimal precision (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              float: 0.000123,
+            },
+          },
+          {
+            created: {
+              float: { equals: 0.000123 },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+
+    test('very large value (edge case)', () => {
+      const huge = 1e18
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              float: huge,
+            },
+          },
+          {
+            created: {
+              float: { gte: huge },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+  })
+
+  describe('Float[]', () => {
+  const baseEvent = {
+    type: 'created',
+    before: null,
+    after: {
+      id: '1',
+      string: 'string',
+      stringArray: ['stringArray'],
+      boolean: true,
+      booleanArray: [true],
+      dateTime: new Date('2024-01-01T00:00:00.000Z'),
+      enum: 'USER',
+      enumArray: ['USER'],
+      bigInt: BigInt(1),
+      bigIntArray: [BigInt(1)],
+      int: 1,
+      intArray: [1],
+      float: 1,
+      floatArray: [1.1, 2.2, 3.3],
+      json: {},
+    },
+    date: new Date('2024-01-01T00:00:00.000Z'),
+    id: '1',
+  } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+
+  test('has (positive)', () => {
     expect(
       matches(baseEvent, {
         created: {
-          intArray: { has: 1 },
+          floatArray: { has: 2.2 },
         },
       }),
     ).toBe(true)
@@ -738,7 +1221,7 @@ describe('EventDiscriminator', () => {
     expect(
       matches(baseEvent, {
         created: {
-          intArray: { has: 99 },
+          floatArray: { has: 9.9 },
         },
       }),
     ).toBe(false)
@@ -748,7 +1231,7 @@ describe('EventDiscriminator', () => {
     expect(
       matches(baseEvent, {
         created: {
-          intArray: { hasEvery: [1, 3] },
+          floatArray: { hasEvery: [1.1, 3.3] },
         },
       }),
     ).toBe(true)
@@ -758,7 +1241,7 @@ describe('EventDiscriminator', () => {
     expect(
       matches(baseEvent, {
         created: {
-          intArray: { hasEvery: [1, 99] },
+          floatArray: { hasEvery: [1.1, 9.9] },
         },
       }),
     ).toBe(false)
@@ -768,7 +1251,7 @@ describe('EventDiscriminator', () => {
     expect(
       matches(baseEvent, {
         created: {
-          intArray: { hasSome: [99, 2] },
+          floatArray: { hasSome: [0, 2.2] },
         },
       }),
     ).toBe(true)
@@ -778,7 +1261,7 @@ describe('EventDiscriminator', () => {
     expect(
       matches(baseEvent, {
         created: {
-          intArray: { hasSome: [99, 100] },
+          floatArray: { hasSome: [9.9, 10.1] },
         },
       }),
     ).toBe(false)
@@ -788,7 +1271,7 @@ describe('EventDiscriminator', () => {
     expect(
       matches(baseEvent, {
         created: {
-          intArray: { isEmpty: false },
+          floatArray: { isEmpty: false },
         },
       }),
     ).toBe(true)
@@ -798,7 +1281,7 @@ describe('EventDiscriminator', () => {
     expect(
       matches(baseEvent, {
         created: {
-          intArray: { isEmpty: true },
+          floatArray: { isEmpty: true },
         },
       }),
     ).toBe(false)
@@ -808,7 +1291,7 @@ describe('EventDiscriminator', () => {
     expect(
       matches(baseEvent, {
         created: {
-          intArray: { equals: [1, 2, 3] },
+          floatArray: { equals: [1.1, 2.2, 3.3] },
         },
       }),
     ).toBe(true)
@@ -818,7 +1301,7 @@ describe('EventDiscriminator', () => {
     expect(
       matches(baseEvent, {
         created: {
-          intArray: { equals: [3, 2, 1] },
+          floatArray: { equals: [3.3, 2.2, 1.1] },
         },
       }),
     ).toBe(false)
@@ -828,7 +1311,7 @@ describe('EventDiscriminator', () => {
     expect(
       matches(baseEvent, {
         created: {
-          intArray: { equals: [1, 2] },
+          floatArray: { equals: [1.1, 2.2] },
         },
       }),
     ).toBe(false)
@@ -838,11 +1321,11 @@ describe('EventDiscriminator', () => {
   //   expect(
   //     matches(baseEvent, {
   //       created: {
-  //         intArray: {
-  //           not: { has: 99 },
+  //         floatArray: {
+  //           not: { has: 9.9 },
   //         },
   //       },
-  //     ),
+  //     }),
   //   ).toBe(true)
   // })
 
@@ -850,11 +1333,11 @@ describe('EventDiscriminator', () => {
   //   expect(
   //     matches(baseEvent, {
   //       created: {
-  //         intArray: {
-  //           not: { has: 1 },
+  //         floatArray: {
+  //           not: { has: 1.1 },
   //         },
   //       },
-  //     ),
+  //     }),
   //   ).toBe(false)
   // })
 
@@ -865,12 +1348,12 @@ describe('EventDiscriminator', () => {
           ...baseEvent,
           after: {
             ...baseEvent.after,
-            intArray: [],
+            floatArray: [],
           },
         },
         {
           created: {
-            intArray: { equals: [] },
+            floatArray: { equals: [] },
           },
         },
       ),
@@ -884,12 +1367,12 @@ describe('EventDiscriminator', () => {
           ...baseEvent,
           after: {
             ...baseEvent.after,
-            intArray: [],
+            floatArray: [],
           },
         },
         {
           created: {
-            intArray: { isEmpty: true },
+            floatArray: { isEmpty: true },
           },
         },
       ),
@@ -903,12 +1386,12 @@ describe('EventDiscriminator', () => {
           ...baseEvent,
           after: {
             ...baseEvent.after,
-            intArray: [],
+            floatArray: [],
           },
         },
         {
           created: {
-            intArray: { has: 1 },
+            floatArray: { has: 1.1 },
           },
         },
       ),
@@ -922,17 +1405,303 @@ describe('EventDiscriminator', () => {
           ...baseEvent,
           after: {
             ...baseEvent.after,
-            intArray: [-1, 0, 1],
+            floatArray: [-1.5, 0, 1.5],
           },
         },
         {
           created: {
-            intArray: { hasEvery: [-1, 0] },
+            floatArray: { hasEvery: [-1.5, 0] },
           },
         },
       ),
     ).toBe(true)
   })
+
+  test('decimal precision (edge case)', () => {
+    expect(
+      matches(
+        {
+          ...baseEvent,
+          after: {
+            ...baseEvent.after,
+            floatArray: [0.0001, 0.0002, 0.0003],
+          },
+        },
+        {
+          created: {
+            floatArray: { hasSome: [0.0002] },
+          },
+        },
+      ),
+    ).toBe(true)
+  })
+
+  test('very large value (edge case)', () => {
+    expect(
+      matches(
+        {
+          ...baseEvent,
+          after: {
+            ...baseEvent.after,
+            floatArray: [1e18, 2e18, 3e18],
+          },
+        },
+        {
+          created: {
+            floatArray: { hasSome: [2e18] },
+          },
+        },
+      ),
+    ).toBe(true)
+  })
+})
+
+
+  describe('BigInt', () => {
+    const baseEvent = {
+      type: 'created',
+      before: null,
+      after: {
+        id: '1',
+        string: 'string',
+        stringArray: ['stringArray'],
+        boolean: true,
+        booleanArray: [true],
+        dateTime: new Date(),
+        enum: 'USER',
+        enumArray: ['USER'],
+        bigInt: BigInt(1),
+        bigIntArray: [BigInt(1)],
+        int: 1,
+        intArray: [1],
+        float: 1,
+        floatArray: [1],
+        json: {},
+      },
+      date: new Date(),
+      id: '1',
+    } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+
+    // test('equals (positive)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         bigInt: { equals: BigInt(1) },
+    //       },
+    //     }),
+    //   ).toBe(true)
+    // })
+
+    // test('equals (negative)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         bigInt: { equals: BigInt(2) },
+    //       },
+    //     }),
+    //   ).toBe(false)
+    // })
+
+    test('top-level equals shorthand', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            bigInt: BigInt(1),
+          },
+        }),
+      ).toBe(true)
+    })
+
+    // test('in (positive)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         bigInt: { in: [BigInt(0), BigInt(1), BigInt(2)] },
+    //       },
+    //     }),
+    //   ).toBe(true)
+    // })
+
+    // test('in (negative)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         bigInt: { in: [BigInt(2), BigInt(3)] },
+    //       },
+    //     }),
+    //   ).toBe(false)
+    // })
+
+    // test('notIn (positive)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         bigInt: { notIn: [BigInt(2), BigInt(3)] },
+    //       },
+    //     }),
+    //   ).toBe(true)
+    // })
+
+    // test('notIn (negative)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         bigInt: { notIn: [BigInt(1)] },
+    //       },
+    //     }),
+    //   ).toBe(false)
+    // })
+
+    // test('lt (positive)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         bigInt: { lt: BigInt(2) },
+    //       },
+    //     }),
+    //   ).toBe(true)
+    // })
+
+    // test('lt (negative)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         bigInt: { lt: BigInt(1) },
+    //       },
+    //     }),
+    //   ).toBe(false)
+    // })
+
+    // test('lte (boundary)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         bigInt: { lte: BigInt(1) },
+    //       },
+    //     }),
+    //   ).toBe(true)
+    // })
+
+    // test('gt (positive)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         bigInt: { gt: BigInt(0) },
+    //       },
+    //     }),
+    //   ).toBe(true)
+    // })
+
+    // test('gt (negative)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         bigInt: { gt: BigInt(1) },
+    //       },
+    //     }),
+    //   ).toBe(false)
+    // })
+
+    // test('gte (boundary)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         bigInt: { gte: BigInt(1) },
+    //       },
+    //     }),
+    //   ).toBe(true)
+    // })
+
+    test('not (scalar positive)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            bigInt: { not: BigInt(2) },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('not (scalar negative)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            bigInt: { not: BigInt(1) },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    // test('not (nested filter)', () => {
+    //   expect(
+    //     matches(baseEvent, {
+    //       created: {
+    //         bigInt: {
+    //           not: { gt: BigInt(0) },
+    //         },
+    //       },
+    //     }),
+    //   ).toBe(false)
+    // })
+
+    // test('zero value (edge case)', () => {
+    //   expect(
+    //     matches(
+    //       {
+    //         ...baseEvent,
+    //         after: {
+    //           ...baseEvent.after,
+    //           bigInt: BigInt(0),
+    //         },
+    //       },
+    //       {
+    //         created: {
+    //           bigInt: { equals: BigInt(0) },
+    //         },
+    //       },
+    //     ),
+    //   ).toBe(true)
+    // })
+
+    // test('negative value (edge case)', () => {
+    //   expect(
+    //     matches(
+    //       {
+    //         ...baseEvent,
+    //         after: {
+    //           ...baseEvent.after,
+    //           bigInt: BigInt(-10),
+    //         },
+    //       },
+    //       {
+    //         created: {
+    //           bigInt: { lt: BigInt(0) },
+    //         },
+    //       },
+    //     ),
+    //   ).toBe(true)
+    // })
+
+    // test('very large value (edge case)', () => {
+    //   const huge = BigInt('900719925474099312345')
+
+    //   expect(
+    //     matches(
+    //       {
+    //         ...baseEvent,
+    //         after: {
+    //           ...baseEvent.after,
+    //           bigInt: huge,
+    //         },
+    //       },
+    //       {
+    //         created: {
+    //           bigInt: { gte: BigInt('900719925474099312345') },
+    //         },
+    //       },
+    //     ),
+    //   ).toBe(true)
+    // })
   })
 
   describe('Boolean', () => {
