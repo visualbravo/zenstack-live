@@ -2112,6 +2112,207 @@ describe('EventDiscriminator', () => {
     })
   })
 
+  describe('Boolean[]', () => {
+    const baseEvent = {
+      type: 'created',
+      before: null,
+      after: {
+        id: '1',
+        string: 'string',
+        stringArray: ['stringArray'],
+        boolean: true,
+        booleanArray: [true, false, true],
+        dateTime: new Date('2024-01-01T00:00:00.000Z'),
+        enum: 'USER',
+        enumArray: ['USER'],
+        bigInt: BigInt(1),
+        bigIntArray: [BigInt(1)],
+        int: 1,
+        intArray: [1],
+        float: 1,
+        floatArray: [1],
+        json: {},
+      },
+      date: new Date('2024-01-01T00:00:00.000Z'),
+      id: '1',
+    } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+
+    test('has (true)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            booleanArray: { has: true },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('has (false)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            booleanArray: { has: false },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('has (non-existent value)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            booleanArray: { has: null as any },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('hasEvery (true + false)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            booleanArray: { hasEvery: [true, false] },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('hasEvery (missing value)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            booleanArray: { hasEvery: [true, null as any] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('hasSome (true or false)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            booleanArray: { hasSome: [false, null as any] },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('hasSome (non-existent value)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            booleanArray: { hasSome: [null as any] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('isEmpty (false)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            booleanArray: { isEmpty: false },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('isEmpty (true)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            booleanArray: { isEmpty: true },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('equals (exact match)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            booleanArray: { equals: [true, false, true] },
+          },
+        }),
+      ).toBe(true)
+    })
+
+    test('equals (order mismatch)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            booleanArray: { equals: [true, true, false] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('equals (subset)', () => {
+      expect(
+        matches(baseEvent, {
+          created: {
+            booleanArray: { equals: [true, false] },
+          },
+        }),
+      ).toBe(false)
+    })
+
+    test('empty array equals and isEmpty edge case', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              booleanArray: [],
+            },
+          },
+          {
+            created: {
+              booleanArray: { equals: [] },
+            },
+          },
+        ),
+      ).toBe(true)
+
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              booleanArray: [],
+            },
+          },
+          {
+            created: {
+              booleanArray: { isEmpty: true },
+            },
+          },
+        ),
+      ).toBe(true)
+    })
+
+    test('has on empty array (edge case)', () => {
+      expect(
+        matches(
+          {
+            ...baseEvent,
+            after: {
+              ...baseEvent.after,
+              booleanArray: [],
+            },
+          },
+          {
+            created: {
+              booleanArray: { has: true },
+            },
+          },
+        ),
+      ).toBe(false)
+    })
+  })
+
   describe('DateTime', () => {
     test('equals (positive)', () => {
       expect(

@@ -41,7 +41,7 @@ export class SchemaType implements SchemaDef {
           optional: true,
         },
         booleanArray: {
-          name: 'boolean',
+          name: 'booleanArray',
           type: 'Boolean',
           array: true,
           optional: true,
