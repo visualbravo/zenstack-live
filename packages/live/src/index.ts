@@ -245,7 +245,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
   }
 
   private async getLatestEvents() {
-    const events: ZenStackLiveEvent[] = []
+    const events: ZenStackLiveEvent<SimplifiedPlainResult<Schema, ModelName>>[] = []
     const xReadGroupResponse = (await this.options.redis.xreadgroup(
       'GROUP',
       this.consumerGroupName,

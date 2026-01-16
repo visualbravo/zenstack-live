@@ -37,32 +37,16 @@ describe('live', () => {
   })
 
   afterEach(async () => {
-    await Promise.all([
-      client.$disconnect(),
-      live.disconnect(),
-    ])
+    await Promise.all([client.$disconnect(), live.disconnect()])
   })
 
   test('streaming', async () => {
     const stream = live.stream({
       model: 'User',
       id: 'all-user-changes',
-
-      // created: {
-      //   verified: {
-          
-      //   }
-      // },
-
-      updated: {
-        before: {},
-
-        after: {
-          enumArray: {
-            
-          }
-        }
-      },
+      created: {},
+      updated: {},
+      deleted: {},
     })
 
     for await (const event of stream) {
