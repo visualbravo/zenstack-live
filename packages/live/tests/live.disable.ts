@@ -44,13 +44,26 @@ describe('live', () => {
     const stream = live.stream({
       model: 'User',
       id: 'all-user-changes',
-      created: {},
+      created: {
+        OR: [
+          {
+            string: {
+              contains: 'ugly',
+            },
+          },
+
+          {
+            string: {
+              contains: 'stupid',
+            },
+          },
+        ],
+      },
     })
-    
+
     for await (const event of stream) {
       // I want `event` to only be typed as a `RecordCreatedEvent` because I only specified `created`
       // if I specified both `created` and `updated` then `event` should be a RecordCreatedEvent | RecordUpdatedEvent
-      
     }
   })
 })
