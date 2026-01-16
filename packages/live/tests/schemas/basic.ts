@@ -24,50 +24,73 @@ export class SchemaType implements SchemaDef {
           ],
           default: ExpressionUtils.call('cuid'),
         },
-        createdAt: {
-          name: 'createdAt',
-          type: 'DateTime',
-          attributes: [
-            { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-          ],
-          default: ExpressionUtils.call('now'),
-        },
-        updatedAt: {
-          name: 'updatedAt',
-          type: 'DateTime',
-          updatedAt: true,
-          attributes: [{ name: '@updatedAt' }],
-        },
-        email: {
-          name: 'email',
-          type: 'String',
-          unique: true,
-          attributes: [{ name: '@unique' }],
-        },
-        name: {
-          name: 'name',
+        string: {
+          name: 'string',
           type: 'String',
           optional: true,
         },
-        age: {
-          name: 'age',
-          type: 'Int',
+        stringArray: {
+          name: 'stringArray',
+          type: 'String',
+          array: true,
           optional: true,
         },
-        verified: {
-          name: 'verified',
+        boolean: {
+          name: 'boolean',
           type: 'Boolean',
           optional: true,
         },
-        tags: {
-          name: 'tags',
-          type: 'String',
+        booleanArray: {
+          name: 'boolean',
+          type: 'Boolean',
+          array: true,
+          optional: true,
+        },
+        int: {
+          name: 'int',
+          type: 'Int',
+          optional: true,
+        },
+        intArray: {
+          name: 'intArray',
+          type: 'Int',
+          array: true,
+          optional: true,
+        },
+        dateTime: {
+          name: 'dateTime',
+          type: 'DateTime',
+          optional: true,
+        },
+        // dateTimeArray: {
+        //   name: 'dateTime',
+        //   type: 'DateTime',
+        //   optional: true,
+        //   array: true,
+        // },
+        bigInt: {
+          name: 'bigInt',
+          type: 'BigInt',
+          optional: true,
+        },
+        bigIntArray: {
+          name: 'bigInt',
+          type: 'BigInt',
           optional: true,
           array: true,
         },
-        role: {
-          name: 'role',
+        enum: {
+          name: 'enum',
           type: 'Role',
+          attributes: [
+            { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('USER') }] },
+          ],
+          default: 'USER',
+        },
+        enumArray: {
+          name: 'enum',
+          type: 'Role',
+          array: true,
           attributes: [
             { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('USER') }] },
           ],
@@ -85,8 +108,8 @@ export class SchemaType implements SchemaDef {
           optional: true,
           relation: { opposite: 'user' },
         },
-        meta: {
-          name: 'meta',
+        json: {
+          name: 'json',
           type: 'Json',
           optional: true,
         },
@@ -124,7 +147,6 @@ export class SchemaType implements SchemaDef {
       idFields: ['id'],
       uniqueFields: {
         id: { type: 'String' },
-        email: { type: 'String' },
       },
     },
     Post: {

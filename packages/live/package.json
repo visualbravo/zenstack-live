@@ -36,21 +36,26 @@
       "@zenstack-live/source": "./src/index.ts",
       "default": "./dist/index.mjs"
     },
+    "./compiler": {
+      "@zenstack-live/source": "./src/compiler.ts",
+      "default": "./dist/compiler.mjs"
+    },
+    "./discriminator": {
+      "@zenstack-live/source": "./src/discriminator.ts",
+      "default": "./dist/discriminator.mjs"
+    },
     "./internal": {
       "@zenstack-live/source": "./src/internal.ts",
       "default": "./dist/internal.mjs"
-    },
-    "./json": {
-      "@zenstack-live/source": "./src/json.ts",
-      "default": "./dist/json.mjs"
     },
     "./package.json": "./package.json"
   },
   "publishConfig": {
     "exports": {
       ".": "./dist/index.mjs",
+      "./compiler": "./dist/compiler.mjs",
+      "./discriminator": "./dist/discriminator.mjs",
       "./internal": "./dist/internal.mjs",
-      "./json": "./dist/json.mjs",
       "./package.json": "./package.json"
     }
   }

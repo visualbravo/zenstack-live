@@ -58,9 +58,7 @@ describe('live', () => {
         before: {},
 
         after: {
-          verified: {
-            
-          }
+          
         }
       },
     })
