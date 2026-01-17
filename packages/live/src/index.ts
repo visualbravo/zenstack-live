@@ -233,7 +233,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
 
       switch (field.type) {
         case 'BigInt':
-          payload[fieldName] = BigInt(payload[fieldName])
+          payload[fieldName] = payload[fieldName] === null ? null : payload[fieldName]
           break
         case 'Int':
           payload[fieldName] = Number(payload[fieldName])
@@ -359,5 +359,28 @@ export class ZenStackLive<Schema extends SchemaDef> {
 
   disconnect() {
     this.redis.disconnect()
+  }
+}
+
+export function beforeAfter<
+  Schema extends SchemaDef,
+  ModelName extends GetModels<Schema>
+>(event: RecordEvent<Schema, ModelName>) {
+  if (event.type === 'created') {
+    return {
+      before: null,
+      after: event.created,
+    }
+  }
+  else if (event.type === 'updated') {
+    return {
+      before: event.updated.before,
+      after: event.updated.after,
+    }
+  }
+
+  return {
+    before: event.deleted,
+    after: null,
   }
 }
