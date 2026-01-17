@@ -3,10 +3,10 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:test'
 import { schema } from './schemas/basic'
 import { EventDiscriminator, type EventDiscriminatorOptions } from '../src/discriminator'
-import type { ZenStackLiveEvent } from '../'
-import { ZenStackClient, type ClientContract, type SimplifiedPlainResult } from '@zenstackhq/orm'
+import { ZenStackClient, type ClientContract } from '@zenstackhq/orm'
 import { PostgresDialect } from 'kysely'
 import { Pool } from 'pg'
+import type { RecordCreatedEvent } from '../'
 
 const baseDate = new Date('2024-01-01T00:00:00.000Z')
 const laterDate = new Date('2024-01-01T00:00:00.001Z')
@@ -14,8 +14,7 @@ const earlierDate = new Date('2023-12-31T23:59:59.999Z')
 
 const baseEvent = {
   type: 'created',
-  before: null,
-  after: {
+  created: {
     id: '1',
     string: 'string',
     stringArray: ['stringArray'],
@@ -33,12 +32,12 @@ const baseEvent = {
   },
   date: baseDate,
   id: '1',
-} as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+} as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
 let client: ClientContract<typeof schema>
 
 async function matches(
-  event: ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>,
+  event: RecordCreatedEvent<typeof schema, 'User'>,
   options: Pick<
     EventDiscriminatorOptions<typeof schema, 'User'>,
     'created' | 'updated' | 'deleted'
@@ -56,7 +55,7 @@ async function matches(
   if (event.type === 'created') {
     await client.user.create({
       // @ts-expect-error
-      data: event.after,
+      data: event.created,
     })
 
     databaseMatches = await client.user.exists({
@@ -348,8 +347,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 string: '',
               },
             },
@@ -376,8 +375,7 @@ describe('EventDiscriminator', () => {
     describe('String[]', () => {
       const baseEvent = {
         type: 'created',
-        before: null,
-        after: {
+        created: {
           id: '1',
           string: 'string',
           stringArray: ['a', 'b', 'c'],
@@ -395,7 +393,7 @@ describe('EventDiscriminator', () => {
         },
         date: new Date(),
         id: '1',
-      } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+      } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
       test('has (positive)', () => {
         expect(
@@ -512,8 +510,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 stringArray: [],
               },
             },
@@ -531,8 +529,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 stringArray: [],
               },
             },
@@ -550,8 +548,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 stringArray: [],
               },
             },
@@ -733,8 +731,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 int: 0,
               },
             },
@@ -752,8 +750,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 int: -5,
               },
             },
@@ -770,8 +768,7 @@ describe('EventDiscriminator', () => {
     describe('Int[]', () => {
       const baseEvent = {
         type: 'created',
-        before: null,
-        after: {
+        created: {
           id: '1',
           string: 'string',
           stringArray: ['stringArray'],
@@ -789,7 +786,7 @@ describe('EventDiscriminator', () => {
         },
         date: new Date(),
         id: '1',
-      } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+      } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
       test('has (positive)', () => {
         expect(
@@ -930,8 +927,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 intArray: [],
               },
             },
@@ -949,8 +946,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 intArray: [],
               },
             },
@@ -968,8 +965,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 intArray: [],
               },
             },
@@ -987,8 +984,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 intArray: [-1, 0, 1],
               },
             },
@@ -1170,8 +1167,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 float: 0,
               },
             },
@@ -1189,8 +1186,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 float: -10.5,
               },
             },
@@ -1208,8 +1205,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 float: 0.000123,
               },
             },
@@ -1228,8 +1225,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 float: huge,
               },
             },
@@ -1246,8 +1243,7 @@ describe('EventDiscriminator', () => {
     describe('Float[]', () => {
       const baseEvent = {
         type: 'created',
-        before: null,
-        after: {
+        created: {
           id: '1',
           string: 'string',
           stringArray: ['stringArray'],
@@ -1265,7 +1261,7 @@ describe('EventDiscriminator', () => {
         },
         date: new Date('2024-01-01T00:00:00.000Z'),
         id: '1',
-      } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+      } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
       test('has (positive)', () => {
         expect(
@@ -1406,8 +1402,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 floatArray: [],
               },
             },
@@ -1425,8 +1421,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 floatArray: [],
               },
             },
@@ -1444,8 +1440,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 floatArray: [],
               },
             },
@@ -1463,8 +1459,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 floatArray: [-1.5, 0, 1.5],
               },
             },
@@ -1482,8 +1478,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 floatArray: [0.0001, 0.0002, 0.0003],
               },
             },
@@ -1501,8 +1497,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 floatArray: [1e18, 2e18, 3e18],
               },
             },
@@ -1519,8 +1515,7 @@ describe('EventDiscriminator', () => {
     describe('Enum', () => {
       const baseEvent = {
         type: 'created',
-        before: null,
-        after: {
+        created: {
           id: '1',
           string: 'string',
           stringArray: ['stringArray'],
@@ -1538,7 +1533,7 @@ describe('EventDiscriminator', () => {
         },
         date: new Date('2024-01-01T00:00:00.000Z'),
         id: '1',
-      } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+      } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
       test('top-level equals (matching value)', () => {
         expect(
@@ -1625,7 +1620,7 @@ describe('EventDiscriminator', () => {
     //   const baseEvent = {
     //     type: 'created',
     //     before: null,
-    //     after: {
+    //     created: {
     //       id: '1',
     //       string: 'string',
     //       stringArray: ['stringArray'],
@@ -1644,7 +1639,7 @@ describe('EventDiscriminator', () => {
     //     },
     //     date: new Date('2024-01-01T00:00:00.000Z'),
     //     id: '1',
-    //   } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+    //   } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
     //   test('has (positive)', () => {
     //     expect(
@@ -1761,8 +1756,8 @@ describe('EventDiscriminator', () => {
     //       matches(
     //         {
     //           ...baseEvent,
-    //           after: {
-    //             ...baseEvent.after,
+    //           created: {
+    //             ...baseEvent.created,
     //             enumArray: [],
     //           },
     //         },
@@ -1778,8 +1773,8 @@ describe('EventDiscriminator', () => {
     //       matches(
     //         {
     //           ...baseEvent,
-    //           after: {
-    //             ...baseEvent.after,
+    //           created: {
+    //             ...baseEvent.created,
     //             enumArray: [],
     //           },
     //         },
@@ -1797,8 +1792,8 @@ describe('EventDiscriminator', () => {
     //       matches(
     //         {
     //           ...baseEvent,
-    //           after: {
-    //             ...baseEvent.after,
+    //           created: {
+    //             ...baseEvent.created,
     //             enumArray: [],
     //           },
     //         },
@@ -1815,8 +1810,7 @@ describe('EventDiscriminator', () => {
     describe('BigInt', () => {
       const baseEvent = {
         type: 'created',
-        before: null,
-        after: {
+        created: {
           id: '1',
           string: 'string',
           stringArray: ['stringArray'],
@@ -1834,7 +1828,7 @@ describe('EventDiscriminator', () => {
         },
         date: new Date(),
         id: '1',
-      } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+      } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
       // test('equals (positive)', () => {
       //   expect(
@@ -2003,8 +1997,8 @@ describe('EventDiscriminator', () => {
       //     matches(
       //       {
       //         ...baseEvent,
-      //         after: {
-      //           ...baseEvent.after,
+      //         created: {
+      //           ...baseEvent.created,
       //           bigInt: BigInt(0),
       //         },
       //       },
@@ -2022,8 +2016,8 @@ describe('EventDiscriminator', () => {
       //     matches(
       //       {
       //         ...baseEvent,
-      //         after: {
-      //           ...baseEvent.after,
+      //         created: {
+      //           ...baseEvent.created,
       //           bigInt: BigInt(-10),
       //         },
       //       },
@@ -2043,8 +2037,8 @@ describe('EventDiscriminator', () => {
       //     matches(
       //       {
       //         ...baseEvent,
-      //         after: {
-      //           ...baseEvent.after,
+      //         created: {
+      //           ...baseEvent.created,
       //           bigInt: huge,
       //         },
       //       },
@@ -2136,8 +2130,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 boolean: false,
               },
             },
@@ -2155,8 +2149,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 boolean: false,
               },
             },
@@ -2173,8 +2167,7 @@ describe('EventDiscriminator', () => {
     describe('Boolean[]', () => {
       const baseEvent = {
         type: 'created',
-        before: null,
-        after: {
+        created: {
           id: '1',
           string: 'string',
           stringArray: ['stringArray'],
@@ -2192,7 +2185,7 @@ describe('EventDiscriminator', () => {
         },
         date: new Date('2024-01-01T00:00:00.000Z'),
         id: '1',
-      } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+      } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
       test('has (true)', () => {
         expect(
@@ -2319,8 +2312,8 @@ describe('EventDiscriminator', () => {
       //     matches(
       //       {
       //         ...baseEvent,
-      //         after: {
-      //           ...baseEvent.after,
+      //         created: {
+      //           ...baseEvent.created,
       //           booleanArray: [],
       //         },
       //       },
@@ -2336,8 +2329,8 @@ describe('EventDiscriminator', () => {
       //     matches(
       //       {
       //         ...baseEvent,
-      //         after: {
-      //           ...baseEvent.after,
+      //         created: {
+      //           ...baseEvent.created,
       //           booleanArray: [],
       //         },
       //       },
@@ -2355,8 +2348,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 booleanArray: [],
               },
             },
@@ -2550,8 +2543,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 dateTime: epoch,
               },
             },
@@ -2572,8 +2565,8 @@ describe('EventDiscriminator', () => {
           matches(
             {
               ...baseEvent,
-              after: {
-                ...baseEvent.after,
+              created: {
+                ...baseEvent.created,
                 dateTime: utc,
               },
             },
@@ -2591,8 +2584,7 @@ describe('EventDiscriminator', () => {
   describe('operators', () => {
     const baseEvent = {
       type: 'created',
-      before: null,
-      after: {
+      created: {
         id: '1',
         string: 'hello',
         stringArray: ['stringArray'],
@@ -2610,7 +2602,7 @@ describe('EventDiscriminator', () => {
       },
       date: new Date('2024-01-01T00:00:00.000Z'),
       id: '1',
-    } as const satisfies ZenStackLiveEvent<SimplifiedPlainResult<typeof schema, 'User'>>
+    } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
     test('AND - both conditions true', () => {
       expect(

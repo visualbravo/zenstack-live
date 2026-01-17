@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 import type { SchemaDef, GetModels } from '@zenstackhq/schema'
-import type { LiveStreamOptions, ZenStackLiveEvent } from '.'
+import type { LiveStreamOptions, RecordEvent } from '.'
 import { QueryCompiler } from './compiler'
 import { z } from 'zod/v4'
 
@@ -43,30 +43,30 @@ export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetM
     }
   }
 
-  eventMatchesWhere(event: ZenStackLiveEvent) {
+  eventMatchesWhere(event: RecordEvent<Schema, ModelName>) {
     if (!this.streamOptions[event.type]) {
       return false
     }
 
     if (event.type === 'created' && this.createdSchema) {
-      return this.createdSchema.safeParse(event.after).success
+      return this.createdSchema.safeParse(event.created).success
     } else if (event.type === 'deleted' && this.deletedSchema) {
-      return this.deletedSchema.safeParse(event.before).success
+      return this.deletedSchema.safeParse(event.deleted).success
     } else if (event.type === 'updated') {
       if (this.updatedBeforeSchema && this.updatedAfterSchema) {
         return (
-          this.updatedBeforeSchema.safeParse(event.before).success &&
-          this.updatedAfterSchema.safeParse(event.after).success
+          this.updatedBeforeSchema.safeParse(event.updated.before).success &&
+          this.updatedAfterSchema.safeParse(event.updated.after).success
         )
       } else if (this.updatedBeforeSchema && !this.updatedAfterSchema) {
         return (
-          this.updatedBeforeSchema.safeParse(event.before).success &&
-          !this.updatedBeforeSchema.safeParse(event.after).success
+          this.updatedBeforeSchema.safeParse(event.updated.before).success &&
+          !this.updatedBeforeSchema.safeParse(event.updated.after).success
         )
       } else if (!this.updatedBeforeSchema && this.updatedAfterSchema) {
         return (
-          this.updatedAfterSchema.safeParse(event.after).success &&
-          !this.updatedAfterSchema.safeParse(event.before).success
+          this.updatedAfterSchema.safeParse(event.updated.after).success &&
+          !this.updatedAfterSchema.safeParse(event.updated.before).success
         )
       } else if (!this.updatedBeforeSchema && !this.updatedAfterSchema) {
         return true
