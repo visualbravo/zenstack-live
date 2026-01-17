@@ -45,7 +45,6 @@ describe('live', () => {
       model: 'User',
       id: 'all-user-changes',
       created: {},
-      updated: {},
     })
 
     for await (const event of stream) {
