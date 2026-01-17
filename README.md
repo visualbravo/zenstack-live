@@ -145,7 +145,7 @@ const deliveredOrdersStream = live.stream({
 
   updated: {
     // This is a "transition" query. You are only notified if the record transitions
-    // from *not* matching before, to matching afterwards.
+    // from *not* matching before, to *matching* afterwards.
     after: {
       status: 'DELIVERED',
     },
@@ -155,7 +155,7 @@ const deliveredOrdersStream = live.stream({
 for await (let event of deliveredOrdersStream) {
   const order = event.updated.after
 
-  await sendEmail(order.customerId, {
+  await sendEmail(order.contactEmail, {
     subject: `✅ Delivered at ${toHumanReadable(event.date)}`,
   })
 }
@@ -173,7 +173,7 @@ Hint: it doesn't use polling.
 ## Limitations
 
 1. Postgres only. Actually, that might not be totally accurate. Debezium has MySQL support, but this project has not been tested with it.
-2. Events are not bound by the transaction they were in. This is a good thing for performance, but it's important to keep in mind. If you're listening to `created` events, the record might not exist in the database anymore if it was deleted before your handler processed it. **Events represent snapshots in time**, and actually come with the time they were generated via `event.date`.
+2. Events are not bound by the transaction they were in. This is a good thing for performance, but it's important to keep in mind. If you're listening to `created` events, the record might not exist in the database anymore if it was deleted before your handler processed it. **Events represent snapshots in time of a single record**, and actually come with the time they were generated via `event.date`.
 3. You can't query via relations on the `created`, `updated`, and `deleted` clauses. Although that would be very cool, this is not possible because of limitation #2.
 
 ## License
