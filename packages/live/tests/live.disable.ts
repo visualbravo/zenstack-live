@@ -74,6 +74,8 @@ describe('live', () => {
 
     for await (const event of stream) {
       const { before, after } = beforeAfter(event)
+
+      console.log(event)
     }
   })
 })

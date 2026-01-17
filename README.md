@@ -11,7 +11,7 @@ Supercharge your ZenStack app with realtime streaming capabilities. Instantly re
 ## Setup
 
 ```typescript
-// No ZenStackClient needed -- just the schema!
+// No ZenStackClient needed -- just the schema.
 const live = new ZenStackLive({
   schema,
 
@@ -36,7 +36,9 @@ for await (let event of newUserStream) {
   const user = event.created
     //  ^ properly typed as the `User` model
 
-  await sendWelcomeEmail(user)
+  await sendEmail(user.email, {
+    subject: `Welcome, ${user.name}!`,
+  })
 }
 ```
 
@@ -86,11 +88,11 @@ for await (let event of postStream) {
 
   const { after } = beforeAfter(event)
 
-  await redis.set(`posts:${after.id}`, after)
+  await redis.set(`posts:${after!.id}`, after)
 }
 ```
 
-You've seen the simple stuff, now let's get jiggy with it.
+You've seen the simple stuff, now let's look at more complex examples.
 
 ### Moderation
 
@@ -115,13 +117,6 @@ const potentiallyHarmfulPostsStream = live.stream({
           mode: 'insensitive',
         },
       },
-
-      {
-        title: {
-          contains: 'doodoohead',
-          mode: 'insensitive',
-        },
-      },
     ],
   },
 })
@@ -130,7 +125,7 @@ for await (let event of potentiallyHarmfulPostsStream) {
   const post = event.created
   const sentiment = await analyzeSentiment(post)
 
-  if (sentiment === 'RUDE_DUDE') {
+  if (sentiment === 'rude') {
     await suspendUser(post.authorId)
   }
 }
@@ -163,7 +158,7 @@ for await (let event of deliveredOrdersStream) {
 
 ## How it Works
 
-Hint: it doesn't use polling.
+Hint: not with polling.
 
 1. Debezium connects to your database.
 2. Debezium stores inserts, updates, and deletes in a Redis stream, **even those which are done outside of ZenStack**.
@@ -175,6 +170,7 @@ Hint: it doesn't use polling.
 1. Postgres only. Actually, that might not be totally accurate. Debezium has MySQL support, but this project has not been tested with it.
 2. Events are not bound by the transaction they were in. This is a good thing for performance, but it's important to keep in mind. If you're listening to `created` events, the record might not exist in the database anymore if it was deleted before your handler processed it. **Events represent snapshots in time of a single record**, and actually come with the time they were generated via `event.date`.
 3. You can't query via relations on the `created`, `updated`, and `deleted` clauses. Although that would be very cool, this is not possible because of limitation #2.
+4. Json filtering is not yet implemented.
 
 ## License
 

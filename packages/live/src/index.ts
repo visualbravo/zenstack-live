@@ -37,6 +37,7 @@ export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetMod
 export type RecordCreatedEvent<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   type: 'created'
   id: string
+  transactionId: string
   date: Date
   created: SimplifiedPlainResult<Schema, ModelName>
 }
@@ -44,6 +45,7 @@ export type RecordCreatedEvent<Schema extends SchemaDef, ModelName extends GetMo
 export type RecordUpdatedEvent<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   type: 'updated'
   id: string
+  transactionId: string
   date: Date
   updated: {
     before: SimplifiedPlainResult<Schema, ModelName>
@@ -54,6 +56,7 @@ export type RecordUpdatedEvent<Schema extends SchemaDef, ModelName extends GetMo
 export type RecordDeletedEvent<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   type: 'deleted'
   id: string
+  transactionId: string
   date: Date
   deleted: SimplifiedPlainResult<Schema, ModelName>
 }
@@ -192,6 +195,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
           yield {
             type: 'created',
             id: event.id,
+            transactionId: event.transactionId,
             date: event.date,
             created: event.created,
           } as unknown as RequestedEvents<Schema, ModelName, Opts>
@@ -199,6 +203,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
           yield {
             type: 'updated',
             id: event.id,
+            transactionId: event.transactionId,
             date: event.date,
             updated: {
               before: event.updated.before,
@@ -209,6 +214,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
           yield {
             type: 'deleted',
             id: event.id,
+            transactionId: event.transactionId,
             date: event.date,
             deleted: event.deleted,
           }  as unknown as RequestedEvents<Schema, ModelName, Opts>
@@ -233,22 +239,29 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
 
       switch (field.type) {
         case 'BigInt':
-          payload[fieldName] = payload[fieldName] === null ? null : payload[fieldName]
+          payload[fieldName] = payload[fieldName] === null ? null : field.array
+            ? (payload[fieldName] as string[]).map(value => BigInt(value))
+            : BigInt(payload[fieldName])
           break
         case 'Int':
-          payload[fieldName] = Number(payload[fieldName])
+          payload[fieldName] = field.array
+            ? (payload[fieldName] as string[]).map(value => Number(value))
+            : Number(payload[fieldName])
           break
         case 'Decimal':
-          payload[fieldName] = Decimal(payload[fieldName])
+          payload[fieldName] = field.array
+            ? (payload[fieldName] as string[]).map(value => Decimal(value))
+            : Decimal(payload[fieldName])
           break
         case 'DateTime':
-          payload[fieldName] = new Date(Number(payload[fieldName]) / 1000)
-          break
-        case 'Boolean':
-          payload[fieldName] = payload[fieldName] === 'true'
+          payload[fieldName] = field.array
+            ? (payload[fieldName] as string[]).map(value => new Date(Number(value) / 1000))
+            : new Date(Number(payload[fieldName]) / 1000)
           break
         case 'Float':
-          payload[fieldName] = parseFloat(payload[fieldName])
+          payload[fieldName] = field.array
+            ? (payload[fieldName] as string[]).map(value => parseFloat(value))
+            : parseFloat(payload[fieldName])
           break
         case 'Bytes':
           throw new Error(`Field "${fieldName}" has an unsupported type ("${field.type}")`)
@@ -294,6 +307,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
             events.push({
               type: 'created',
               id: eventId,
+              transactionId: String(event.source.txId),
               date: new Date(Number(event.ts_ms)),
               created: event.after,
             })
@@ -304,6 +318,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
             events.push({
               type: 'updated',
               id: eventId,
+              transactionId: String(event.source.txId),
               date: new Date(Number(event.ts_ms)),
               updated: {
                 before: event.before,
@@ -316,6 +331,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
             events.push({
               type: 'deleted',
               id: eventId,
+              transactionId: String(event.source.txId),
               date: new Date(Number(event.ts_ms)),
               deleted: event.before,
             })
