@@ -69,6 +69,32 @@ export type RecordResultMap<Schema extends SchemaDef, ModelName extends GetModel
   deleted: RecordDeletedEvent<Schema, ModelName>
 }
 
+type ExtractRequestedEvents<
+  Schema extends SchemaDef,
+  ModelName extends GetModels<Schema>,
+  Opts
+> =
+  | (Opts extends { created: any } ? RecordCreatedEvent<Schema, ModelName> : never)
+  | (Opts extends { updated: any } ? RecordUpdatedEvent<Schema, ModelName> : never)
+  | (Opts extends { deleted: any } ? RecordDeletedEvent<Schema, ModelName> : never)
+
+export type RequestedEvents<
+  Schema extends SchemaDef,
+  ModelName extends GetModels<Schema>,
+  Opts
+> = [ExtractRequestedEvents<Schema, ModelName, Opts>] extends [never]
+  ? RecordEvent<Schema, ModelName>
+  : ExtractRequestedEvents<Schema, ModelName, Opts>
+
+type PickStreamFilters<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
+  created?: WhereInput<Schema, ModelName, true>
+  updated?: {
+    before?: WhereInput<Schema, ModelName, true>
+    after?: WhereInput<Schema, ModelName, true>
+  }
+  deleted?: WhereInput<Schema, ModelName, true>
+}
+
 export type ZenStackLiveOptions<Schema extends SchemaDef> = {
   schema: Schema
 
@@ -82,7 +108,7 @@ export type ZenStackLiveOptions<Schema extends SchemaDef> = {
   }
 }
 
-export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Schema>> {
+export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Schema>, Opts = unknown> implements AsyncIterable<RequestedEvents<Schema, ModelName, Opts>> {
   private readonly options: LiveStreamOptions<Schema, ModelName>
   private readonly modelName: ModelName
   private readonly streamName: string
@@ -147,7 +173,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
     await new Promise(resolve => setTimeout(resolve, ms))
   }
 
-  async *[Symbol.asyncIterator](): AsyncIterator<RecordEvent<Schema, ModelName>> {
+  async *[Symbol.asyncIterator](): AsyncIterator<RequestedEvents<Schema, ModelName, Opts>> {
     await this.makeConsumerGroup()
 
     while (this.options.redis.status === 'ready') {
@@ -168,7 +194,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
             id: event.id,
             date: event.date,
             created: event.created,
-          }
+          } as unknown as RequestedEvents<Schema, ModelName, Opts>
         } else if (event.type === 'updated') {
           yield {
             type: 'updated',
@@ -178,14 +204,14 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
               before: event.updated.before,
               after: event.updated.after,
             },
-          }
+          } as unknown as RequestedEvents<Schema, ModelName, Opts>
         } else if (event.type === 'deleted') {
           yield {
             type: 'deleted',
             id: event.id,
             date: event.date,
             deleted: event.deleted,
-          }
+          }  as unknown as RequestedEvents<Schema, ModelName, Opts>
         }
 
         await this.acknowledgeEvent(event.id)
@@ -319,10 +345,11 @@ export class ZenStackLive<Schema extends SchemaDef> {
     this.redis = new Redis(options.redis.url)
   }
 
-  stream<ModelName extends GetModels<Schema>>(
-    streamOptions: Omit<LiveStreamOptions<Schema, ModelName>, 'schema' | 'redis' | 'clientId'>,
+  stream<ModelName extends GetModels<Schema>, Opts extends PickStreamFilters<Schema, ModelName>>(
+    // streamOptions: Omit<LiveStreamOptions<Schema, ModelName>, 'schema' | 'redis' | 'clientId'>,
+    streamOptions: { model: ModelName, id: string } & Opts,
   ) {
-    return new LiveStream({
+    return new LiveStream<Schema, ModelName, Opts>({
       ...streamOptions,
       redis: this.redis,
       clientId: this.options.id ?? 'zenstack',

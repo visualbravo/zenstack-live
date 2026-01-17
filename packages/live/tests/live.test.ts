@@ -45,10 +45,12 @@ describe('live', () => {
       model: 'User',
       id: 'all-user-changes',
       created: {},
+      updated: {},
+      deleted: {},
     })
 
     for await (const event of stream) {
-      //
+      console.log({event})
     }
   })
 })
