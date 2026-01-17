@@ -49,7 +49,7 @@ describe('live', () => {
     })
 
     for await (const event of stream) {
-      
+      //
     }
   })
 })
