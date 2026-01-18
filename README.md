@@ -221,7 +221,7 @@ Hint: not with polling.
 1. **This project is in beta.** There are still some things missing or broken.
 2. **Postgres only.** Actually, that might not be totally true. Debezium has MySQL support, but this project has not been tested with it. Want to help? Give it a try and tell us how it goes.
 3. **Events represent snapshots in time of a single record.** They are not bound by the transaction they were in. If you're listening to `created` events, the record might not exist in the database anymore if it was deleted before your handler processed it. You can determine when an event occurred via `event.date`
-4. **You can't query by relations.** Although that would be very cool, this is not possible because of limitation #2.
+4. **You can't query by relations.** Although that would be very cool, this is not possible because of limitation #3.
 5. **Json filtering, date arrays, custom types, and replaying errored messages are not yet implemented.**
 6. **Live stream handlers can't be hosted on a serverless platform.** They need to be constantly waiting for new events to come in. Your main backend can still be serverless, and you just communicate between the two like any other service.
 7. **Only the `public` schema is supported at this time.**
