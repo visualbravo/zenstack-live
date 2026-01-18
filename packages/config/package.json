@@ -1,6 +1,7 @@
 {
   "name": "@zenstack-live/config",
   "type": "module",
+  "version": "0.0.0",
   "private": true,
   "exports": {
     "./ts": "./ts.json"

@@ -22,7 +22,7 @@ Supercharge your ZenStack backend with realtime streaming capabilities. Instantl
     </a>
 
   <p>
-    ℹ️ This is a community project unaffiliated with the ZenStack team.
+    ℹ️ This project is not affiliated with or endorsed by the ZenStack team.
   </p>
 </div>
 
