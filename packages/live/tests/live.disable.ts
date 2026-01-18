@@ -1,6 +1,4 @@
-// oxlint-disable init-declarations
-// oxlint-disable no-unused-vars
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
+import { describe, test, beforeEach, afterEach } from 'vitest'
 import { schema } from './schemas/basic'
 import { ZenStackLive, beforeAfter } from '../src'
 import { ZenStackClient, type ClientContract } from '@zenstackhq/orm'
@@ -69,7 +67,9 @@ describe('live', () => {
     for await (const event of stream) {
       const { before, after } = beforeAfter(event)
 
-      console.log(event)
+      console.log({
+        event, before, after
+      })
     }
   })
 })

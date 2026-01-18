@@ -11,6 +11,9 @@
     "//#lint:fix": {
       "cache": false
     },
+    "//#format:fix": {
+      "cache": false
+    },
     "build": {
       "cache": true,
       "persistent": false,

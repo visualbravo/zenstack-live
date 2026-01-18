@@ -10,7 +10,7 @@
     "lint": "oxlint",
     "lint:fix": "oxlint --fix --fix-suggestions",
     "format:fix": "oxfmt",
-    "test": "bun test",
+    "test": "bun run test",
     "test:watch": "bun test --watch"
   },
   "devDependencies": {
@@ -22,7 +22,8 @@
     "schema-dts": "1.1.5",
     "tsdown": "0.18.3",
     "turbo": "2.7.2",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "4.0.17"
   },
   "workspaces": {
     "packages": [
