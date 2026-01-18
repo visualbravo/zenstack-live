@@ -36,10 +36,6 @@
       "@zenstack-live/source": "./src/index.ts",
       "default": "./dist/index.mjs"
     },
-    "./compiler": {
-      "@zenstack-live/source": "./src/compiler.ts",
-      "default": "./dist/compiler.mjs"
-    },
     "./discriminator": {
       "@zenstack-live/source": "./src/discriminator.ts",
       "default": "./dist/discriminator.mjs"
@@ -48,14 +44,18 @@
       "@zenstack-live/source": "./src/internal.ts",
       "default": "./dist/internal.mjs"
     },
+    "./query-compiler": {
+      "@zenstack-live/source": "./src/query-compiler.ts",
+      "default": "./dist/query-compiler.mjs"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
     "exports": {
       ".": "./dist/index.mjs",
-      "./compiler": "./dist/compiler.mjs",
       "./discriminator": "./dist/discriminator.mjs",
       "./internal": "./dist/internal.mjs",
+      "./query-compiler": "./dist/query-compiler.mjs",
       "./package.json": "./package.json"
     }
   }

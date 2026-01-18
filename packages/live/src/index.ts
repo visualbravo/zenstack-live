@@ -381,7 +381,10 @@ export class ZenStackLive<Schema extends SchemaDef> {
 export function beforeAfter<
   Schema extends SchemaDef,
   ModelName extends GetModels<Schema>
->(event: RecordEvent<Schema, ModelName>) {
+>(event: RecordEvent<Schema, ModelName>): {
+  before: SimplifiedPlainResult<Schema, ModelName> | null
+  after: SimplifiedPlainResult<Schema, ModelName> | null
+} {
   if (event.type === 'created') {
     return {
       before: null,

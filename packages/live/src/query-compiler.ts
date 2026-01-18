@@ -85,7 +85,8 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
       }
 
       const field = Object.values(model.fields).find(field => field.name === key)!
-      const isEnum = !!this.options.schema.enums?.[field.type]
+      const fieldModel = this.options.schema.models[field.type]
+      const isEnum = !!fieldModel
 
       if (isEnum) {
         if (field.array) {

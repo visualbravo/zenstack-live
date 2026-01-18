@@ -31,6 +31,7 @@ const baseEvent = {
     json: {},
   },
   date: baseDate,
+  transactionId: '1',
   id: '1',
 } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
@@ -392,6 +393,7 @@ describe('EventDiscriminator', () => {
           json: {},
         },
         date: new Date(),
+  transactionId: '1',
         id: '1',
       } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
@@ -786,6 +788,7 @@ describe('EventDiscriminator', () => {
         },
         date: new Date(),
         id: '1',
+  transactionId: '1',
       } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
       test('has (positive)', () => {
@@ -1261,6 +1264,8 @@ describe('EventDiscriminator', () => {
         },
         date: new Date('2024-01-01T00:00:00.000Z'),
         id: '1',
+  transactionId: '1',
+
       } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
       test('has (positive)', () => {
@@ -1532,6 +1537,7 @@ describe('EventDiscriminator', () => {
           json: {},
         },
         date: new Date('2024-01-01T00:00:00.000Z'),
+  transactionId: '1',
         id: '1',
       } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
@@ -1827,6 +1833,7 @@ describe('EventDiscriminator', () => {
           json: {},
         },
         date: new Date(),
+  transactionId: '1',
         id: '1',
       } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
@@ -2185,6 +2192,7 @@ describe('EventDiscriminator', () => {
         },
         date: new Date('2024-01-01T00:00:00.000Z'),
         id: '1',
+  transactionId: '1',
       } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
       test('has (true)', () => {
@@ -2602,6 +2610,8 @@ describe('EventDiscriminator', () => {
       },
       date: new Date('2024-01-01T00:00:00.000Z'),
       id: '1',
+  transactionId: '1',
+
     } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
     test('AND - both conditions true', () => {

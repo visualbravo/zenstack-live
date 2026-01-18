@@ -2,7 +2,7 @@
 
 import type { SchemaDef, GetModels } from '@zenstackhq/schema'
 import type { LiveStreamOptions, RecordEvent } from '.'
-import { QueryCompiler } from './compiler'
+import { QueryCompiler } from './query-compiler'
 import { z } from 'zod/v4'
 
 export type EventDiscriminatorOptions<
