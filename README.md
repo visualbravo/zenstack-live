@@ -10,7 +10,7 @@ Supercharge your ZenStack backend with realtime streaming capabilities. Instantl
 
 ## Requirements
 
-* Node.js (version >= `20.0.0`)
+* Node.js (version >= `22.0.0`)
 * Postgres that supports [logical replication](https://www.postgresql.org/docs/current/logical-replication.html) (version >= `10`)
 * Redis that supports [streams](https://redis.io/docs/latest/develop/data-types/streams/) (version >= `5.0.0`)
 * A non-serverless server that will process events. You can forward events to serverless if you so desire.

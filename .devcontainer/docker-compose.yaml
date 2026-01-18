@@ -93,7 +93,7 @@ services:
   # Below is dev stuff for the project, you don't need it.
   workspace:
     container_name: zenstack-live-workspace
-    image: mcr.microsoft.com/devcontainers/javascript-node:20
+    image: mcr.microsoft.com/devcontainers/javascript-node:22
     volumes:
       - ..:/workspace:cached
     env_file: ./.env

@@ -39,24 +39,24 @@
     "lint": "oxlint",
     "lint:fix": "oxlint --fix --fix-suggestions",
     "format:fix": "oxfmt",
-    "test": "bun test",
-    "test:watch": "bun test --watch"
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "@zenstackhq/orm": "3.2.0",
-    "@zenstackhq/schema": "3.2.0",
-    "decimal.js": "10.6.0",
-    "ioredis": "5.9.1",
-    "kysely": "0.28.9",
-    "lossless-json": "4.3.0",
-    "pg": "8.16.3",
-    "stable-hash": "0.0.6",
-    "superjson": "2.2.6",
-    "zod": "4.3.5"
+    "stable-hash": "^0.0.6",
+    "decimal.js": "catalog:",
+    "ioredis": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/pg": "8.16.0",
+    "pg": "catalog:",
+    "@types/pg": "catalog:",
+    "kysely": "catalog:",
     "@zenstack-live/config": "workspace:*"
+  },
+  "peerDependencies": {
+    "@zenstackhq/orm": "catalog:",
+    "@zenstackhq/schema": "catalog:"
   },
   "packageManager": "bun@1.3.5"
 }

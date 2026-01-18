@@ -99,8 +99,8 @@ afterAll(async () => {
 describe('EventDiscriminator', () => {
   describe('types', () => {
     describe('String', () => {
-      test('equals (positive)', () => {
-        expect(
+      test('equals (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { equals: 'string' },
@@ -109,8 +109,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('equals (negative)', () => {
-        expect(
+      test('equals (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { equals: 'other' },
@@ -119,8 +119,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('in (positive)', () => {
-        expect(
+      test('in (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { in: ['foo', 'string', 'bar'] },
@@ -129,8 +129,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('in (negative)', () => {
-        expect(
+      test('in (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { in: ['foo', 'bar'] },
@@ -139,8 +139,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('notIn (positive)', () => {
-        expect(
+      test('notIn (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { notIn: ['foo', 'bar'] },
@@ -149,8 +149,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('notIn (negative)', () => {
-        expect(
+      test('notIn (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { notIn: ['string'] },
@@ -159,8 +159,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('lt (lexicographic)', () => {
-        expect(
+      test('lt (lexicographic)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { lt: 'z' },
@@ -169,8 +169,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('lte (boundary)', () => {
-        expect(
+      test('lte (boundary)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { lte: 'string' },
@@ -179,8 +179,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('gt (lexicographic)', () => {
-        expect(
+      test('gt (lexicographic)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { gt: 'a' },
@@ -189,8 +189,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('gte (boundary)', () => {
-        expect(
+      test('gte (boundary)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { gte: 'string' },
@@ -199,8 +199,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('contains (positive)', () => {
-        expect(
+      test('contains (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { contains: 'tri' },
@@ -209,8 +209,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('contains (negative)', () => {
-        expect(
+      test('contains (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { contains: 'xyz' },
@@ -219,8 +219,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('startsWith (positive)', () => {
-        expect(
+      test('startsWith (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { startsWith: 'str' },
@@ -229,8 +229,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('startsWith (negative)', () => {
-        expect(
+      test('startsWith (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { startsWith: 'ing' },
@@ -239,8 +239,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('endsWith (positive)', () => {
-        expect(
+      test('endsWith (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { endsWith: 'ing' },
@@ -249,8 +249,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('endsWith (negative)', () => {
-        expect(
+      test('endsWith (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { endsWith: 'str' },
@@ -259,8 +259,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('case-sensitive by default', () => {
-        expect(
+      test('case-sensitive by default', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { equals: 'STRING' },
@@ -269,7 +269,7 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test.skip('mode: insensitive (equals)', () => {
+      test.skip('mode: insensitive (equals)', async () => {
         // const r = await client.user.findMany({
         //   where: {
         //     string: {
@@ -279,8 +279,8 @@ describe('EventDiscriminator', () => {
         //   }
         // })
 
-        // expect(r).toHaveLength(0)
-        expect(
+        // await expect(r).toHaveLength(0)
+        await expect(
           matches(baseEvent, {
             created: {
               string: {
@@ -292,8 +292,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test.skip('mode: insensitive (contains)', () => {
-        expect(
+      test.skip('mode: insensitive (contains)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: {
@@ -305,8 +305,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('not (value)', () => {
-        expect(
+      test('not (value)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { not: 'other' },
@@ -315,8 +315,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('not (value negative)', () => {
-        expect(
+      test('not (value negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { not: 'string' },
@@ -325,8 +325,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('not (nested filter)', () => {
-        expect(
+      test('not (nested filter)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: {
@@ -337,8 +337,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('empty string equals (edge case)', () => {
-        expect(
+      test('empty string equals (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -356,8 +356,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('contains empty string (edge case)', () => {
-        expect(
+      test('contains empty string (edge case)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               string: { contains: '' },
@@ -391,8 +391,8 @@ describe('EventDiscriminator', () => {
         id: '1',
       } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
-      test('has (positive)', () => {
-        expect(
+      test('has (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               stringArray: { has: 'a' },
@@ -401,8 +401,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('has (negative)', () => {
-        expect(
+      test('has (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               stringArray: { has: 'z' },
@@ -411,8 +411,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('hasEvery (positive)', () => {
-        expect(
+      test('hasEvery (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               stringArray: { hasEvery: ['a', 'b'] },
@@ -421,8 +421,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('hasEvery (negative)', () => {
-        expect(
+      test('hasEvery (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               stringArray: { hasEvery: ['a', 'z'] },
@@ -431,8 +431,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('hasSome (positive)', () => {
-        expect(
+      test('hasSome (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               stringArray: { hasSome: ['x', 'b'] },
@@ -441,8 +441,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('hasSome (negative)', () => {
-        expect(
+      test('hasSome (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               stringArray: { hasSome: ['x', 'y'] },
@@ -451,8 +451,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('isEmpty (false)', () => {
-        expect(
+      test('isEmpty (false)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               stringArray: { isEmpty: false },
@@ -461,8 +461,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('isEmpty (true)', () => {
-        expect(
+      test('isEmpty (true)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               stringArray: { isEmpty: true },
@@ -471,8 +471,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('equals (exact match)', () => {
-        expect(
+      test('equals (exact match)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               stringArray: { equals: ['a', 'b', 'c'] },
@@ -481,8 +481,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('equals (order mismatch)', () => {
-        expect(
+      test('equals (order mismatch)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               stringArray: { equals: ['c', 'b', 'a'] },
@@ -491,8 +491,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('equals (subset)', () => {
-        expect(
+      test('equals (subset)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               stringArray: { equals: ['a', 'b'] },
@@ -501,8 +501,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('empty array equals (edge case)', () => {
-        expect(
+      test('empty array equals (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -520,8 +520,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('empty array isEmpty true (edge case)', () => {
-        expect(
+      test('empty array isEmpty true (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -539,8 +539,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('has on empty array (edge case)', () => {
-        expect(
+      test('has on empty array (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -560,8 +560,8 @@ describe('EventDiscriminator', () => {
     })
 
     describe('Int', () => {
-      test('equals (positive)', () => {
-        expect(
+      test('equals (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: { equals: 1 },
@@ -570,8 +570,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('equals (negative)', () => {
-        expect(
+      test('equals (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: { equals: 2 },
@@ -580,8 +580,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('top-level equals shorthand', () => {
-        expect(
+      test('top-level equals shorthand', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: 1,
@@ -590,8 +590,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('in (positive)', () => {
-        expect(
+      test('in (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: { in: [0, 1, 2] },
@@ -600,8 +600,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('in (negative)', () => {
-        expect(
+      test('in (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: { in: [2, 3, 4] },
@@ -610,8 +610,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('notIn (positive)', () => {
-        expect(
+      test('notIn (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: { notIn: [2, 3, 4] },
@@ -620,8 +620,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('notIn (negative)', () => {
-        expect(
+      test('notIn (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: { notIn: [1] },
@@ -630,8 +630,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('lt (positive)', () => {
-        expect(
+      test('lt (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: { lt: 2 },
@@ -640,8 +640,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('lt (negative)', () => {
-        expect(
+      test('lt (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: { lt: 1 },
@@ -650,8 +650,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('lte (boundary)', () => {
-        expect(
+      test('lte (boundary)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: { lte: 1 },
@@ -660,8 +660,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('gt (positive)', () => {
-        expect(
+      test('gt (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: { gt: 0 },
@@ -670,8 +670,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('gt (negative)', () => {
-        expect(
+      test('gt (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: { gt: 1 },
@@ -680,8 +680,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('gte (boundary)', () => {
-        expect(
+      test('gte (boundary)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: { gte: 1 },
@@ -690,8 +690,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('not (scalar positive)', () => {
-        expect(
+      test('not (scalar positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: { not: 2 },
@@ -700,8 +700,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('not (scalar negative)', () => {
-        expect(
+      test('not (scalar negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: { not: 1 },
@@ -710,8 +710,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('not (nested filter)', () => {
-        expect(
+      test('not (nested filter)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               int: {
@@ -722,8 +722,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('zero value (edge case)', () => {
-        expect(
+      test('zero value (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -741,8 +741,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('negative value (edge case)', () => {
-        expect(
+      test('negative value (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -785,8 +785,8 @@ describe('EventDiscriminator', () => {
         transactionId: '1',
       } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
-      test('has (positive)', () => {
-        expect(
+      test('has (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               intArray: { has: 1 },
@@ -795,8 +795,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('has (negative)', () => {
-        expect(
+      test('has (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               intArray: { has: 99 },
@@ -805,8 +805,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('hasEvery (positive)', () => {
-        expect(
+      test('hasEvery (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               intArray: { hasEvery: [1, 3] },
@@ -815,8 +815,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('hasEvery (negative)', () => {
-        expect(
+      test('hasEvery (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               intArray: { hasEvery: [1, 99] },
@@ -825,8 +825,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('hasSome (positive)', () => {
-        expect(
+      test('hasSome (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               intArray: { hasSome: [99, 2] },
@@ -835,8 +835,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('hasSome (negative)', () => {
-        expect(
+      test('hasSome (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               intArray: { hasSome: [99, 100] },
@@ -845,8 +845,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('isEmpty (false)', () => {
-        expect(
+      test('isEmpty (false)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               intArray: { isEmpty: false },
@@ -855,8 +855,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('isEmpty (true)', () => {
-        expect(
+      test('isEmpty (true)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               intArray: { isEmpty: true },
@@ -865,8 +865,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('equals (exact match)', () => {
-        expect(
+      test('equals (exact match)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               intArray: { equals: [1, 2, 3] },
@@ -875,8 +875,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('equals (order mismatch)', () => {
-        expect(
+      test('equals (order mismatch)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               intArray: { equals: [3, 2, 1] },
@@ -885,8 +885,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('equals (subset)', () => {
-        expect(
+      test('equals (subset)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               intArray: { equals: [1, 2] },
@@ -895,8 +895,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      // test('not (nested positive)', () => {
-      //   expect(
+      // test('not (nested positive)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         intArray: {
@@ -907,8 +907,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(true)
       // })
 
-      // test('not (nested negative)', () => {
-      //   expect(
+      // test('not (nested negative)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         intArray: {
@@ -919,8 +919,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(false)
       // })
 
-      test('empty array equals (edge case)', () => {
-        expect(
+      test('empty array equals (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -938,8 +938,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('empty array isEmpty true (edge case)', () => {
-        expect(
+      test('empty array isEmpty true (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -957,8 +957,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('has on empty array (edge case)', () => {
-        expect(
+      test('has on empty array (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -976,8 +976,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('negative and zero values (edge case)', () => {
-        expect(
+      test('negative and zero values (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -997,8 +997,8 @@ describe('EventDiscriminator', () => {
     })
 
     describe('Float', () => {
-      test('equals (positive)', () => {
-        expect(
+      test('equals (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: { equals: 1 },
@@ -1007,8 +1007,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('equals (negative)', () => {
-        expect(
+      test('equals (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: { equals: 2 },
@@ -1017,8 +1017,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('top-level equals shorthand', () => {
-        expect(
+      test('top-level equals shorthand', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: 1,
@@ -1027,8 +1027,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('in (positive)', () => {
-        expect(
+      test('in (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: { in: [0, 1, 2] },
@@ -1037,8 +1037,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('in (negative)', () => {
-        expect(
+      test('in (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: { in: [2, 3] },
@@ -1047,8 +1047,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('notIn (positive)', () => {
-        expect(
+      test('notIn (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: { notIn: [2, 3] },
@@ -1057,8 +1057,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('notIn (negative)', () => {
-        expect(
+      test('notIn (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: { notIn: [1] },
@@ -1067,8 +1067,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('lt (positive)', () => {
-        expect(
+      test('lt (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: { lt: 2 },
@@ -1077,8 +1077,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('lt (negative)', () => {
-        expect(
+      test('lt (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: { lt: 1 },
@@ -1087,8 +1087,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('lte (boundary)', () => {
-        expect(
+      test('lte (boundary)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: { lte: 1 },
@@ -1097,8 +1097,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('gt (positive)', () => {
-        expect(
+      test('gt (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: { gt: 0 },
@@ -1107,8 +1107,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('gt (negative)', () => {
-        expect(
+      test('gt (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: { gt: 1 },
@@ -1117,8 +1117,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('gte (boundary)', () => {
-        expect(
+      test('gte (boundary)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: { gte: 1 },
@@ -1127,8 +1127,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('not (scalar positive)', () => {
-        expect(
+      test('not (scalar positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: { not: 2 },
@@ -1137,8 +1137,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('not (scalar negative)', () => {
-        expect(
+      test('not (scalar negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: { not: 1 },
@@ -1147,8 +1147,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('not (nested filter)', () => {
-        expect(
+      test('not (nested filter)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               float: {
@@ -1159,8 +1159,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('zero value (edge case)', () => {
-        expect(
+      test('zero value (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -1178,8 +1178,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('negative value (edge case)', () => {
-        expect(
+      test('negative value (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -1197,8 +1197,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('decimal precision (edge case)', () => {
-        expect(
+      test('decimal precision (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -1216,9 +1216,9 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('very large value (edge case)', () => {
+      test('very large value (edge case)', async () => {
         const huge = 1e18
-        expect(
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -1261,8 +1261,8 @@ describe('EventDiscriminator', () => {
         transactionId: '1',
       } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
-      test('has (positive)', () => {
-        expect(
+      test('has (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               floatArray: { has: 2.2 },
@@ -1271,8 +1271,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('has (negative)', () => {
-        expect(
+      test('has (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               floatArray: { has: 9.9 },
@@ -1281,8 +1281,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('hasEvery (positive)', () => {
-        expect(
+      test('hasEvery (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               floatArray: { hasEvery: [1.1, 3.3] },
@@ -1291,8 +1291,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('hasEvery (negative)', () => {
-        expect(
+      test('hasEvery (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               floatArray: { hasEvery: [1.1, 9.9] },
@@ -1301,8 +1301,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('hasSome (positive)', () => {
-        expect(
+      test('hasSome (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               floatArray: { hasSome: [0, 2.2] },
@@ -1311,8 +1311,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('hasSome (negative)', () => {
-        expect(
+      test('hasSome (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               floatArray: { hasSome: [9.9, 10.1] },
@@ -1321,8 +1321,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('isEmpty (false)', () => {
-        expect(
+      test('isEmpty (false)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               floatArray: { isEmpty: false },
@@ -1331,8 +1331,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('isEmpty (true)', () => {
-        expect(
+      test('isEmpty (true)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               floatArray: { isEmpty: true },
@@ -1341,8 +1341,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('equals (exact match)', () => {
-        expect(
+      test('equals (exact match)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               floatArray: { equals: [1.1, 2.2, 3.3] },
@@ -1351,8 +1351,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('equals (order mismatch)', () => {
-        expect(
+      test('equals (order mismatch)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               floatArray: { equals: [3.3, 2.2, 1.1] },
@@ -1361,8 +1361,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('equals (subset)', () => {
-        expect(
+      test('equals (subset)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               floatArray: { equals: [1.1, 2.2] },
@@ -1371,8 +1371,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      // test('not (nested positive)', () => {
-      //   expect(
+      // test('not (nested positive)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         floatArray: {
@@ -1383,8 +1383,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(true)
       // })
 
-      // test('not (nested negative)', () => {
-      //   expect(
+      // test('not (nested negative)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         floatArray: {
@@ -1395,8 +1395,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(false)
       // })
 
-      test('empty array equals (edge case)', () => {
-        expect(
+      test('empty array equals (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -1414,8 +1414,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('empty array isEmpty true (edge case)', () => {
-        expect(
+      test('empty array isEmpty true (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -1433,8 +1433,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('has on empty array (edge case)', () => {
-        expect(
+      test('has on empty array (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -1452,8 +1452,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('negative and zero values (edge case)', () => {
-        expect(
+      test('negative and zero values (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -1471,8 +1471,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('decimal precision (edge case)', () => {
-        expect(
+      test('decimal precision (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -1490,8 +1490,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('very large value (edge case)', () => {
-        expect(
+      test('very large value (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -1534,8 +1534,8 @@ describe('EventDiscriminator', () => {
         id: '1',
       } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
-      test('top-level equals (matching value)', () => {
-        expect(
+      test('top-level equals (matching value)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               enum: 'USER',
@@ -1544,8 +1544,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('top-level equals (non-matching value)', () => {
-        expect(
+      test('top-level equals (non-matching value)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               enum: 'ADMIN',
@@ -1554,8 +1554,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('equals (matching value)', () => {
-        expect(
+      test('equals (matching value)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               enum: { equals: 'USER' },
@@ -1564,8 +1564,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('equals (non-matching value)', () => {
-        expect(
+      test('equals (non-matching value)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               enum: { equals: 'ADMIN' },
@@ -1574,8 +1574,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('in (positive)', () => {
-        expect(
+      test('in (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               enum: { in: ['USER', 'ADMIN'] },
@@ -1584,8 +1584,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('in (negative)', () => {
-        expect(
+      test('in (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               enum: { in: ['ADMIN'] },
@@ -1594,8 +1594,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('notIn (positive)', () => {
-        expect(
+      test('notIn (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               enum: { notIn: ['ADMIN'] },
@@ -1604,8 +1604,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('notIn (negative)', () => {
-        expect(
+      test('notIn (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               enum: { notIn: ['USER', 'ADMIN'] },
@@ -1640,8 +1640,8 @@ describe('EventDiscriminator', () => {
     //     id: '1',
     //   } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
-    //   test('has (positive)', () => {
-    //     expect(
+    //   test('has (positive)', async () => {
+    //     await expect(
     //       matches(baseEvent, {
     //         created: {
     //           enumArray: { has: 'USER' },
@@ -1650,8 +1650,8 @@ describe('EventDiscriminator', () => {
     //     ).resolves.toBe(true)
     //   })
 
-    //   // test('has (negative)', () => {
-    //   //   expect(
+    //   // test('has (negative)', async () => {
+    //   //   await expect(
     //   //     matches(baseEvent, {
     //   //       created: {
     //   //         enumArray: { has: 'GUEST' }, // non-existent enum
@@ -1660,8 +1660,8 @@ describe('EventDiscriminator', () => {
     //   //   ).resolves.toBe(false)
     //   // })
 
-    //   test('hasEvery (positive)', () => {
-    //     expect(
+    //   test('hasEvery (positive)', async () => {
+    //     await expect(
     //       matches(baseEvent, {
     //         created: {
     //           enumArray: { hasEvery: ['ADMIN', 'USER'] },
@@ -1670,8 +1670,8 @@ describe('EventDiscriminator', () => {
     //     ).resolves.toBe(true)
     //   })
 
-    //   // test('hasEvery (negative)', () => {
-    //   //   expect(
+    //   // test('hasEvery (negative)', async () => {
+    //   //   await expect(
     //   //     matches(baseEvent, {
     //   //       created: {
     //   //         enumArray: { hasEvery: ['ADMIN', 'GUEST'] },
@@ -1680,8 +1680,8 @@ describe('EventDiscriminator', () => {
     //   //   ).resolves.toBe(false)
     //   // })
 
-    //   // test('hasSome (positive)', () => {
-    //   //   expect(
+    //   // test('hasSome (positive)', async () => {
+    //   //   await expect(
     //   //     matches(baseEvent, {
     //   //       created: {
     //   //         enumArray: { hasSome: ['GUEST', 'USER'] },
@@ -1690,8 +1690,8 @@ describe('EventDiscriminator', () => {
     //   //   ).resolves.toBe(true)
     //   // })
 
-    //   // test('hasSome (negative)', () => {
-    //   //   expect(
+    //   // test('hasSome (negative)', async () => {
+    //   //   await expect(
     //   //     matches(baseEvent, {
     //   //       created: {
     //   //         enumArray: { hasSome: ['GUEST', 'MODERATOR'] },
@@ -1700,8 +1700,8 @@ describe('EventDiscriminator', () => {
     //   //   ).resolves.toBe(false)
     //   // })
 
-    //   test('isEmpty (false)', () => {
-    //     expect(
+    //   test('isEmpty (false)', async () => {
+    //     await expect(
     //       matches(baseEvent, {
     //         created: {
     //           enumArray: { isEmpty: false },
@@ -1710,8 +1710,8 @@ describe('EventDiscriminator', () => {
     //     ).resolves.toBe(true)
     //   })
 
-    //   test('isEmpty (true)', () => {
-    //     expect(
+    //   test('isEmpty (true)', async () => {
+    //     await expect(
     //       matches(baseEvent, {
     //         created: {
     //           enumArray: { isEmpty: true },
@@ -1720,8 +1720,8 @@ describe('EventDiscriminator', () => {
     //     ).resolves.toBe(false)
     //   })
 
-    //   test('equals (exact match)', () => {
-    //     expect(
+    //   test('equals (exact match)', async () => {
+    //     await expect(
     //       matches(baseEvent, {
     //         created: {
     //           enumArray: { equals: ['ADMIN', 'USER'] },
@@ -1730,8 +1730,8 @@ describe('EventDiscriminator', () => {
     //     ).resolves.toBe(true)
     //   })
 
-    //   test('equals (order mismatch)', () => {
-    //     expect(
+    //   test('equals (order mismatch)', async () => {
+    //     await expect(
     //       matches(baseEvent, {
     //         created: {
     //           enumArray: { equals: ['USER', 'ADMIN'] },
@@ -1740,8 +1740,8 @@ describe('EventDiscriminator', () => {
     //     ).resolves.toBe(false)
     //   })
 
-    //   test('equals (subset)', () => {
-    //     expect(
+    //   test('equals (subset)', async () => {
+    //     await expect(
     //       matches(baseEvent, {
     //         created: {
     //           enumArray: { equals: ['ADMIN'] },
@@ -1750,8 +1750,8 @@ describe('EventDiscriminator', () => {
     //     ).resolves.toBe(false)
     //   })
 
-    //   test('empty array equals and isEmpty edge case', () => {
-    //     expect(
+    //   test('empty array equals and isEmpty edge case', async () => {
+    //     await expect(
     //       matches(
     //         {
     //           ...baseEvent,
@@ -1768,7 +1768,7 @@ describe('EventDiscriminator', () => {
     //       ),
     //     ).resolves.toBe(true)
 
-    //     expect(
+    //     await expect(
     //       matches(
     //         {
     //           ...baseEvent,
@@ -1786,8 +1786,8 @@ describe('EventDiscriminator', () => {
     //     ).resolves.toBe(true)
     //   })
 
-    //   test('has on empty array (edge case)', () => {
-    //     expect(
+    //   test('has on empty array (edge case)', async () => {
+    //     await expect(
     //       matches(
     //         {
     //           ...baseEvent,
@@ -1830,8 +1830,8 @@ describe('EventDiscriminator', () => {
         id: '1',
       } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
-      // test('equals (positive)', () => {
-      //   expect(
+      // test('equals (positive)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         bigInt: { equals: BigInt(1) },
@@ -1840,8 +1840,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(true)
       // })
 
-      // test('equals (negative)', () => {
-      //   expect(
+      // test('equals (negative)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         bigInt: { equals: BigInt(2) },
@@ -1850,8 +1850,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(false)
       // })
 
-      test('top-level equals shorthand', () => {
-        expect(
+      test('top-level equals shorthand', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               bigInt: BigInt(1),
@@ -1860,8 +1860,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      // test('in (positive)', () => {
-      //   expect(
+      // test('in (positive)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         bigInt: { in: [BigInt(0), BigInt(1), BigInt(2)] },
@@ -1870,8 +1870,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(true)
       // })
 
-      // test('in (negative)', () => {
-      //   expect(
+      // test('in (negative)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         bigInt: { in: [BigInt(2), BigInt(3)] },
@@ -1880,8 +1880,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(false)
       // })
 
-      // test('notIn (positive)', () => {
-      //   expect(
+      // test('notIn (positive)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         bigInt: { notIn: [BigInt(2), BigInt(3)] },
@@ -1890,8 +1890,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(true)
       // })
 
-      // test('notIn (negative)', () => {
-      //   expect(
+      // test('notIn (negative)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         bigInt: { notIn: [BigInt(1)] },
@@ -1900,8 +1900,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(false)
       // })
 
-      // test('lt (positive)', () => {
-      //   expect(
+      // test('lt (positive)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         bigInt: { lt: BigInt(2) },
@@ -1910,8 +1910,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(true)
       // })
 
-      // test('lt (negative)', () => {
-      //   expect(
+      // test('lt (negative)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         bigInt: { lt: BigInt(1) },
@@ -1920,8 +1920,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(false)
       // })
 
-      // test('lte (boundary)', () => {
-      //   expect(
+      // test('lte (boundary)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         bigInt: { lte: BigInt(1) },
@@ -1930,8 +1930,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(true)
       // })
 
-      // test('gt (positive)', () => {
-      //   expect(
+      // test('gt (positive)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         bigInt: { gt: BigInt(0) },
@@ -1940,8 +1940,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(true)
       // })
 
-      // test('gt (negative)', () => {
-      //   expect(
+      // test('gt (negative)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         bigInt: { gt: BigInt(1) },
@@ -1950,8 +1950,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(false)
       // })
 
-      // test('gte (boundary)', () => {
-      //   expect(
+      // test('gte (boundary)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         bigInt: { gte: BigInt(1) },
@@ -1960,8 +1960,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(true)
       // })
 
-      test('not (scalar positive)', () => {
-        expect(
+      test('not (scalar positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               bigInt: { not: BigInt(2) },
@@ -1970,8 +1970,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('not (scalar negative)', () => {
-        expect(
+      test('not (scalar negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               bigInt: { not: BigInt(1) },
@@ -1980,8 +1980,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      // test('not (nested filter)', () => {
-      //   expect(
+      // test('not (nested filter)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         bigInt: {
@@ -1992,8 +1992,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(false)
       // })
 
-      // test('zero value (edge case)', () => {
-      //   expect(
+      // test('zero value (edge case)', async () => {
+      //   await expect(
       //     matches(
       //       {
       //         ...baseEvent,
@@ -2011,8 +2011,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(true)
       // })
 
-      // test('negative value (edge case)', () => {
-      //   expect(
+      // test('negative value (edge case)', async () => {
+      //   await expect(
       //     matches(
       //       {
       //         ...baseEvent,
@@ -2030,10 +2030,10 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(true)
       // })
 
-      // test('very large value (edge case)', () => {
+      // test('very large value (edge case)', async () => {
       //   const huge = BigInt('900719925474099312345')
 
-      //   expect(
+      //   await expect(
       //     matches(
       //       {
       //         ...baseEvent,
@@ -2053,8 +2053,8 @@ describe('EventDiscriminator', () => {
     })
 
     describe('Boolean', () => {
-      test('equals (true)', () => {
-        expect(
+      test('equals (true)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               boolean: { equals: true },
@@ -2063,8 +2063,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('equals (false)', () => {
-        expect(
+      test('equals (false)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               boolean: { equals: false },
@@ -2073,8 +2073,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('top-level equals shorthand (true)', () => {
-        expect(
+      test('top-level equals shorthand (true)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               boolean: true,
@@ -2083,8 +2083,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('top-level equals shorthand (false)', () => {
-        expect(
+      test('top-level equals shorthand (false)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               boolean: false,
@@ -2093,8 +2093,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('not (scalar positive)', () => {
-        expect(
+      test('not (scalar positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               boolean: { not: false },
@@ -2103,8 +2103,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('not (scalar negative)', () => {
-        expect(
+      test('not (scalar negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               boolean: { not: true },
@@ -2113,8 +2113,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('not (nested filter)', () => {
-        expect(
+      test('not (nested filter)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               boolean: {
@@ -2125,8 +2125,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('explicit false value (edge case)', () => {
-        expect(
+      test('explicit false value (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -2144,8 +2144,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('not false with explicit false value (edge case)', () => {
-        expect(
+      test('not false with explicit false value (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -2188,8 +2188,8 @@ describe('EventDiscriminator', () => {
         transactionId: '1',
       } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
-      test('has (true)', () => {
-        expect(
+      test('has (true)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               booleanArray: { has: true },
@@ -2198,8 +2198,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('has (false)', () => {
-        expect(
+      test('has (false)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               booleanArray: { has: false },
@@ -2208,8 +2208,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      // test('has (non-existent value)', () => {
-      //   expect(
+      // test('has (non-existent value)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         booleanArray: { has: null as any },
@@ -2218,8 +2218,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(false)
       // })
 
-      test('hasEvery (true + false)', () => {
-        expect(
+      test('hasEvery (true + false)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               booleanArray: { hasEvery: [true, false] },
@@ -2228,8 +2228,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      // test('hasEvery (missing value)', () => {
-      //   expect(
+      // test('hasEvery (missing value)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         booleanArray: { hasEvery: [true, null as any] },
@@ -2238,8 +2238,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(false)
       // })
 
-      // test('hasSome (true or false)', () => {
-      //   expect(
+      // test('hasSome (true or false)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         booleanArray: { hasSome: [false, null as any] },
@@ -2248,8 +2248,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(true)
       // })
 
-      // test('hasSome (non-existent value)', () => {
-      //   expect(
+      // test('hasSome (non-existent value)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         booleanArray: { hasSome: [null as any] },
@@ -2258,8 +2258,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(false)
       // })
 
-      test('isEmpty (false)', () => {
-        expect(
+      test('isEmpty (false)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               booleanArray: { isEmpty: false },
@@ -2268,8 +2268,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('isEmpty (true)', () => {
-        expect(
+      test('isEmpty (true)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               booleanArray: { isEmpty: true },
@@ -2278,8 +2278,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      // test('equals (exact match)', () => {
-      //   expect(
+      // test('equals (exact match)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         booleanArray: { equals: [true, false, true] },
@@ -2288,8 +2288,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(true)
       // })
 
-      // test('equals (order mismatch)', () => {
-      //   expect(
+      // test('equals (order mismatch)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         booleanArray: { equals: [true, true, false] },
@@ -2298,8 +2298,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(false)
       // })
 
-      // test('equals (subset)', () => {
-      //   expect(
+      // test('equals (subset)', async () => {
+      //   await expect(
       //     matches(baseEvent, {
       //       created: {
       //         booleanArray: { equals: [true, false] },
@@ -2308,8 +2308,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(false)
       // })
 
-      // test('empty array equals and isEmpty edge case', () => {
-      //   expect(
+      // test('empty array equals and isEmpty edge case', async () => {
+      //   await expect(
       //     matches(
       //       {
       //         ...baseEvent,
@@ -2326,7 +2326,7 @@ describe('EventDiscriminator', () => {
       //     ),
       //   ).resolves.toBe(true)
 
-      //   expect(
+      //   await expect(
       //     matches(
       //       {
       //         ...baseEvent,
@@ -2344,8 +2344,8 @@ describe('EventDiscriminator', () => {
       //   ).resolves.toBe(true)
       // })
 
-      test('has on empty array (edge case)', () => {
-        expect(
+      test('has on empty array (edge case)', async () => {
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -2365,8 +2365,8 @@ describe('EventDiscriminator', () => {
     })
 
     describe('DateTime', () => {
-      test('equals (positive)', () => {
-        expect(
+      test('equals (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { equals: baseDate },
@@ -2375,8 +2375,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('equals (negative)', () => {
-        expect(
+      test('equals (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { equals: laterDate },
@@ -2385,8 +2385,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('top-level equals shorthand', () => {
-        expect(
+      test('top-level equals shorthand', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: baseDate,
@@ -2395,8 +2395,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('in (positive)', () => {
-        expect(
+      test('in (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { in: [earlierDate, baseDate, laterDate] },
@@ -2405,8 +2405,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('in (negative)', () => {
-        expect(
+      test('in (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { in: [earlierDate, laterDate] },
@@ -2415,8 +2415,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('notIn (positive)', () => {
-        expect(
+      test('notIn (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { notIn: [earlierDate, laterDate] },
@@ -2425,8 +2425,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('notIn (negative)', () => {
-        expect(
+      test('notIn (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { notIn: [baseDate] },
@@ -2435,8 +2435,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('lt (positive)', () => {
-        expect(
+      test('lt (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { lt: laterDate },
@@ -2445,8 +2445,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('lt (negative)', () => {
-        expect(
+      test('lt (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { lt: baseDate },
@@ -2455,8 +2455,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('lte (boundary)', () => {
-        expect(
+      test('lte (boundary)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { lte: baseDate },
@@ -2465,8 +2465,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('gt (positive)', () => {
-        expect(
+      test('gt (positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { gt: earlierDate },
@@ -2475,8 +2475,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('gt (negative)', () => {
-        expect(
+      test('gt (negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { gt: baseDate },
@@ -2485,8 +2485,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('gte (boundary)', () => {
-        expect(
+      test('gte (boundary)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { gte: baseDate },
@@ -2495,8 +2495,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('not (scalar positive)', () => {
-        expect(
+      test('not (scalar positive)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { not: laterDate },
@@ -2505,8 +2505,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('not (scalar negative)', () => {
-        expect(
+      test('not (scalar negative)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { not: baseDate },
@@ -2515,8 +2515,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('not (nested filter)', () => {
-        expect(
+      test('not (nested filter)', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: {
@@ -2527,8 +2527,8 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
-      test('millisecond precision boundary', () => {
-        expect(
+      test('millisecond precision boundary', async () => {
+        await expect(
           matches(baseEvent, {
             created: {
               dateTime: { lt: laterDate },
@@ -2537,10 +2537,10 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('epoch date (edge case)', () => {
+      test('epoch date (edge case)', async () => {
         const epoch = new Date(0)
 
-        expect(
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -2558,11 +2558,11 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(true)
       })
 
-      test('timezone-equivalent dates (same instant)', () => {
+      test('timezone-equivalent dates (same instant)', async () => {
         const utc = new Date('2024-01-01T00:00:00.000Z')
         const offset = new Date('2023-12-31T19:00:00.000-05:00')
 
-        expect(
+        await expect(
           matches(
             {
               ...baseEvent,
@@ -2606,8 +2606,8 @@ describe('EventDiscriminator', () => {
       transactionId: '1',
     } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
 
-    test('AND - both conditions true', () => {
-      expect(
+    test('AND - both conditions true', async () => {
+      await expect(
         matches(baseEvent, {
           created: {
             AND: [{ string: 'hello' }, { string: { equals: 'hello' } }],
@@ -2616,8 +2616,8 @@ describe('EventDiscriminator', () => {
       ).resolves.toBe(true)
     })
 
-    test('AND - one condition false', () => {
-      expect(
+    test('AND - one condition false', async () => {
+      await expect(
         matches(baseEvent, {
           created: {
             AND: [{ string: 'hello' }, { string: { equals: 'world' } }],
@@ -2626,8 +2626,8 @@ describe('EventDiscriminator', () => {
       ).resolves.toBe(false)
     })
 
-    test('OR - one condition true', () => {
-      expect(
+    test('OR - one condition true', async () => {
+      await expect(
         matches(baseEvent, {
           created: {
             OR: [{ string: 'world' }, { string: { equals: 'hello' } }],
@@ -2636,8 +2636,8 @@ describe('EventDiscriminator', () => {
       ).resolves.toBe(true)
     })
 
-    test('OR - all conditions false', () => {
-      expect(
+    test('OR - all conditions false', async () => {
+      await expect(
         matches(baseEvent, {
           created: {
             OR: [{ string: 'world' }, { string: { equals: 'foo' } }],
@@ -2646,8 +2646,8 @@ describe('EventDiscriminator', () => {
       ).resolves.toBe(false)
     })
 
-    test('NOT - condition false', () => {
-      expect(
+    test('NOT - condition false', async () => {
+      await expect(
         matches(baseEvent, {
           created: {
             NOT: { string: { equals: 'world' } },
@@ -2656,8 +2656,8 @@ describe('EventDiscriminator', () => {
       ).resolves.toBe(true)
     })
 
-    test('NOT - condition true', () => {
-      expect(
+    test('NOT - condition true', async () => {
+      await expect(
         matches(baseEvent, {
           created: {
             NOT: { string: 'hello' },
@@ -2666,8 +2666,8 @@ describe('EventDiscriminator', () => {
       ).resolves.toBe(false)
     })
 
-    test('nested AND + OR', () => {
-      expect(
+    test('nested AND + OR', async () => {
+      await expect(
         matches(baseEvent, {
           created: {
             AND: [
@@ -2681,8 +2681,8 @@ describe('EventDiscriminator', () => {
       ).resolves.toBe(true)
     })
 
-    test('nested OR + NOT', () => {
-      expect(
+    test('nested OR + NOT', async () => {
+      await expect(
         matches(baseEvent, {
           created: {
             OR: [{ string: 'world' }, { NOT: { string: 'foo' } }],
@@ -2691,8 +2691,8 @@ describe('EventDiscriminator', () => {
       ).resolves.toBe(true)
     })
 
-    test('complex nested AND + OR + NOT (false)', () => {
-      expect(
+    test('complex nested AND + OR + NOT (false)', async () => {
+      await expect(
         matches(baseEvent, {
           created: {
             AND: [

@@ -1,1 +1,0 @@
-UPDATE "User" SET "name" = 'newname';
