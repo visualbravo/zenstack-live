@@ -4,8 +4,7 @@
   "editor.quickSuggestions": {
     "strings": "on"
   },
-  // "typescript.experimental.useTsgo": true,
-  "typescript.experimental.useTsgo": false,
+  "typescript.experimental.useTsgo": true,
   "[javascript][javascriptreact][typescript][typescriptreact][json][jsonc]": {
     "editor.defaultFormatter": "oxc.oxc-vscode"
   },

@@ -20,7 +20,7 @@ const live = new ZenStackLive({
   },
 })
 
-const stream = live.stream({
+const userStream = live.stream({
   model: 'User',
   id: 'all-user-changes',
   created: {},
@@ -28,32 +28,47 @@ const stream = live.stream({
   deleted: {},
 })
 
-async function main() {
-  setInterval(async () => {
-    const user = await client.user.create({
-      data: {
-        string: 'hello',
-      },
-    })
+const postStream = live.stream({
+  model: 'Post',
+  id: 'all-post-changes',
+  created: {},
+  updated: {},
+  deleted: {},
+})
 
-    await client.user.update({
-      data: {
-        string: 'newhello',
-      },
+setInterval(async () => {
+  const user = await client.user.create({
+    data: {
+      string: 'hello',
 
-      where: {
-        id: user.id,
+      posts: {
+        create: {
+          title: 'Cool title',
+          content: 'Hello world',
+        },
       },
-    })
+    },
+  })
 
-    await client.user.delete({
-      where: {
-        id: user.id,
-      },
-    })
-  }, 1000)
+  await client.user.update({
+    data: {
+      string: 'newhello',
+    },
 
-  for await (const event of stream) {
+    where: {
+      id: user.id,
+    },
+  })
+
+  await client.user.delete({
+    where: {
+      id: user.id,
+    },
+  })
+}, 5000)
+
+;(async () => {
+  for await (const event of userStream) {
     const { before, after } = beforeAfter(event)
 
     console.log({
@@ -62,6 +77,16 @@ async function main() {
       after,
     })
   }
-}
+})()
 
-main()
+;(async () => {
+  for await (const event of postStream) {
+    const { before, after } = beforeAfter(event)
+
+    console.log({
+      event,
+      before,
+      after,
+    })
+  }
+})()
