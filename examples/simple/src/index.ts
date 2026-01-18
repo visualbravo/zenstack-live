@@ -23,7 +23,6 @@ const live = new ZenStackLive({
 const stream = live.stream({
   model: 'User',
   id: 'all-user-changes',
-  created: {},
 })
 
 async function main() {

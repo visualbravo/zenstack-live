@@ -2,34 +2,50 @@
   "name": "@visualbravo/zenstack-live",
   "version": "0.0.0",
   "type": "module",
-  "main": "./dist/index.mjs",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
+  "types": "./dist/index.d.cts",
   "exports": {
     ".": {
       "@zenstack-live/source": "./src/index.ts",
-      "default": "./dist/index.mjs"
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
     },
     "./discriminator": {
       "@zenstack-live/source": "./src/discriminator.ts",
-      "default": "./dist/discriminator.mjs"
+      "require": "./dist/discriminator.cjs",
+      "import": "./dist/discriminator.mjs"
     },
     "./internal": {
       "@zenstack-live/source": "./src/internal.ts",
-      "default": "./dist/internal.mjs"
+      "require": "./dist/internal.cjs",
+      "import": "./dist/internal.mjs"
     },
     "./query-compiler": {
       "@zenstack-live/source": "./src/query-compiler.ts",
-      "default": "./dist/query-compiler.mjs"
+      "require": "./dist/query-compiler.cjs",
+      "import": "./dist/query-compiler.mjs"
     },
     "./package.json": "./package.json"
   },
   "publishConfig": {
     "exports": {
-      ".": "./dist/index.mjs",
-      "./discriminator": "./dist/discriminator.mjs",
-      "./internal": "./dist/internal.mjs",
-      "./query-compiler": "./dist/query-compiler.mjs",
+      ".": {
+        "require": "./dist/index.cjs",
+        "import": "./dist/index.mjs"
+      },
+      "./discriminator": {
+        "require": "./dist/discriminator.cjs",
+        "import": "./dist/discriminator.mjs"
+      },
+      "./internal": {
+        "require": "./dist/internal.cjs",
+        "import": "./dist/internal.mjs"
+      },
+      "./query-compiler": {
+        "require": "./dist/query-compiler.cjs",
+        "import": "./dist/query-compiler.mjs"
+      },
       "./package.json": "./package.json"
     }
   },
@@ -43,9 +59,10 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "stable-hash": "^0.0.6",
     "decimal.js": "catalog:",
     "ioredis": "catalog:",
+    "lossless-json": "4.3.0",
+    "stable-hash": "^0.0.6",
     "zod": "catalog:"
   },
   "devDependencies": {

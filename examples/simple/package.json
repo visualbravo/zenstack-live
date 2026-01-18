@@ -18,7 +18,8 @@
     "kysely": "catalog:"
   },
   "devDependencies": {
-    "@types/pg": "catalog:"
+    "@types/pg": "catalog:",
+    "@zenstackhq/schema": "catalog:"
   },
   "packageManager": "bun@1.3.6"
 }
