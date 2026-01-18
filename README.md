@@ -7,6 +7,21 @@
 
 Supercharge your ZenStack backend with realtime streaming capabilities. Instantly react to any insert, update, or delete, and declaratively filter records using the same Prisma API you've come to love.
 
+<div align="center">
+    <a href="https://www.npmjs.com/package/@visualbravo/zenstack-live?activeTab=versions">
+      <img src="https://img.shields.io/npm/v/%40visualbravo%2Fzenstack-live/latest">
+    </a>
+    <a>
+      <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/visualbravo/zenstack-live/build-and-test.yaml">
+    </a>
+    <a href="https://discord.gg/Ykhr738dUe">
+      <img src="https://img.shields.io/discord/1035538056146595961">
+    </a>
+    <a href="https://github.com/visualbravo/zenstack-live/blob/main/LICENSE">
+      <img src="https://img.shields.io/badge/license-MIT-green">
+    </a>
+</div>
+
 ## Features
 * 🛟 **Type-safe:** Queries have full intellisense based on your ZenStack models.
 * 🛡️ **Durable:** Server went down? Your app picks up right where it left off, and even detects all the changes that happened while it was offline.
@@ -25,6 +40,8 @@ Supercharge your ZenStack backend with realtime streaming capabilities. Instantl
 Just copy our [`docker-compose.yaml`](.devcontainer/docker-compose.yaml), make any necessary changes, and proceed as follows
 
 ```typescript
+import { schema } from './zenstack/schema'
+import { ZenStackClient } from '@zenstackhq/orm'
 import { ZenStackLive } from '@visualbravo/zenstack-live'
 
 const client = new ZenStackClient(schema, {
@@ -182,7 +199,7 @@ for await (let event of deliveredOrdersStream) {
 Hint: not with polling.
 
 1. Debezium connects to your database.
-2. Debezium stores inserts, updates, and deletes in a Redis stream, **even those which are done outside of ZenStack**.
+2. Debezium stores inserts, updates, and deletes in a Redis stream, *even those which are done outside of ZenStack.*
 3. LIVE connects to Redis and reads the events in the stream.
 4. LIVE compares each event against your query, and if it matches, serves it to you.
 

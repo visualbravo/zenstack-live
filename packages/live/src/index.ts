@@ -69,7 +69,7 @@ export type RecordResultMap<Schema extends SchemaDef, ModelName extends GetModel
   deleted: RecordDeletedEvent<Schema, ModelName>
 }
 
-type ExtractRequestedEvents<Schema extends SchemaDef, ModelName extends GetModels<Schema>, Opts> =
+export type ExtractRequestedEvents<Schema extends SchemaDef, ModelName extends GetModels<Schema>, Opts> =
   | (Opts extends { created: any } ? RecordCreatedEvent<Schema, ModelName> : never)
   | (Opts extends { updated: any } ? RecordUpdatedEvent<Schema, ModelName> : never)
   | (Opts extends { deleted: any } ? RecordDeletedEvent<Schema, ModelName> : never)
@@ -80,7 +80,7 @@ export type RequestedEvents<Schema extends SchemaDef, ModelName extends GetModel
   ? RecordEvent<Schema, ModelName>
   : ExtractRequestedEvents<Schema, ModelName, Opts>
 
-type PickStreamFilters<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
+export type PickStreamFilters<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   created?: WhereInput<Schema, ModelName, true>
   updated?: {
     before?: WhereInput<Schema, ModelName, true>

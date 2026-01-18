@@ -1,5 +1,3 @@
-// oxlint-disable max-statements
-// oxlint-disable max-lines
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { schema } from './schemas/basic'
 import { EventDiscriminator, type EventDiscriminatorOptions } from '../src/discriminator'
