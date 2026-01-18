@@ -33,10 +33,15 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v5
 
+      - name: Install system dependencies  
+        run: |
+          apt-get update
+          apt-get install -y unzip
+
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Install dependencies
+      - name: Install project dependencies
         run: bun install --frozen-lockfile
 
       - name: Build
