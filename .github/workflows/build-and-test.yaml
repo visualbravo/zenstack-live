@@ -32,6 +32,8 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v5
+
+      - name: Setup bun
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
