@@ -1,6 +1,8 @@
-# ZenStack LIVE 🔴
+<div class="center">
+  <h1>ZenStack LIVE 🔴</h1>
 
 Supercharge your ZenStack backend with realtime streaming capabilities. Instantly react to any insert, update, or delete, and declaratively filter records using the same Prisma API you've come to love.
+</div>
 
 ## Features
 * 🛟 **Type-safe:** Queries have full intellisense based on your ZenStack models.
