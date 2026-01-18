@@ -1,0 +1,27 @@
+name: Publish Package
+on:
+  release:
+    types: [published]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          registry-url: 'https://registry.npmjs.org'
+  
+      - name: Install system dependencies  
+        run: |
+          apt-get update
+          apt-get install -y unzip
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+      
+      - name: Publish package
+        run: cd ./packages/live && bun publish

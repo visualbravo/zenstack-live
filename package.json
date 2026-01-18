@@ -1,7 +1,9 @@
 {
   "name": "workspace",
   "type": "module",
+  "version": "0.0.0",
   "private": "true",
+  "license": "MIT",
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
@@ -25,8 +27,8 @@
   },
   "workspaces": {
     "packages": [
-      "apps/*",
-      "packages/*"
+      "packages/*",
+      "examples/*"
     ],
     "catalog": {
       "@zenstackhq/orm": "^3.0.0",

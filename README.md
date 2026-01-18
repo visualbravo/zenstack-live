@@ -9,17 +9,21 @@ Supercharge your ZenStack backend with realtime streaming capabilities. Instantl
 
 <div align="center">
     <a href="https://www.npmjs.com/package/@visualbravo/zenstack-live?activeTab=versions">
-      <img src="https://img.shields.io/npm/v/%40visualbravo%2Fzenstack-live/latest">
+      <img alt="NPM Version" src="https://img.shields.io/npm/v/%40visualbravo%2Fzenstack-live/latest">
     </a>
     <a>
       <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/visualbravo/zenstack-live/build-and-test.yaml">
     </a>
     <a href="https://discord.gg/Ykhr738dUe">
-      <img src="https://img.shields.io/discord/1035538056146595961">
+      <img alt="Join the ZenStack server" src="https://img.shields.io/discord/1035538056146595961">
     </a>
     <a href="https://github.com/visualbravo/zenstack-live/blob/main/LICENSE">
-      <img src="https://img.shields.io/badge/license-MIT-green">
+      <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green">
     </a>
+
+  <p>
+    ℹ️ This is a community project unaffiliated with the ZenStack team.
+  </p>
 </div>
 
 ## Features
@@ -30,6 +34,7 @@ Supercharge your ZenStack backend with realtime streaming capabilities. Instantl
 
 ## Requirements
 
+* ZenStack (version >= `3.0.0`)
 * Node.js (version >= `22.0.0`)
 * Postgres that supports [logical replication](https://www.postgresql.org/docs/current/logical-replication.html) (version >= `10`)
 * Redis that supports [streams](https://redis.io/docs/latest/develop/data-types/streams/) (version >= `5.0.0`)
@@ -205,6 +210,7 @@ Hint: not with polling.
 
 ## Limitations
 
+1. **This project is in beta.** There are still some things missing or broken.
 1. **Postgres only.** Actually, that might not be totally true. Debezium has MySQL support, but this project has not been tested with it. Want to help? Give it a try and tell us how it goes.
 2. **Events represent snapshots in time of a single record.** They are not bound by the transaction they were in. If you're listening to `created` events, the record might not exist in the database anymore if it was deleted before your handler processed it. You can determine when an event occurred via `event.date`
 3. **You can't query by relations.** Although that would be very cool, this is not possible because of limitation #2.

@@ -15,11 +15,24 @@
         "vitest": "4.0.17",
       },
     },
+    "examples/simple": {
+      "name": "simple",
+      "dependencies": {
+        "@visualbravo/zenstack-live": "workspace:*",
+        "@zenstackhq/orm": "catalog:",
+        "kysely": "catalog:",
+        "pg": "catalog:",
+      },
+      "devDependencies": {
+        "@types/pg": "catalog:",
+      },
+    },
     "packages/config": {
       "name": "@zenstack-live/config",
     },
     "packages/live": {
       "name": "@visualbravo/zenstack-live",
+      "version": "0.0.0",
       "dependencies": {
         "decimal.js": "catalog:",
         "ioredis": "catalog:",
@@ -451,6 +464,8 @@
     "set-function-length": ["set-function-length@1.2.2", "", { "dependencies": { "define-data-property": "^1.1.4", "es-errors": "^1.3.0", "function-bind": "^1.1.2", "get-intrinsic": "^1.2.4", "gopd": "^1.0.1", "has-property-descriptors": "^1.0.2" } }, "sha512-pgRc4hJ4/sNjWCSS9AmnS40x3bNMDTknHgL5UaMBTMyJnU90EgWh1Rz+MC9eFu4BuN/UwZjKQuY/1v3rM7HMfg=="],
 
     "siginfo": ["siginfo@2.0.0", "", {}, "sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g=="],
+
+    "simple": ["simple@workspace:examples/simple"],
 
     "source-map-js": ["source-map-js@1.2.1", "", {}, "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA=="],
 
