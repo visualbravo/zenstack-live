@@ -45,7 +45,7 @@ async function matches(
   >,
 ) {
   const discriminator = new EventDiscriminator({
-    schema,
+    client,
     model: 'User',
     ...options,
   })

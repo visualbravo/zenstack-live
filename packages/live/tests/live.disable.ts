@@ -11,7 +11,7 @@ describe('live', () => {
   let client: ClientContract<typeof schema>
   let live: ZenStackLive<typeof schema>
 
-  beforeEach(async () => {
+  beforeEach(() => {
     client = new ZenStackClient(schema, {
       dialect: new PostgresDialect({
         pool: new Pool({
@@ -20,14 +20,8 @@ describe('live', () => {
       }),
     })
 
-    await Promise.all([
-      client.$queryRawUnsafe('ALTER TABLE "User" REPLICA IDENTITY FULL'),
-      client.$queryRawUnsafe('ALTER TABLE "Post" REPLICA IDENTITY FULL'),
-      client.$queryRawUnsafe('ALTER TABLE "Profile" REPLICA IDENTITY FULL'),
-    ])
-
     live = new ZenStackLive({
-      schema,
+      client,
       id: 'zenstack',
 
       redis: {

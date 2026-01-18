@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 import type { SchemaDef, GetModels } from '@zenstackhq/schema'
-import type { WhereInput, SimplifiedPlainResult } from '@zenstackhq/orm'
+import type { WhereInput, SimplifiedPlainResult, ClientContract } from '@zenstackhq/orm'
 import { parse } from 'lossless-json'
 import { Redis } from 'ioredis'
 import Decimal from 'decimal.js'
@@ -23,7 +23,7 @@ export type DatabaseEventType = 'created' | 'updated' | 'deleted'
 export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   model: ModelName
   redis: Redis
-  schema: Schema
+  client: ClientContract<Schema>
   id: string
   clientId: string
   created?: WhereInput<Schema, ModelName, true>
@@ -99,7 +99,7 @@ type PickStreamFilters<Schema extends SchemaDef, ModelName extends GetModels<Sch
 }
 
 export type ZenStackLiveOptions<Schema extends SchemaDef> = {
-  schema: Schema
+  client: ClientContract<Schema>
 
   /**
    * This client's unique ID. Used for horizontal scaling.
@@ -133,6 +133,10 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
     this.consumerName = `zenstack.${options.clientId}`
     this.consumerGroupName = `zenstack.table.public.${this.modelName}.${hashed}`
     this.discriminator = new EventDiscriminator(options)
+  }
+
+  private async alterTable() {
+    await this.options.client.$queryRaw`ALTER TABLE "${this.modelName}" REPLICA IDENTITY FULL`
   }
 
   private async makeConsumerGroup() {
@@ -177,7 +181,10 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
   }
 
   async *[Symbol.asyncIterator](): AsyncIterator<RequestedEvents<Schema, ModelName, Opts>> {
-    await this.makeConsumerGroup()
+    await Promise.all([
+      this.makeConsumerGroup(),
+      this.alterTable(),
+    ])
 
     while (this.options.redis.status === 'ready') {
       const events = await this.getLatestEvents()
@@ -227,7 +234,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
 
   private hydratePayload(payload: any) {
     for (const [fieldName, field] of Object.entries(
-      this.options.schema.models[this.modelName]!.fields,
+      this.options.client.$schema.models[this.modelName]!.fields,
     )) {
       if (field.relation) {
         continue
@@ -369,7 +376,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
       ...streamOptions,
       redis: this.redis,
       clientId: this.options.id ?? 'zenstack',
-      schema: this.options.schema,
+      client: this.options.client,
     })
   }
 

@@ -22,7 +22,7 @@ export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetM
     this.streamOptions = streamOptions
 
     this.queryCompiler = new QueryCompiler({
-      schema: streamOptions.schema,
+      schema: streamOptions.client.$schema,
       modelName: streamOptions.model,
     })
 
