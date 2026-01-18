@@ -68,7 +68,9 @@ describe('live', () => {
       const { before, after } = beforeAfter(event)
 
       console.log({
-        event, before, after
+        event,
+        before,
+        after,
       })
     }
   })

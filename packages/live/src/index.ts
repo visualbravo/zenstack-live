@@ -6,10 +6,7 @@ import { parse } from 'lossless-json'
 import { Redis } from 'ioredis'
 import Decimal from 'decimal.js'
 import hash from 'stable-hash'
-import type {
-  XReadGroupResponse,
-  DebeziumShortEventType,
-} from './internal'
+import type { XReadGroupResponse, DebeziumShortEventType } from './internal'
 import { EventDiscriminator } from './discriminator'
 
 const operationMap: Record<DebeziumShortEventType, DatabaseEventType> = {
@@ -72,20 +69,14 @@ export type RecordResultMap<Schema extends SchemaDef, ModelName extends GetModel
   deleted: RecordDeletedEvent<Schema, ModelName>
 }
 
-type ExtractRequestedEvents<
-  Schema extends SchemaDef,
-  ModelName extends GetModels<Schema>,
-  Opts
-> =
+type ExtractRequestedEvents<Schema extends SchemaDef, ModelName extends GetModels<Schema>, Opts> =
   | (Opts extends { created: any } ? RecordCreatedEvent<Schema, ModelName> : never)
   | (Opts extends { updated: any } ? RecordUpdatedEvent<Schema, ModelName> : never)
   | (Opts extends { deleted: any } ? RecordDeletedEvent<Schema, ModelName> : never)
 
-export type RequestedEvents<
-  Schema extends SchemaDef,
-  ModelName extends GetModels<Schema>,
-  Opts
-> = [ExtractRequestedEvents<Schema, ModelName, Opts>] extends [never]
+export type RequestedEvents<Schema extends SchemaDef, ModelName extends GetModels<Schema>, Opts> = [
+  ExtractRequestedEvents<Schema, ModelName, Opts>,
+] extends [never]
   ? RecordEvent<Schema, ModelName>
   : ExtractRequestedEvents<Schema, ModelName, Opts>
 
@@ -111,7 +102,11 @@ export type ZenStackLiveOptions<Schema extends SchemaDef> = {
   }
 }
 
-export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Schema>, Opts = unknown> implements AsyncIterable<RequestedEvents<Schema, ModelName, Opts>> {
+export class LiveStream<
+  Schema extends SchemaDef,
+  ModelName extends GetModels<Schema>,
+  Opts = unknown,
+> implements AsyncIterable<RequestedEvents<Schema, ModelName, Opts>> {
   private readonly options: LiveStreamOptions<Schema, ModelName>
   private readonly modelName: ModelName
   private readonly streamName: string
@@ -181,10 +176,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
   }
 
   async *[Symbol.asyncIterator](): AsyncIterator<RequestedEvents<Schema, ModelName, Opts>> {
-    await Promise.all([
-      this.makeConsumerGroup(),
-      this.alterTable(),
-    ])
+    await Promise.all([this.makeConsumerGroup(), this.alterTable()])
 
     while (this.options.redis.status === 'ready') {
       const events = await this.getLatestEvents()
@@ -219,9 +211,12 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
 
       switch (field.type) {
         case 'BigInt':
-          payload[fieldName] = payload[fieldName] === null ? null : field.array
-            ? (payload[fieldName] as string[]).map(value => BigInt(value))
-            : BigInt(payload[fieldName])
+          payload[fieldName] =
+            payload[fieldName] === null
+              ? null
+              : field.array
+                ? (payload[fieldName] as string[]).map(value => BigInt(value))
+                : BigInt(payload[fieldName])
           break
         case 'Int':
           payload[fieldName] = field.array
@@ -335,7 +330,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
 
   stream<ModelName extends GetModels<Schema>, Opts extends PickStreamFilters<Schema, ModelName>>(
     // streamOptions: Omit<LiveStreamOptions<Schema, ModelName>, 'schema' | 'redis' | 'clientId'>,
-    streamOptions: { model: ModelName, id: string } & Opts,
+    streamOptions: { model: ModelName; id: string } & Opts,
   ) {
     return new LiveStream<Schema, ModelName, Opts>({
       ...streamOptions,
@@ -350,10 +345,9 @@ export class ZenStackLive<Schema extends SchemaDef> {
   }
 }
 
-export function beforeAfter<
-  Schema extends SchemaDef,
-  ModelName extends GetModels<Schema>
->(event: RecordEvent<Schema, ModelName>): {
+export function beforeAfter<Schema extends SchemaDef, ModelName extends GetModels<Schema>>(
+  event: RecordEvent<Schema, ModelName>,
+): {
   before: SimplifiedPlainResult<Schema, ModelName> | null
   after: SimplifiedPlainResult<Schema, ModelName> | null
 } {
@@ -362,8 +356,7 @@ export function beforeAfter<
       before: null,
       after: event.created,
     }
-  }
-  else if (event.type === 'updated') {
+  } else if (event.type === 'updated') {
     return {
       before: event.updated.before,
       after: event.updated.after,

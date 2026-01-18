@@ -40,12 +40,6 @@ export type XReadGroupResponse = [stream: string, entries: StreamEntry[]][]
 
 export type StreamEntry = [id: string, keyValuePairs: [string, string]]
 
-export type XAutoClaimResult = [
-  nextStartId: string,
-  messages: StreamMessage[]
-]
+export type XAutoClaimResult = [nextStartId: string, messages: StreamMessage[]]
 
-export type StreamMessage = [
-  id: string,
-  fields: [key: string, value: string][]
-]
+export type StreamMessage = [id: string, fields: [key: string, value: string][]]
