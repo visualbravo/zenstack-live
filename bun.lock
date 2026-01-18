@@ -25,6 +25,7 @@
       },
       "devDependencies": {
         "@types/pg": "catalog:",
+        "@zenstack-live/config": "workspace:*",
         "@zenstackhq/schema": "catalog:",
       },
     },

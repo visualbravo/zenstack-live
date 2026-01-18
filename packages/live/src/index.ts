@@ -69,7 +69,11 @@ export type RecordResultMap<Schema extends SchemaDef, ModelName extends GetModel
   deleted: RecordDeletedEvent<Schema, ModelName>
 }
 
-export type ExtractRequestedEvents<Schema extends SchemaDef, ModelName extends GetModels<Schema>, Opts> =
+export type ExtractRequestedEvents<
+  Schema extends SchemaDef,
+  ModelName extends GetModels<Schema>,
+  Opts,
+> =
   | (Opts extends { created: any } ? RecordCreatedEvent<Schema, ModelName> : never)
   | (Opts extends { updated: any } ? RecordUpdatedEvent<Schema, ModelName> : never)
   | (Opts extends { deleted: any } ? RecordDeletedEvent<Schema, ModelName> : never)
@@ -131,7 +135,9 @@ export class LiveStream<
   }
 
   private async alterTable() {
-    await this.options.client.$queryRaw`ALTER TABLE "${this.modelName}" REPLICA IDENTITY FULL`
+    await this.options.client.$queryRawUnsafe(
+      `ALTER TABLE "${this.modelName}" REPLICA IDENTITY FULL`,
+    )
   }
 
   private async makeConsumerGroup() {
@@ -209,37 +215,36 @@ export class LiveStream<
         payload[fieldName] = null
       }
 
-      switch (field.type) {
-        case 'BigInt':
-          payload[fieldName] =
-            payload[fieldName] === null
-              ? null
-              : field.array
-                ? (payload[fieldName] as string[]).map(value => BigInt(value))
-                : BigInt(payload[fieldName])
-          break
-        case 'Int':
-          payload[fieldName] = field.array
-            ? (payload[fieldName] as string[]).map(value => Number(value))
-            : Number(payload[fieldName])
-          break
-        case 'Decimal':
-          payload[fieldName] = field.array
-            ? (payload[fieldName] as string[]).map(value => Decimal(value))
-            : Decimal(payload[fieldName])
-          break
-        case 'DateTime':
-          payload[fieldName] = field.array
-            ? (payload[fieldName] as string[]).map(value => new Date(Number(value) / 1000))
-            : new Date(Number(payload[fieldName]) / 1000)
-          break
-        case 'Float':
-          payload[fieldName] = field.array
-            ? (payload[fieldName] as string[]).map(value => parseFloat(value))
-            : parseFloat(payload[fieldName])
-          break
-        case 'Bytes':
-          throw new Error(`Field "${fieldName}" has an unsupported type ("${field.type}")`)
+      if (payload[fieldName] !== null) {
+        switch (field.type) {
+          case 'BigInt':
+            payload[fieldName] = field.array
+              ? (payload[fieldName] as string[]).map(value => BigInt(value))
+              : BigInt(payload[fieldName])
+            break
+          case 'Int':
+            payload[fieldName] = field.array
+              ? (payload[fieldName] as string[]).map(value => Number(value))
+              : Number(payload[fieldName])
+            break
+          case 'Decimal':
+            payload[fieldName] = field.array
+              ? (payload[fieldName] as string[]).map(value => Decimal(value))
+              : Decimal(payload[fieldName])
+            break
+          case 'DateTime':
+            payload[fieldName] = field.array
+              ? (payload[fieldName] as string[]).map(value => new Date(Number(value) / 1000))
+              : new Date(Number(payload[fieldName]) / 1000)
+            break
+          case 'Float':
+            payload[fieldName] = field.array
+              ? (payload[fieldName] as string[]).map(value => parseFloat(value))
+              : parseFloat(payload[fieldName])
+            break
+          case 'Bytes':
+            throw new Error(`Field "${fieldName}" has an unsupported type ("${field.type}")`)
+        }
       }
     }
   }
@@ -345,12 +350,14 @@ export class ZenStackLive<Schema extends SchemaDef> {
   }
 }
 
-export function beforeAfter<Schema extends SchemaDef, ModelName extends GetModels<Schema>>(
-  event: RecordEvent<Schema, ModelName>,
-): {
+export type BeforeAfterResult<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   before: SimplifiedPlainResult<Schema, ModelName> | null
   after: SimplifiedPlainResult<Schema, ModelName> | null
-} {
+}
+
+export function beforeAfter<Schema extends SchemaDef, ModelName extends GetModels<Schema>>(
+  event: RecordEvent<Schema, ModelName>,
+): BeforeAfterResult<Schema, ModelName> {
   if (event.type === 'created') {
     return {
       before: null,
