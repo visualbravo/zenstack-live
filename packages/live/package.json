@@ -58,5 +58,5 @@
     "@zenstackhq/orm": "catalog:",
     "@zenstackhq/schema": "catalog:"
   },
-  "packageManager": "bun@1.3.5"
+  "packageManager": "bun@1.3.6"
 }
