@@ -1,22 +1,36 @@
 # ZenStack LIVE 🔴
 
-Supercharge your ZenStack app with realtime streaming capabilities. Instantly react to any insert, update, or delete, and declaratively filter rows using the same Prisma API you've come to love.
+Supercharge your ZenStack backend with realtime streaming capabilities. Instantly react to any insert, update, or delete, and declaratively filter records using the same Prisma API you've come to love.
 
 ## Features
-* 🛟 **Type-safe:** You'll feel right at home working with ZenStack's Prisma API.
-* 🛡️ **Durable:** Server went down? Your app picks up right where it left off, and even **detects all the changes that happened while it was offline.**
-* 🧪 **Well-tested:** The suite compares its results against an actual database.
+* 🛟 **Type-safe:** Queries have full intellisense based on your ZenStack models.
+* 🛡️ **Durable:** Server went down? Your app picks up right where it left off, and even detects all the changes that happened while it was offline.
 * 📈 **Scalable:** Just add more instances.
+* 🗿 **Simple:** Build event-driven apps with fewer headaches.
+
+## Requirements
+
+* Node.js (version >= `20.0.0`)
+* Postgres that supports [logical replication](https://www.postgresql.org/docs/current/logical-replication.html) (version >= `10`)
+* Redis that supports [streams](https://redis.io/docs/latest/develop/data-types/streams/) (version >= `5.0.0`)
+* A non-serverless server that will process events. You can forward events to serverless if you so desire.
 
 ## Setup
 
+Just copy our [`docker-compose.yaml`](.devcontainer/docker-compose.yaml), make any necessary changes, and proceed as follows
+
 ```typescript
-// No ZenStackClient needed -- just the schema.
+import { ZenStackLive } from '@visualbravo/zenstack-live'
+
+const client = new ZenStackClient(schema, {
+  ...
+})
+
 const live = new ZenStackLive({
-  schema,
+  client,
 
   redis: {
-    url: process.env['REDIS_URL'],
+    url: process.env.REDIS_URL,
   },
 })
 ```
@@ -36,7 +50,8 @@ for await (let event of newUserStream) {
   const user = event.created
     //  ^ properly typed as the `User` model
 
-  await sendEmail(user.email, {
+  await sendEmail({
+    to: user.email,
     subject: `Welcome, ${user.name}!`,
   })
 }
@@ -150,7 +165,8 @@ const deliveredOrdersStream = live.stream({
 for await (let event of deliveredOrdersStream) {
   const order = event.updated.after
 
-  await sendEmail(order.contactEmail, {
+  await sendEmail({
+    to: order.contactEmail,
     subject: `✅ Delivered at ${toHumanReadable(event.date)}`,
   })
 }
@@ -167,10 +183,12 @@ Hint: not with polling.
 
 ## Limitations
 
-1. Postgres only. Actually, that might not be totally accurate. Debezium has MySQL support, but this project has not been tested with it.
-2. Events are not bound by the transaction they were in. This is a good thing for performance, but it's important to keep in mind. If you're listening to `created` events, the record might not exist in the database anymore if it was deleted before your handler processed it. **Events represent snapshots in time of a single record**, and actually come with the time they were generated via `event.date`.
-3. You can't query via relations on the `created`, `updated`, and `deleted` clauses. Although that would be very cool, this is not possible because of limitation #2.
-4. Json filtering is not yet implemented.
+1. **Postgres only.** Actually, that might not be totally true. Debezium has MySQL support, but this project has not been tested with it. Want to help? Give it a try and tell us how it goes.
+2. **Events represent snapshots in time of a single record.** They are not bound by the transaction they were in. If you're listening to `created` events, the record might not exist in the database anymore if it was deleted before your handler processed it. You can determine when an event occurred via `event.date`
+3. **You can't query by relations.** Although that would be very cool, this is not possible because of limitation #2.
+4. **Json filtering is not yet implemented.**
+5. **Live stream handlers can't be hosted on a serverless platform.** They need to be constantly waiting for new events to come in. Your main backend can still be serverless, and you just communicate between the two like any other service.
+6. **Only the `public` schema is supported at this time.**
 
 ## License
 

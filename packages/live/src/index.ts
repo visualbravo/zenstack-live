@@ -198,34 +198,7 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
           continue
         }
 
-        if (event.type === 'created') {
-          yield {
-            type: 'created',
-            id: event.id,
-            transactionId: event.transactionId,
-            date: event.date,
-            created: event.created,
-          } as unknown as RequestedEvents<Schema, ModelName, Opts>
-        } else if (event.type === 'updated') {
-          yield {
-            type: 'updated',
-            id: event.id,
-            transactionId: event.transactionId,
-            date: event.date,
-            updated: {
-              before: event.updated.before,
-              after: event.updated.after,
-            },
-          } as unknown as RequestedEvents<Schema, ModelName, Opts>
-        } else if (event.type === 'deleted') {
-          yield {
-            type: 'deleted',
-            id: event.id,
-            transactionId: event.transactionId,
-            date: event.date,
-            deleted: event.deleted,
-          }  as unknown as RequestedEvents<Schema, ModelName, Opts>
-        }
+        yield event as unknown as RequestedEvents<Schema, ModelName, Opts>
 
         await this.acknowledgeEvent(event.id)
       }
@@ -343,14 +316,6 @@ export class LiveStream<Schema extends SchemaDef, ModelName extends GetModels<Sc
               deleted: event.before,
             })
           }
-
-          // events.push({
-          //   id: eventId,
-          //   date: new Date(Number(event.ts_ms)),
-          //   before: event.before,
-          //   after: event.after,
-          //   type: operation,
-          // })
         }
       }
     }

@@ -62,12 +62,6 @@ async function matches(
     databaseMatches = await client.user.exists({
       where: options.created,
     })
-
-    // await client.user.delete({
-    //   where: {
-    //     id: user.id,
-    //   }
-    // })
   }
 
   return discriminatorMatches && databaseMatches
