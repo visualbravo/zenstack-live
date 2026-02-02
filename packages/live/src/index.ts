@@ -7,7 +7,7 @@ import { Redis } from 'ioredis'
 import Decimal from 'decimal.js'
 import hash from 'stable-hash'
 import type { XReadGroupResponse, DebeziumShortEventType } from './internal'
-import { EventDiscriminator } from './discriminator'
+import { EventDiscriminator } from './event-discriminator'
 
 const operationMap: Record<DebeziumShortEventType, DatabaseEventType> = {
   c: 'created',

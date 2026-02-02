@@ -21,10 +21,10 @@
       "require": "./dist/index.cjs",
       "import": "./dist/index.mjs"
     },
-    "./discriminator": {
-      "@zenstack-live/source": "./src/discriminator.ts",
-      "require": "./dist/discriminator.cjs",
-      "import": "./dist/discriminator.mjs"
+    "./event-discriminator": {
+      "@zenstack-live/source": "./src/event-discriminator.ts",
+      "require": "./dist/event-discriminator.cjs",
+      "import": "./dist/event-discriminator.mjs"
     },
     "./internal": {
       "@zenstack-live/source": "./src/internal.ts",
@@ -44,9 +44,9 @@
         "require": "./dist/index.cjs",
         "import": "./dist/index.mjs"
       },
-      "./discriminator": {
-        "require": "./dist/discriminator.cjs",
-        "import": "./dist/discriminator.mjs"
+      "./event-discriminator": {
+        "require": "./dist/event-discriminator.cjs",
+        "import": "./dist/event-discriminator.mjs"
       },
       "./internal": {
         "require": "./dist/internal.cjs",
