@@ -17,7 +17,8 @@
         "oven.bun-vscode",
         "oxc.oxc-vscode",
         "ckolkman.vscode-postgres",
-        "vitest.explorer"
+        "vitest.explorer",
+        "zenstack.zenstack-v3"
       ]
     }
   }
