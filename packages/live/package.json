@@ -1,11 +1,20 @@
 {
   "name": "@visualbravo/zenstack-live",
   "version": "0.0.0",
+  "keywords": [
+    "live",
+    "orm",
+    "prisma",
+    "pulse",
+    "realtime",
+    "streaming",
+    "websocket",
+    "zenstack"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.cts",
-  "keywords": ["zenstack", "live", "prisma", "orm", "streaming", "pulse", "websocket", "realtime"],
   "exports": {
     ".": {
       "@zenstack-live/source": "./src/index.ts",
@@ -67,10 +76,10 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "pg": "catalog:",
     "@types/pg": "catalog:",
+    "@zenstack-live/config": "workspace:*",
     "kysely": "catalog:",
-    "@zenstack-live/config": "workspace:*"
+    "pg": "catalog:"
   },
   "peerDependencies": {
     "@zenstackhq/orm": "catalog:",
