@@ -6,6 +6,7 @@
     "start": "bun ./src/index.ts",
     "build": "tsdown",
     "watch": "tsdown --watch",
+    "zen:generate": "bun x zen generate --schema ./src/schema.zmodel --output ./src",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix --fix-suggestions",
     "format:fix": "oxfmt",

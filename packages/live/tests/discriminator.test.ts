@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { schema } from './schemas/basic'
-import { EventDiscriminator, type EventDiscriminatorOptions } from '../src/discriminator'
+import { EventDiscriminator, type EventDiscriminatorOptions } from '../src/event-discriminator'
 import { ZenStackClient, type ClientContract } from '@zenstackhq/orm'
 import { PostgresDialect } from 'kysely'
 import { Pool } from 'pg'
@@ -26,7 +26,18 @@ const baseEvent = {
     intArray: [1],
     float: 1,
     floatArray: [1],
-    json: {},
+    json: {
+      string: 'string',
+      stringArray: ['stringArray'],
+      boolean: true,
+      booleanArray: [true],
+      dateTime: baseDate,
+      enum: 'USER',
+      int: 1,
+      intArray: [1],
+      float: 1,
+      floatArray: [1],
+    },
   },
   date: baseDate,
   transactionId: '1',
@@ -53,7 +64,6 @@ async function matches(
 
   if (event.type === 'created') {
     await client.user.create({
-      // @ts-expect-error
       data: event.created,
     })
 
@@ -74,11 +84,12 @@ beforeAll(async () => {
     }),
   })
 
+  await client.$queryRawUnsafe('DROP SCHEMA public CASCADE; CREATE SCHEMA public;')
   await client.$pushSchema()
   await Promise.all([
     client.$queryRawUnsafe('ALTER TABLE "User" REPLICA IDENTITY FULL'),
     client.$queryRawUnsafe('ALTER TABLE "Post" REPLICA IDENTITY FULL'),
-    client.$queryRawUnsafe('ALTER TABLE "Profile" REPLICA IDENTITY FULL'),
+    // client.$queryRawUnsafe('ALTER TABLE "Profile" REPLICA IDENTITY FULL'),
   ])
 })
 
@@ -382,7 +393,18 @@ describe('EventDiscriminator', () => {
           intArray: [1],
           float: 1,
           floatArray: [1],
-          json: {},
+          json: {
+            string: 'string',
+            stringArray: ['stringArray'],
+            boolean: true,
+            booleanArray: [true],
+            dateTime: baseDate,
+            enum: 'USER',
+            int: 1,
+            intArray: [1],
+            float: 1,
+            floatArray: [1],
+          },
         },
         date: new Date(),
         transactionId: '1',
@@ -776,7 +798,18 @@ describe('EventDiscriminator', () => {
           intArray: [1, 2, 3],
           float: 1,
           floatArray: [1],
-          json: {},
+          json: {
+            string: 'string',
+            stringArray: ['stringArray'],
+            boolean: true,
+            booleanArray: [true],
+            dateTime: baseDate,
+            enum: 'USER',
+            int: 1,
+            intArray: [1],
+            float: 1,
+            floatArray: [1],
+          },
         },
         date: new Date(),
         id: '1',
@@ -1252,7 +1285,18 @@ describe('EventDiscriminator', () => {
           intArray: [1],
           float: 1,
           floatArray: [1.1, 2.2, 3.3],
-          json: {},
+          json: {
+            string: 'string',
+            stringArray: ['stringArray'],
+            boolean: true,
+            booleanArray: [true],
+            dateTime: baseDate,
+            enum: 'USER',
+            int: 1,
+            intArray: [1],
+            float: 1,
+            floatArray: [1],
+          },
         },
         date: new Date('2024-01-01T00:00:00.000Z'),
         id: '1',
@@ -1525,7 +1569,18 @@ describe('EventDiscriminator', () => {
           intArray: [1],
           float: 1,
           floatArray: [1],
-          json: {},
+          json: {
+            string: 'string',
+            stringArray: ['stringArray'],
+            boolean: true,
+            booleanArray: [true],
+            dateTime: baseDate,
+            enum: 'USER',
+            int: 1,
+            intArray: [1],
+            float: 1,
+            floatArray: [1],
+          },
         },
         date: new Date('2024-01-01T00:00:00.000Z'),
         transactionId: '1',
@@ -1632,7 +1687,18 @@ describe('EventDiscriminator', () => {
     //       intArray: [1],
     //       float: 1,
     //       floatArray: [1],
-    //       json: {},
+    //           json: {
+    //   string: 'string',
+    //   stringArray: ['stringArray'],
+    //   boolean: true,
+    //   booleanArray: [true],
+    //   dateTime: baseDate,
+    //   enum: 'USER',
+    //   int: 1,
+    //   intArray: [1],
+    //   float: 1,
+    //   floatArray: [1],
+    // },
     //     },
     //     date: new Date('2024-01-01T00:00:00.000Z'),
     //     id: '1',
@@ -1821,7 +1887,18 @@ describe('EventDiscriminator', () => {
           intArray: [1],
           float: 1,
           floatArray: [1],
-          json: {},
+          json: {
+            string: 'string',
+            stringArray: ['stringArray'],
+            boolean: true,
+            booleanArray: [true],
+            dateTime: baseDate,
+            enum: 'USER',
+            int: 1,
+            intArray: [1],
+            float: 1,
+            floatArray: [1],
+          },
         },
         date: new Date(),
         transactionId: '1',
@@ -2179,7 +2256,18 @@ describe('EventDiscriminator', () => {
           intArray: [1],
           float: 1,
           floatArray: [1],
-          json: {},
+          json: {
+            string: 'string',
+            stringArray: ['stringArray'],
+            boolean: true,
+            booleanArray: [true],
+            dateTime: baseDate,
+            enum: 'USER',
+            int: 1,
+            intArray: [1],
+            float: 1,
+            floatArray: [1],
+          },
         },
         date: new Date('2024-01-01T00:00:00.000Z'),
         id: '1',
@@ -2597,7 +2685,18 @@ describe('EventDiscriminator', () => {
         intArray: [1],
         float: 1,
         floatArray: [1],
-        json: {},
+        json: {
+          string: 'string',
+          stringArray: ['stringArray'],
+          boolean: true,
+          booleanArray: [true],
+          dateTime: baseDate,
+          enum: 'USER',
+          int: 1,
+          intArray: [1],
+          float: 1,
+          floatArray: [1],
+        },
       },
       date: new Date('2024-01-01T00:00:00.000Z'),
       id: '1',
