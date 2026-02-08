@@ -742,6 +742,30 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
+      test('between (positive)', async () => {
+        await expect(
+          matches(baseEvent, {
+            created: {
+              int: {
+                between: [1, 2],
+              },
+            },
+          }),
+        ).resolves.toBe(true)
+      })
+
+      test('between (negative)', async () => {
+        await expect(
+          matches(baseEvent, {
+            created: {
+              int: {
+                between: [10, 20],
+              },
+            },
+          }),
+        ).resolves.toBe(false)
+      })
+
       test('zero value (edge case)', async () => {
         await expect(
           matches(
@@ -1265,6 +1289,30 @@ describe('EventDiscriminator', () => {
             },
           ),
         ).resolves.toBe(true)
+      })
+
+      test('between (positive)', async () => {
+        await expect(
+          matches(baseEvent, {
+            created: {
+              float: {
+                between: [1, 2],
+              },
+            },
+          }),
+        ).resolves.toBe(true)
+      })
+
+      test('between (negative)', async () => {
+        await expect(
+          matches(baseEvent, {
+            created: {
+              float: {
+                between: [10, 20],
+              },
+            },
+          }),
+        ).resolves.toBe(false)
       })
     })
 
@@ -2055,6 +2103,30 @@ describe('EventDiscriminator', () => {
         ).resolves.toBe(false)
       })
 
+      test('between (positive)', async () => {
+        await expect(
+          matches(baseEvent, {
+            created: {
+              bigInt: {
+                between: [1, 2],
+              },
+            },
+          }),
+        ).resolves.toBe(true)
+      })
+
+      test('between (negative)', async () => {
+        await expect(
+          matches(baseEvent, {
+            created: {
+              bigInt: {
+                between: [10, 20],
+              },
+            },
+          }),
+        ).resolves.toBe(false)
+      })
+
       // test('not (nested filter)', async () => {
       //   await expect(
       //     matches(baseEvent, {
@@ -2664,6 +2736,42 @@ describe('EventDiscriminator', () => {
             },
           ),
         ).resolves.toBe(true)
+      })
+
+      test('between (positive)', async () => {
+        await expect(
+          matches(baseEvent, {
+            created: {
+              dateTime: {
+                between: [baseDate, laterDate],
+              },
+            },
+          }),
+        ).resolves.toBe(true)
+
+        await client.user.deleteMany()
+
+        await expect(
+          matches(baseEvent, {
+            created: {
+              dateTime: {
+                between: [earlierDate, baseDate],
+              },
+            },
+          }),
+        ).resolves.toBe(true)
+      })
+
+      test('between (negative)', async () => {
+        await expect(
+          matches(baseEvent, {
+            created: {
+              dateTime: {
+                between: [new Date(laterDate.getTime() + 1), new Date(laterDate.getTime() + 2)],
+              },
+            },
+          }),
+        ).resolves.toBe(false)
       })
     })
   })

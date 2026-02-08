@@ -15,6 +15,7 @@ type CommonFilter<T> = {
   gt?: T
   gte?: T
   not?: T | CommonFilter<T>
+  between: [T, T]
 }
 
 type CommonArrayFilter<T> = {
@@ -254,6 +255,11 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
       schema = schema.refine(v => !this.compileString(value.not!).safeParse(v).success)
     }
 
+    if (typeof value.between !== 'undefined') {
+      const [start, end] = value.between
+      schema = schema.refine(v => v >= start && v <= end)
+    }
+
     return schema
   }
 
@@ -478,6 +484,11 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
       schema = schema.refine(v => !this.compileInt(value.not!).safeParse(v).success)
     }
 
+    if (typeof value.between !== 'undefined') {
+      const [start, end] = value.between
+      schema = schema.refine(v => v >= start && v <= end)
+    }
+
     return schema
   }
 
@@ -518,6 +529,11 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
 
     if (typeof value.not !== 'undefined') {
       schema = schema.refine(v => !this.compileFloat(value.not!).safeParse(v).success)
+    }
+
+    if (typeof value.between !== 'undefined') {
+      const [start, end] = value.between
+      schema = schema.refine(v => v >= start && v <= end)
     }
 
     return schema
@@ -650,6 +666,11 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
       schema = schema.refine(v => !this.compileBigInt(value.not!).safeParse(v).success)
     }
 
+    if (typeof value.between !== 'undefined') {
+      const [start, end] = value.between
+      schema = schema.refine(v => v >= start && v <= end)
+    }
+
     return schema
   }
 
@@ -736,6 +757,11 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
 
     if (typeof value.not !== 'undefined') {
       schema = schema.refine(v => !this.compileDateTime(value.not!).safeParse(v).success)
+    }
+
+    if (typeof value.between !== 'undefined') {
+      const [start, end] = value.between
+      schema = schema.refine(v => v.getTime() >= start.getTime() && v.getTime() <= end.getTime())
     }
 
     return schema
