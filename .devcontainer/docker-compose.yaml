@@ -78,7 +78,7 @@ services:
 
   redis:
     container_name: zenstack-live-redis
-    image: redis:5.0
+    image: redis:6.2
     command: redis-server
     networks:
       - workspace

@@ -6,7 +6,7 @@ import { parse } from 'lossless-json'
 import { Redis } from 'ioredis'
 import Decimal from 'decimal.js'
 import hash from 'stable-hash'
-import type { XReadGroupResponse, DebeziumShortEventType } from './internal'
+import type { XReadGroupResponse, XAutoClaimResult, StreamEntry, DebeziumShortEventType } from './internal'
 import { EventDiscriminator } from './event-discriminator'
 
 const operationMap: Record<DebeziumShortEventType, DatabaseEventType> = {
@@ -16,6 +16,7 @@ const operationMap: Record<DebeziumShortEventType, DatabaseEventType> = {
 }
 
 export type DatabaseEventType = 'created' | 'updated' | 'deleted'
+export type LiveStreamConsumeOption = 'new' | 'errored' | 'all'
 
 export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   model: ModelName
@@ -23,6 +24,7 @@ export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetMod
   client: ClientContract<Schema>
   id: string
   clientId: string
+  consume?: LiveStreamConsumeOption,
   created?: WhereInput<Schema, ModelName, {}, true>
   updated?: {
     before?: WhereInput<Schema, ModelName, {}, true>
@@ -111,6 +113,8 @@ export class LiveStream<
   ModelName extends GetModels<Schema>,
   Opts = unknown,
 > implements AsyncIterable<RequestedEvents<Schema, ModelName, Opts>> {
+  private static readonly MIN_IDLE_TIME = 30_000
+
   private readonly options: LiveStreamOptions<Schema, ModelName>
   private readonly modelName: ModelName
   private readonly streamName: string
@@ -184,8 +188,28 @@ export class LiveStream<
   async *[Symbol.asyncIterator](): AsyncIterator<RequestedEvents<Schema, ModelName, Opts>> {
     await Promise.all([this.makeConsumerGroup(), this.alterTable()])
 
+    const consume = this.options.consume ?? 'new'
+
     while (this.options.redis.status === 'ready') {
-      const events = await this.getLatestEvents()
+      let events: RecordEvent<Schema, ModelName>[]
+
+      switch (consume) {
+        case 'new':
+          events = await this.getNewEvents()
+          break
+        case 'errored':
+          events = await this.getErroredEvents()
+          break
+        case 'all': {
+          events = await this.getErroredEvents()
+          
+          if (events.length === 0) {
+            events = await this.getNewEvents(2000)
+          }
+
+          break
+        }
+      }
 
       if (events.length === 0) {
         await this.sleep(1000)
@@ -249,8 +273,65 @@ export class LiveStream<
     }
   }
 
-  private async getLatestEvents() {
+  private parseStreamEntries(entries: StreamEntry[]): RecordEvent<Schema, ModelName>[] {
     const events: RecordEvent<Schema, ModelName>[] = []
+
+    for (const [eventId, fields] of entries) {
+      const [, eventJson] = fields
+
+      if (eventJson === 'default') {
+        continue
+      }
+
+      let event = this.parseJson<any>(eventJson)
+
+      if (!event) {
+        continue
+      }
+
+      const operation = operationMap[event.op as DebeziumShortEventType]
+
+      if (operation === 'created') {
+        this.hydratePayload(event.after)
+
+        events.push({
+          type: 'created',
+          id: eventId,
+          transactionId: String(event.source.txId),
+          date: new Date(Number(event.ts_ms)),
+          created: event.after,
+        })
+      } else if (operation === 'updated') {
+        this.hydratePayload(event.before)
+        this.hydratePayload(event.after)
+
+        events.push({
+          type: 'updated',
+          id: eventId,
+          transactionId: String(event.source.txId),
+          date: new Date(Number(event.ts_ms)),
+          updated: {
+            before: event.before,
+            after: event.after,
+          },
+        })
+      } else {
+        this.hydratePayload(event.before)
+
+        events.push({
+          type: 'deleted',
+          id: eventId,
+          transactionId: String(event.source.txId),
+          date: new Date(Number(event.ts_ms)),
+          deleted: event.before,
+        })
+      }
+    }
+
+    return events
+  }
+
+  private async getNewEvents(blockTimeout: number = 0): Promise<RecordEvent<Schema, ModelName>[]> {
     const xReadGroupResponse = (await this.options.redis.xreadgroup(
       'GROUP',
       this.consumerGroupName,
@@ -258,69 +339,37 @@ export class LiveStream<
       'COUNT',
       5,
       'BLOCK',
-      0,
+      blockTimeout,
       'STREAMS',
       this.streamName,
       '>',
     )) as XReadGroupResponse | null
 
-    if (xReadGroupResponse) {
-      for (const [, entries] of xReadGroupResponse) {
-        for (const [eventId, fields] of entries) {
-          const [, eventJson] = fields
+    if (!xReadGroupResponse) return []
 
-          if (eventJson === 'default') {
-            continue
-          }
+    const entries: StreamEntry[] = []
 
-          let event = this.parseJson<any>(eventJson)
-
-          if (!event) {
-            continue
-          }
-
-          const operation = operationMap[event.op as DebeziumShortEventType]
-
-          if (operation === 'created') {
-            this.hydratePayload(event.after)
-
-            events.push({
-              type: 'created',
-              id: eventId,
-              transactionId: String(event.source.txId),
-              date: new Date(Number(event.ts_ms)),
-              created: event.after,
-            })
-          } else if (operation === 'updated') {
-            this.hydratePayload(event.before)
-            this.hydratePayload(event.after)
-
-            events.push({
-              type: 'updated',
-              id: eventId,
-              transactionId: String(event.source.txId),
-              date: new Date(Number(event.ts_ms)),
-              updated: {
-                before: event.before,
-                after: event.after,
-              },
-            })
-          } else {
-            this.hydratePayload(event.before)
-
-            events.push({
-              type: 'deleted',
-              id: eventId,
-              transactionId: String(event.source.txId),
-              date: new Date(Number(event.ts_ms)),
-              deleted: event.before,
-            })
-          }
-        }
-      }
+    for (const [, streamEntries] of xReadGroupResponse) {
+      entries.push(...streamEntries)
     }
 
-    return events
+    return this.parseStreamEntries(entries)
+  }
+
+  private async getErroredEvents(): Promise<RecordEvent<Schema, ModelName>[]> {
+    const result = (await this.options.redis.xautoclaim(
+      this.streamName,
+      this.consumerGroupName,
+      this.consumerName,
+      LiveStream.MIN_IDLE_TIME,
+      '0-0',
+      'COUNT',
+      5,
+    )) as unknown as XAutoClaimResult
+
+    if (!result?.[1]?.length) return []
+
+    return this.parseStreamEntries(result[1] as unknown as StreamEntry[])
   }
 }
 
@@ -335,7 +384,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
 
   stream<ModelName extends GetModels<Schema>, Opts extends PickStreamFilters<Schema, ModelName>>(
     // streamOptions: Omit<LiveStreamOptions<Schema, ModelName>, 'schema' | 'redis' | 'clientId'>,
-    streamOptions: { model: ModelName; id: string } & Opts,
+    streamOptions: { model: ModelName; id: string, consume?: LiveStreamConsumeOption } & Opts,
   ) {
     return new LiveStream<Schema, ModelName, Opts>({
       ...streamOptions,
