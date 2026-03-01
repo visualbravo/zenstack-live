@@ -43,3 +43,10 @@ export type StreamEntry = [id: string, keyValuePairs: [string, string]]
 export type XAutoClaimResult = [nextStartId: string, messages: StreamMessage[]]
 
 export type StreamMessage = [id: string, fields: [key: string, value: string][]]
+
+export type StrictOmit<T, K> = {[P in keyof T as Exclude<P, K>]: T[P]}
+
+export type DebeziumDecimal = {
+  scale: string
+  value: string
+}

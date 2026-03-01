@@ -6,7 +6,16 @@ import { parse } from 'lossless-json'
 import { Redis } from 'ioredis'
 import Decimal from 'decimal.js'
 import hash from 'stable-hash'
-import type { XReadGroupResponse, XAutoClaimResult, StreamEntry, DebeziumShortEventType } from './internal'
+import Bottleneck from 'bottleneck'
+import { Buffer } from 'node:buffer'
+import type {
+  XReadGroupResponse,
+  XAutoClaimResult,
+  StreamEntry,
+  DebeziumShortEventType,
+  StrictOmit,
+  DebeziumDecimal,
+} from './internal'
 import { EventDiscriminator } from './event-discriminator'
 
 const operationMap: Record<DebeziumShortEventType, DatabaseEventType> = {
@@ -18,13 +27,28 @@ const operationMap: Record<DebeziumShortEventType, DatabaseEventType> = {
 export type DatabaseEventType = 'created' | 'updated' | 'deleted'
 export type LiveStreamConsumeOption = 'new' | 'errored' | 'all'
 
+export type LiveStreamRateLimitOption = StrictOmit<
+  Bottleneck.ConstructorOptions,
+  | 'id'
+  | 'Redis'
+  | 'Promise'
+  | 'clientOptions'
+  | 'clearDatastore'
+  | 'rejectOnDrop'
+  | 'clusterNodes'
+  | 'connection'
+  | 'datastore'
+  | 'trackDoneStatus'
+>
+
 export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   model: ModelName
   redis: Redis
   client: ClientContract<Schema>
   id: string
   clientId: string
-  consume?: LiveStreamConsumeOption,
+  consume?: LiveStreamConsumeOption
+  rateLimit?: LiveStreamRateLimitOption
   created?: WhereInput<Schema, ModelName, {}, true>
   updated?: {
     before?: WhereInput<Schema, ModelName, {}, true>
@@ -121,6 +145,7 @@ export class LiveStream<
   private readonly consumerName: string
   private readonly consumerGroupName: string
   private readonly discriminator: EventDiscriminator<Schema, ModelName>
+  private readonly limiter: Bottleneck
 
   constructor(options: LiveStreamOptions<Schema, ModelName>) {
     const hashed = hash({
@@ -136,6 +161,11 @@ export class LiveStream<
     this.consumerName = `zenstack.${options.clientId}`
     this.consumerGroupName = `zenstack.table.public.${this.modelName}.${hashed}`
     this.discriminator = new EventDiscriminator(options)
+    this.limiter = new Bottleneck({
+      ...options.rateLimit,
+      id: this.consumerGroupName,
+      Redis: this.options.redis,
+    })
   }
 
   private async alterTable() {
@@ -202,7 +232,7 @@ export class LiveStream<
           break
         case 'all': {
           events = await this.getErroredEvents()
-          
+
           if (events.length === 0) {
             events = await this.getNewEvents(2000)
           }
@@ -253,8 +283,8 @@ export class LiveStream<
             break
           case 'Decimal':
             payload[fieldName] = field.array
-              ? (payload[fieldName] as string[]).map(value => Decimal(value))
-              : Decimal(payload[fieldName])
+              ? (payload[fieldName] as DebeziumDecimal[]).map(value => debeziumDecimal(value))
+              : debeziumDecimal(payload[fieldName])
             break
           case 'DateTime':
             payload[fieldName] = field.array
@@ -384,7 +414,12 @@ export class ZenStackLive<Schema extends SchemaDef> {
 
   stream<ModelName extends GetModels<Schema>, Opts extends PickStreamFilters<Schema, ModelName>>(
     // streamOptions: Omit<LiveStreamOptions<Schema, ModelName>, 'schema' | 'redis' | 'clientId'>,
-    streamOptions: { model: ModelName; id: string, consume?: LiveStreamConsumeOption } & Opts,
+    streamOptions: {
+      model: ModelName
+      id: string
+      consume?: LiveStreamConsumeOption
+      rateLimit?: LiveStreamRateLimitOption
+    } & Opts,
   ) {
     return new LiveStream<Schema, ModelName, Opts>({
       ...streamOptions,
@@ -423,4 +458,23 @@ export function beforeAfter<Schema extends SchemaDef, ModelName extends GetModel
     before: event.deleted,
     after: null,
   }
+}
+
+function debeziumDecimal({ scale, value }: DebeziumDecimal) {
+  const buf = Buffer.from(value, 'base64')
+
+  let int = BigInt(0)
+
+  for (const byte of buf) {
+    int = (int << 8n) | BigInt(byte)
+  }
+
+  if (buf.length && buf[0]! & 0x80) {
+    const bits = BigInt(buf.length * 8)
+    int -= 1n << bits
+  }
+
+  const scaled = new Decimal(int.toString()).div(new Decimal(10).pow(Number(scale)))
+
+  return scaled
 }
