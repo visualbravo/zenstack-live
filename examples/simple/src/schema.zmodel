@@ -3,21 +3,26 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  string       String?
-  stringArray  String[]
-  boolean      Boolean?
-  booleanArray Boolean[]
-  int          Int?
-  intArray     Int[]
-  float        Float?
-  floatArray   Float[]
-  dateTime     DateTime?
-  bigInt       BigInt?
-  bigIntArray  BigInt[]
-  enum         Role
-  json         Meta?     @json
-  posts        Post[]
+  id            String     @id @default(cuid())
+  string        String?
+  stringArray   String[]
+  boolean       Boolean?
+  booleanArray  Boolean[]
+  int           Int?
+  intArray      Int[]
+  float         Float?
+  floatArray    Float[]
+  dateTime      DateTime?
+  dateTimeArray DateTime[]
+  bigInt        BigInt?
+  bigIntArray   BigInt[]
+  decimal       Decimal?
+  decimalArray  Decimal[]
+  enum          Role
+  // enumArray     Role[]
+  json          Meta?      @json
+  jsonArray     Meta[]     @json
+  posts         Post[]
 }
 
 model Post {
@@ -40,8 +45,16 @@ type Meta {
   intArray     Int[]
   float        Float?
   floatArray   Float[]
-  enum         Role?
-  dateTime     DateTime
+  dateTime      DateTime?
+  dateTimeArray DateTime[]
+  // bigInt        BigInt?
+  // bigIntArray   BigInt[]
+  // decimal       Decimal?
+  // decimalArray  Decimal[]
+  enum         Role
+  // enumArray    Role[]
+  // json          Meta?      @json
+  // jsonArray     Meta[]     @json
 }
 
 enum Role {

@@ -66,6 +66,11 @@ export class SchemaType implements SchemaDef {
                     type: "DateTime",
                     optional: true
                 },
+                dateTimeArray: {
+                    name: "dateTimeArray",
+                    type: "DateTime",
+                    array: true
+                },
                 bigInt: {
                     name: "bigInt",
                     type: "BigInt",
@@ -76,6 +81,16 @@ export class SchemaType implements SchemaDef {
                     type: "BigInt",
                     array: true
                 },
+                decimal: {
+                    name: "decimal",
+                    type: "Decimal",
+                    optional: true
+                },
+                decimalArray: {
+                    name: "decimalArray",
+                    type: "Decimal",
+                    array: true
+                },
                 enum: {
                     name: "enum",
                     type: "Role"
@@ -84,6 +99,12 @@ export class SchemaType implements SchemaDef {
                     name: "json",
                     type: "Meta",
                     optional: true,
+                    attributes: [{ name: "@json" }]
+                },
+                jsonArray: {
+                    name: "jsonArray",
+                    type: "Meta",
+                    array: true,
                     attributes: [{ name: "@json" }]
                 },
                 posts: {
@@ -198,14 +219,19 @@ export class SchemaType implements SchemaDef {
                     type: "Float",
                     array: true
                 },
-                enum: {
-                    name: "enum",
-                    type: "Role",
-                    optional: true
-                },
                 dateTime: {
                     name: "dateTime",
-                    type: "DateTime"
+                    type: "DateTime",
+                    optional: true
+                },
+                dateTimeArray: {
+                    name: "dateTimeArray",
+                    type: "DateTime",
+                    array: true
+                },
+                enum: {
+                    name: "enum",
+                    type: "Role"
                 }
             }
         }

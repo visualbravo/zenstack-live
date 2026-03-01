@@ -1,5 +1,6 @@
 import type { SchemaDef, GetModels } from '@zenstackhq/schema'
 import { z } from 'zod/v4'
+import Decimal from 'decimal.js'
 
 export type QueryCompilerOptions<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   schema: Schema
@@ -41,6 +42,7 @@ type BigIntFilter = CommonFilter<bigint>
 type BooleanFilter = Pick<CommonFilter<boolean>, 'equals' | 'not'>
 
 const operatorNames = new Set(['AND', 'OR', 'NOT'])
+const decimalSchema = z.custom<Decimal>(v => Decimal.isDecimal(v))
 
 export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels<Schema>> {
   private readonly options: QueryCompilerOptions<Schema, ModelName>
@@ -136,6 +138,17 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
             schemaFields[key] = QueryCompiler.compileBigIntArray(value as CommonArrayFilter<bigint>)
           } else {
             schemaFields[key] = QueryCompiler.compileBigInt(value as bigint | BigIntFilter)
+          }
+          break
+        case 'Decimal':
+          if (field.array) {
+            schemaFields[key] = QueryCompiler.compileDecimalArray(
+              value as CommonArrayFilter<Decimal>,
+            )
+          } else {
+            schemaFields[key] = QueryCompiler.compileDecimal(
+              value as Decimal | CommonFilter<Decimal>,
+            )
           }
           break
         case 'DateTime':
@@ -492,6 +505,53 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     return schema
   }
 
+  static compileDecimal(value: Decimal | CommonFilter<Decimal>) {
+    if (Decimal.isDecimal(value)) {
+      return z.union([z.string(), z.number()]).refine(v => Decimal(v).equals(value))
+    }
+
+    if (typeof value.equals !== 'undefined') {
+      return z.union([z.string(), z.number()]).refine(v => Decimal(v).equals(value.equals!))
+    }
+
+    let schema = decimalSchema
+
+    if (typeof value.gt !== 'undefined') {
+      schema = schema.refine(v => v.gt(value.gt!))
+    }
+
+    if (typeof value.gte !== 'undefined') {
+      schema = schema.refine(v => v.gte(value.gte!))
+    }
+
+    if (typeof value.lt !== 'undefined') {
+      schema = schema.refine(v => v.lt(value.lt!))
+    }
+
+    if (typeof value.lte !== 'undefined') {
+      schema = schema.refine(v => v.lte(value.lte!))
+    }
+
+    if (typeof value.in !== 'undefined') {
+      schema = schema.refine(v => value.in?.some(item => item.equals(v)))
+    }
+
+    if (typeof value.notIn !== 'undefined') {
+      schema = schema.refine(v => !value.in?.some(item => item.equals(v)))
+    }
+
+    if (typeof value.not !== 'undefined') {
+      schema = schema.refine(v => !this.compileDecimal(value.not!).safeParse(v).success)
+    }
+
+    if (typeof value.between !== 'undefined') {
+      const [start, end] = value.between
+      schema = schema.refine(v => v.gte(start) && v.lte(end))
+    }
+
+    return schema
+  }
+
   static compileFloat(value: number | IntFilter) {
     if (typeof value === 'number') {
       return z.literal(value)
@@ -625,6 +685,52 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     if (typeof value.has !== 'undefined') {
       schema = schema.refine(v => {
         return v.includes(value.has!)
+      })
+    }
+
+    return schema
+  }
+
+  static compileDecimalArray(value: CommonArrayFilter<Decimal>) {
+    if (value.isEmpty === true) {
+      return decimalSchema.array().length(0)
+    }
+
+    let schema = decimalSchema.array()
+
+    if (typeof value.equals !== 'undefined') {
+      schema = schema.refine(v => {
+        for (let i = 0; i < v!.length; i++) {
+          if (!value.equals![i]?.equals(v[i]!)) {
+            return false
+          }
+        }
+
+        return true
+      })
+    }
+
+    if (typeof value.hasEvery !== 'undefined') {
+      schema = schema.refine(v => {
+        const vSet = new Set(v.map(item => item.toString()))
+        const valueSet = new Set(value.hasEvery!)
+
+        return vSet.isSupersetOf(valueSet)
+      })
+    }
+
+    if (typeof value.hasSome !== 'undefined') {
+      schema = schema.refine(v => {
+        const vSet = new Set(v.map(item => item.toString()))
+        const valueSet = new Set(value.hasSome!)
+
+        return vSet.intersection(valueSet).size > 0
+      })
+    }
+
+    if (typeof value.has !== 'undefined') {
+      schema = schema.refine(v => {
+        return v.map(item => item.toString()).includes(value.has!.toString())
       })
     }
 
