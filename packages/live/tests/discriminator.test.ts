@@ -1945,6 +1945,518 @@ describe('EventDiscriminator', () => {
     //   })
     // })
 
+
+    // describe('Decimal', () => {
+    //   test('equals (positive)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: { equals: Decimal(1) },
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('equals (negative)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: { equals: Decimal(2) },
+    //         },
+    //       }),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('top-level equals shorthand', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: Decimal(1),
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('in (positive)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: { in: [Decimal(0), Decimal(1), Decimal(2)] },
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('in (negative)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: { in: [Decimal(2), Decimal(3)] },
+    //         },
+    //       }),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('notIn (positive)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: { notIn: [Decimal(2), Decimal(3)] },
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('notIn (negative)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: { notIn: [Decimal(1)] },
+    //         },
+    //       }),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('lt (positive)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: { lt: Decimal(2) },
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('lt (negative)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: { lt: Decimal(1) },
+    //         },
+    //       }),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('lte (boundary)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: { lte: Decimal(1) },
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('gt (positive)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: { gt: Decimal(0) },
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('gt (negative)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: { gt: Decimal(1) },
+    //         },
+    //       }),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('gte (boundary)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: { gte: Decimal(1) },
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('not (scalar positive)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: { not: Decimal(2) },
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('not (scalar negative)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: { not: Decimal(1) },
+    //         },
+    //       }),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('not (nested filter)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: {
+    //             not: { gt: Decimal(0) },
+    //           },
+    //         },
+    //       }),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('between (positive)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: {
+    //             between: [Decimal(0), Decimal(2)],
+    //           },
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('between (negative)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimal: {
+    //             between: [Decimal(10), Decimal(20)],
+    //           },
+    //         },
+    //       }),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('zero value (edge case)', async () => {
+    //     await expect(
+    //       matches(
+    //         {
+    //           ...baseEvent,
+    //           created: {
+    //             ...baseEvent.created,
+    //             decimal: Decimal(0),
+    //           },
+    //         },
+    //         {
+    //           created: {
+    //             decimal: { equals: Decimal(0) },
+    //           },
+    //         },
+    //       ),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('negative value (edge case)', async () => {
+    //     await expect(
+    //       matches(
+    //         {
+    //           ...baseEvent,
+    //           created: {
+    //             ...baseEvent.created,
+    //             decimal: Decimal(-10.5),
+    //           },
+    //         },
+    //         {
+    //           created: {
+    //             decimal: { lt: Decimal(0) },
+    //           },
+    //         },
+    //       ),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('high precision (edge case)', async () => {
+    //     await expect(
+    //       matches(
+    //         {
+    //           ...baseEvent,
+    //           created: {
+    //             ...baseEvent.created,
+    //             decimal: Decimal('0.123456789012345678901234567890'),
+    //           },
+    //         },
+    //         {
+    //           created: {
+    //             decimal: { equals: Decimal('0.123456789012345678901234567890') },
+    //           },
+    //         },
+    //       ),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('very large value (edge case)', async () => {
+    //     const huge = Decimal('99999999999999999999999999999999')
+    //     await expect(
+    //       matches(
+    //         {
+    //           ...baseEvent,
+    //           created: {
+    //             ...baseEvent.created,
+    //             decimal: huge,
+    //           },
+    //         },
+    //         {
+    //           created: {
+    //             decimal: { gte: huge },
+    //           },
+    //         },
+    //       ),
+    //     ).resolves.toBe(true)
+    //   })
+    // })
+
+    // describe('Decimal[]', () => {
+    //   const baseEvent = {
+    //     type: 'created',
+    //     created: {
+    //       id: '1',
+    //       string: 'string',
+    //       stringArray: ['stringArray'],
+    //       boolean: true,
+    //       booleanArray: [true],
+    //       dateTime: new Date('2024-01-01T00:00:00.000Z'),
+    //       enum: 'USER',
+    //       bigInt: BigInt(1),
+    //       bigIntArray: [BigInt(1)],
+    //       int: 1,
+    //       intArray: [1],
+    //       float: 1,
+    //       floatArray: [1],
+    //       dateTimeArray: [baseDate],
+    //       decimal: Decimal(1),
+    //       decimalArray: [Decimal('1.1'), Decimal('2.2'), Decimal('3.3')],
+    //       jsonArray: [],
+    //       json: {
+    //         string: 'string',
+    //         stringArray: ['stringArray'],
+    //         boolean: true,
+    //         booleanArray: [true],
+    //         dateTime: baseDate,
+    //         dateTimeArray: [baseDate],
+    //         enum: 'USER',
+    //         int: 1,
+    //         intArray: [1],
+    //         float: 1,
+    //         floatArray: [1],
+    //       },
+    //     },
+    //     date: new Date('2024-01-01T00:00:00.000Z'),
+    //     id: '1',
+    //     transactionId: '1',
+    //   } as const satisfies RecordCreatedEvent<typeof schema, 'User'>
+
+    //   test('has (positive)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimalArray: { has: Decimal('2.2') },
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('has (negative)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimalArray: { has: Decimal('9.9') },
+    //         },
+    //       }),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('hasEvery (positive)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimalArray: { hasEvery: [Decimal('1.1'), Decimal('3.3')] },
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('hasEvery (negative)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimalArray: { hasEvery: [Decimal('1.1'), Decimal('9.9')] },
+    //         },
+    //       }),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('hasSome (positive)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimalArray: { hasSome: [Decimal('0'), Decimal('2.2')] },
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('hasSome (negative)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimalArray: { hasSome: [Decimal('9.9'), Decimal('10.1')] },
+    //         },
+    //       }),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('isEmpty (false)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimalArray: { isEmpty: false },
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('isEmpty (true)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimalArray: { isEmpty: true },
+    //         },
+    //       }),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('equals (exact match)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimalArray: { equals: [Decimal('1.1'), Decimal('2.2'), Decimal('3.3')] },
+    //         },
+    //       }),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('equals (order mismatch)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimalArray: { equals: [Decimal('3.3'), Decimal('2.2'), Decimal('1.1')] },
+    //         },
+    //       }),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('equals (subset)', async () => {
+    //     await expect(
+    //       matches(baseEvent, {
+    //         created: {
+    //           decimalArray: { equals: [Decimal('1.1'), Decimal('2.2')] },
+    //         },
+    //       }),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('empty array equals (edge case)', async () => {
+    //     await expect(
+    //       matches(
+    //         {
+    //           ...baseEvent,
+    //           created: {
+    //             ...baseEvent.created,
+    //             decimalArray: [],
+    //           },
+    //         },
+    //         {
+    //           created: {
+    //             decimalArray: { equals: [] },
+    //           },
+    //         },
+    //       ),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('empty array isEmpty true (edge case)', async () => {
+    //     await expect(
+    //       matches(
+    //         {
+    //           ...baseEvent,
+    //           created: {
+    //             ...baseEvent.created,
+    //             decimalArray: [],
+    //           },
+    //         },
+    //         {
+    //           created: {
+    //             decimalArray: { isEmpty: true },
+    //           },
+    //         },
+    //       ),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('has on empty array (edge case)', async () => {
+    //     await expect(
+    //       matches(
+    //         {
+    //           ...baseEvent,
+    //           created: {
+    //             ...baseEvent.created,
+    //             decimalArray: [],
+    //           },
+    //         },
+    //         {
+    //           created: {
+    //             decimalArray: { has: Decimal('1.1') },
+    //           },
+    //         },
+    //       ),
+    //     ).resolves.toBe(false)
+    //   })
+
+    //   test('negative and zero values (edge case)', async () => {
+    //     await expect(
+    //       matches(
+    //         {
+    //           ...baseEvent,
+    //           created: {
+    //             ...baseEvent.created,
+    //             decimalArray: [Decimal('-1.5'), Decimal('0'), Decimal('1.5')],
+    //           },
+    //         },
+    //         {
+    //           created: {
+    //             decimalArray: { hasEvery: [Decimal('-1.5'), Decimal('0')] },
+    //           },
+    //         },
+    //       ),
+    //     ).resolves.toBe(true)
+    //   })
+
+    //   test('high precision values (edge case)', async () => {
+    //     await expect(
+    //       matches(
+    //         {
+    //           ...baseEvent,
+    //           created: {
+    //             ...baseEvent.created,
+    //             decimalArray: [Decimal('0.000000000000001'), Decimal('0.000000000000002')],
+    //           },
+    //         },
+    //         {
+    //           created: {
+    //             decimalArray: { hasSome: [Decimal('0.000000000000002')] },
+    //           },
+    //         },
+    //       ),
+    //     ).resolves.toBe(true)
+    //   })
+    // })
+
     describe('BigInt', () => {
       const baseEvent = {
         type: 'created',
