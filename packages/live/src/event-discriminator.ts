@@ -73,6 +73,6 @@ export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetM
       }
     }
 
-    return false
+    throw new Error('All possible where clause combinations exhausted. This error should never occur.')
   }
 }

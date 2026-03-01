@@ -23,12 +23,12 @@ export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetMod
   client: ClientContract<Schema>
   id: string
   clientId: string
-  created?: WhereInput<Schema, ModelName, true>
+  created?: WhereInput<Schema, ModelName, {}, true>
   updated?: {
-    before?: WhereInput<Schema, ModelName, true>
-    after?: WhereInput<Schema, ModelName, true>
+    before?: WhereInput<Schema, ModelName, {}, true>
+    after?: WhereInput<Schema, ModelName, {}, true>
   }
-  deleted?: WhereInput<Schema, ModelName, true>
+  deleted?: WhereInput<Schema, ModelName, {}, true>
 }
 
 export type RecordCreatedEvent<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
@@ -85,12 +85,12 @@ export type RequestedEvents<Schema extends SchemaDef, ModelName extends GetModel
   : ExtractRequestedEvents<Schema, ModelName, Opts>
 
 export type PickStreamFilters<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
-  created?: WhereInput<Schema, ModelName, true>
+  created?: WhereInput<Schema, ModelName, {}, true>
   updated?: {
-    before?: WhereInput<Schema, ModelName, true>
-    after?: WhereInput<Schema, ModelName, true>
+    before?: WhereInput<Schema, ModelName, {}, true>
+    after?: WhereInput<Schema, ModelName, {}, true>
   }
-  deleted?: WhereInput<Schema, ModelName, true>
+  deleted?: WhereInput<Schema, ModelName, {}, true>
 }
 
 export type ZenStackLiveOptions<Schema extends SchemaDef> = {
