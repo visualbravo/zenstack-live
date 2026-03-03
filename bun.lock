@@ -20,6 +20,7 @@
       "dependencies": {
         "@visualbravo/zenstack-live": "workspace:*",
         "@zenstackhq/orm": "catalog:",
+        "bottleneck": "^2.19.5",
         "kysely": "catalog:",
         "pg": "catalog:",
       },
@@ -37,7 +38,6 @@
       "name": "@visualbravo/zenstack-live",
       "version": "0.0.0",
       "dependencies": {
-        "bottleneck": "^2.19.5",
         "decimal.js": "catalog:",
         "ioredis": "catalog:",
         "lossless-json": "^4.0.1",

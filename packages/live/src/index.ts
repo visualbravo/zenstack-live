@@ -6,7 +6,6 @@ import { parse } from 'lossless-json'
 import { Redis } from 'ioredis'
 import Decimal from 'decimal.js'
 import hash from 'stable-hash'
-import Bottleneck from 'bottleneck'
 import { Buffer } from 'node:buffer'
 import type {
   XReadGroupResponse,
@@ -27,21 +26,6 @@ const operationMap: Record<DebeziumShortEventType, DatabaseEventType> = {
 export type DatabaseEventType = 'created' | 'updated' | 'deleted'
 export type LiveStreamConsumeOption = 'new' | 'errored' | 'all'
 
-export type LiveStreamLimiterOption = StrictOmit<
-  Bottleneck.ConstructorOptions,
-  | 'id'
-  | 'Redis'
-  | 'Promise'
-  | 'clientOptions'
-  | 'clearDatastore'
-  | 'rejectOnDrop'
-  | 'clusterNodes'
-  | 'connection'
-  | 'datastore'
-  | 'trackDoneStatus'
-  | 'timeout'
->
-
 export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   model: ModelName
   redis: Redis
@@ -49,7 +33,6 @@ export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetMod
   id: string
   clientId: string
   consume?: LiveStreamConsumeOption
-  limiter?: LiveStreamLimiterOption
   timeout?: number
   created?: WhereInput<Schema, ModelName, {}, true>
   updated?: {
@@ -146,16 +129,17 @@ export class LiveStream<
   private readonly consumerGroupName: string
   private readonly discriminator: EventDiscriminator<Schema, ModelName>
   private readonly timeout: number
-  private readonly limiter: Bottleneck
+
+  readonly id: string
 
   constructor(options: LiveStreamOptions<Schema, ModelName>) {
     const hashed = hash({
       id: options.id,
+      model: options.model,
       created: options.created,
       updated: options.updated,
       deleted: options.deleted,
     })
-
 
     this.options = options
     this.timeout = options.timeout ?? 15
@@ -164,18 +148,7 @@ export class LiveStream<
     this.consumerName = `zenstack.${options.clientId}`
     this.consumerGroupName = `zenstack.table.public.${this.modelName}.${hashed}`
     this.discriminator = new EventDiscriminator(options)
-    this.limiter = new Bottleneck({
-      ...options.limiter,
-      id: this.consumerGroupName,
-      Redis,
-      datastore: 'ioredis',
-      timeout: options.timeout,
-
-      clientOptions: {
-        host: options.redis.options.host,
-        port: options.redis.options.port,
-      },
-    })
+    this.id = hashed
   }
 
   private async alterTable() {
@@ -260,7 +233,7 @@ export class LiveStream<
           continue
         }
 
-        yield await this.limiter.schedule(() => Promise.resolve(event as RequestedEvents<Schema, ModelName, Opts>))
+        yield event as RequestedEvents<Schema, ModelName, Opts>
 
         await this.acknowledgeEvent(event.id)
       }
@@ -427,7 +400,6 @@ export class ZenStackLive<Schema extends SchemaDef> {
       model: ModelName
       id: string
       consume?: LiveStreamConsumeOption
-      limiter?: LiveStreamLimiterOption
       timeout?: number
     } & Opts,
   ) {

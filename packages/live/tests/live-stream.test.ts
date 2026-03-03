@@ -11,7 +11,7 @@ let client: ClientContract<typeof schema>
 let live: ZenStackLive<typeof schema>
 let redis: Redis
 
-beforeAll(async () => {
+beforeAll(() => {
   client = new ZenStackClient(schema, {
     dialect: new PostgresDialect({
       pool: new Pool({
@@ -24,19 +24,11 @@ beforeAll(async () => {
     client,
 
     redis: {
-      url: process.env['REDIS_URL'] as string,
+      url: process.env['REDIS_URL']!,
     },
   })
 
   redis = new Redis(process.env['REDIS_URL']!)
-
-  // await client.$queryRawUnsafe('DROP SCHEMA public CASCADE; CREATE SCHEMA public;')
-  // await client.$pushSchema()
-  await Promise.all([
-    client.$queryRawUnsafe('ALTER TABLE "User" REPLICA IDENTITY FULL'),
-    client.$queryRawUnsafe('ALTER TABLE "Post" REPLICA IDENTITY FULL'),
-    // client.$queryRawUnsafe('ALTER TABLE "Profile" REPLICA IDENTITY FULL'),
-  ])
 })
 
 beforeEach(async () => {
@@ -283,59 +275,4 @@ describe('ZenStackLive', () => {
       expect(iterations).toHaveLength(5)
     }, 10000)
   })
-
-  test('limiter', async () => {
-    const userStream = live.stream({
-      model: 'User',
-      id: 'test-limiter',
-      consume: 'all',
-
-      limiter: {
-        minTime: 1000,
-      },
-
-      created: {},
-      updated: {},
-      deleted: {},
-    })
-
-    const user = await client.user.create({
-      data: {
-        enum: 'USER',
-      },
-    })
-
-    await client.user.update({
-      data: {
-        enum: 'ADMIN',
-      },
-
-      where: {
-        id: user.id,
-      },
-    })
-
-    await client.user.delete({
-      where: {
-        id: user.id,
-      },
-    })
-
-    const iterations: number[] = []
-
-    for await (const event of userStream) {
-      iterations.push(Date.now())
-
-      if (event.type === 'deleted') {
-        break
-      }
-    }
-
-    for (let i = 1; i < iterations.length; i++) {
-      const delta = iterations[i]! - iterations[i - 1]!
-      expect(delta).closeTo(1000, 100)
-    }
-
-    expect(iterations).toHaveLength(3)
-  }, 10000)
 })

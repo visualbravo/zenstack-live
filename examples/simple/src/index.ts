@@ -1,8 +1,9 @@
 import { schema } from './schema'
-import { ZenStackLive, beforeAfter } from '@visualbravo/zenstack-live'
+import { ZenStackLive } from '@visualbravo/zenstack-live'
 import { ZenStackClient } from '@zenstackhq/orm'
 import { PostgresDialect } from 'kysely'
 import { Pool } from 'pg'
+import Bottleneck from 'bottleneck'
 
 const client = new ZenStackClient(schema, {
   dialect: new PostgresDialect({
@@ -16,7 +17,7 @@ const live = new ZenStackLive({
   client,
 
   redis: {
-    url: process.env['REDIS_URL'] as string,
+    url: process.env['REDIS_URL']!,
   },
 })
 
@@ -28,25 +29,10 @@ const userStream = live.stream({
   deleted: {},
 })
 
-const postStream = live.stream({
-  model: 'Post',
-  id: 'all-post-changes',
-  created: {},
-  updated: {},
-  deleted: {},
-})
-
 setInterval(async () => {
   const user = await client.user.create({
     data: {
-      string: 'hello',
-
-      posts: {
-        create: {
-          title: 'Cool title',
-          content: 'Hello world',
-        },
-      },
+      enum: 'USER',
     },
   })
 
@@ -67,26 +53,17 @@ setInterval(async () => {
   })
 }, 5000)
 
+const userStreamLimiter = new Bottleneck({
+  minTime: 2000,
+  id: userStream.id,
+})
+
 ;(async () => {
   for await (const event of userStream) {
-    const { before, after } = beforeAfter(event)
+    await userStreamLimiter.schedule({ id: event.id }, () => {
+      console.log(event.type, event.id)
 
-    console.log({
-      event,
-      before,
-      after,
-    })
-  }
-})()
-
-;(async () => {
-  for await (const event of postStream) {
-    const { before, after } = beforeAfter(event)
-
-    console.log({
-      event,
-      before,
-      after,
+      return Promise.resolve(true)
     })
   }
 })()

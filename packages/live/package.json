@@ -73,7 +73,6 @@
     "ioredis": "catalog:",
     "lossless-json": "^4.0.1",
     "stable-hash": "^0.0.6",
-    "bottleneck": "^2.19.5",
     "zod": "catalog:"
   },
   "devDependencies": {

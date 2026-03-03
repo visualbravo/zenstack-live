@@ -17,7 +17,8 @@
     "@visualbravo/zenstack-live": "workspace:*",
     "@zenstackhq/orm": "catalog:",
     "pg": "catalog:",
-    "kysely": "catalog:"
+    "kysely": "catalog:",
+    "bottleneck": "^2.19.5"
   },
   "devDependencies": {
     "@types/pg": "catalog:",
