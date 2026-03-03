@@ -49,6 +49,7 @@ export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetMod
   clientId: string
   consume?: LiveStreamConsumeOption
   rateLimit?: LiveStreamRateLimitOption
+  timeout?: number
   created?: WhereInput<Schema, ModelName, {}, true>
   updated?: {
     before?: WhereInput<Schema, ModelName, {}, true>
@@ -137,14 +138,13 @@ export class LiveStream<
   ModelName extends GetModels<Schema>,
   Opts = unknown,
 > implements AsyncIterable<RequestedEvents<Schema, ModelName, Opts>> {
-  private static readonly MIN_IDLE_TIME = 30_000
-
   private readonly options: LiveStreamOptions<Schema, ModelName>
   private readonly modelName: ModelName
   private readonly streamName: string
   private readonly consumerName: string
   private readonly consumerGroupName: string
   private readonly discriminator: EventDiscriminator<Schema, ModelName>
+  private readonly timeout: number
   private readonly limiter: Bottleneck
 
   constructor(options: LiveStreamOptions<Schema, ModelName>) {
@@ -156,6 +156,7 @@ export class LiveStream<
     })
 
     this.options = options
+    this.timeout = options.timeout ?? 15
     this.modelName = options.model
     this.streamName = `zenstack.table.public.${this.modelName}`
     this.consumerName = `zenstack.${options.clientId}`
@@ -251,6 +252,7 @@ export class LiveStream<
         }
 
         yield event as unknown as RequestedEvents<Schema, ModelName, Opts>
+        // yield await this.limiter.schedule(() => Promise.resolve(event as RequestedEvents<Schema, ModelName, Opts>))
 
         await this.acknowledgeEvent(event.id)
       }
@@ -391,7 +393,7 @@ export class LiveStream<
       this.streamName,
       this.consumerGroupName,
       this.consumerName,
-      LiveStream.MIN_IDLE_TIME,
+      this.timeout,
       '0-0',
       'COUNT',
       5,
@@ -413,12 +415,12 @@ export class ZenStackLive<Schema extends SchemaDef> {
   }
 
   stream<ModelName extends GetModels<Schema>, Opts extends PickStreamFilters<Schema, ModelName>>(
-    // streamOptions: Omit<LiveStreamOptions<Schema, ModelName>, 'schema' | 'redis' | 'clientId'>,
     streamOptions: {
       model: ModelName
       id: string
       consume?: LiveStreamConsumeOption
       rateLimit?: LiveStreamRateLimitOption
+      timeout?: number
     } & Opts,
   ) {
     return new LiveStream<Schema, ModelName, Opts>({
