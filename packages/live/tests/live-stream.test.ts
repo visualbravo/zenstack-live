@@ -112,7 +112,7 @@ describe('ZenStackLive', () => {
       }
 
       expect(iterations).toHaveLength(3)
-    }, 5000)
+    }, 10000)
 
     test('errored', async () => {
       const userStream = live.stream({
@@ -216,7 +216,7 @@ describe('ZenStackLive', () => {
           iterations.push(result.value.type)
         }
       }
-    }, 8000)
+    }, 10000)
 
     test('all', async () => {
       const userStream = live.stream({
@@ -281,6 +281,61 @@ describe('ZenStackLive', () => {
       }
 
       expect(iterations).toHaveLength(5)
-    }, 5000)
+    }, 10000)
   })
+
+  test('limiter', async () => {
+    const userStream = live.stream({
+      model: 'User',
+      id: 'test-limiter',
+      consume: 'all',
+
+      limiter: {
+        minTime: 1000,
+      },
+
+      created: {},
+      updated: {},
+      deleted: {},
+    })
+
+    const user = await client.user.create({
+      data: {
+        enum: 'USER',
+      },
+    })
+
+    await client.user.update({
+      data: {
+        enum: 'ADMIN',
+      },
+
+      where: {
+        id: user.id,
+      },
+    })
+
+    await client.user.delete({
+      where: {
+        id: user.id,
+      },
+    })
+
+    const iterations: number[] = []
+
+    for await (const event of userStream) {
+      iterations.push(Date.now())
+
+      if (event.type === 'deleted') {
+        break
+      }
+    }
+
+    for (let i = 1; i < iterations.length; i++) {
+      const delta = iterations[i]! - iterations[i - 1]!
+      expect(delta).closeTo(1000, 100)
+    }
+
+    expect(iterations).toHaveLength(3)
+  }, 10000)
 })

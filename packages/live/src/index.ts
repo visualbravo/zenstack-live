@@ -27,7 +27,7 @@ const operationMap: Record<DebeziumShortEventType, DatabaseEventType> = {
 export type DatabaseEventType = 'created' | 'updated' | 'deleted'
 export type LiveStreamConsumeOption = 'new' | 'errored' | 'all'
 
-export type LiveStreamRateLimitOption = StrictOmit<
+export type LiveStreamLimiterOption = StrictOmit<
   Bottleneck.ConstructorOptions,
   | 'id'
   | 'Redis'
@@ -39,6 +39,7 @@ export type LiveStreamRateLimitOption = StrictOmit<
   | 'connection'
   | 'datastore'
   | 'trackDoneStatus'
+  | 'timeout'
 >
 
 export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
@@ -48,7 +49,7 @@ export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetMod
   id: string
   clientId: string
   consume?: LiveStreamConsumeOption
-  rateLimit?: LiveStreamRateLimitOption
+  limiter?: LiveStreamLimiterOption
   timeout?: number
   created?: WhereInput<Schema, ModelName, {}, true>
   updated?: {
@@ -155,6 +156,7 @@ export class LiveStream<
       deleted: options.deleted,
     })
 
+
     this.options = options
     this.timeout = options.timeout ?? 15
     this.modelName = options.model
@@ -163,9 +165,16 @@ export class LiveStream<
     this.consumerGroupName = `zenstack.table.public.${this.modelName}.${hashed}`
     this.discriminator = new EventDiscriminator(options)
     this.limiter = new Bottleneck({
-      ...options.rateLimit,
+      ...options.limiter,
       id: this.consumerGroupName,
-      Redis: this.options.redis,
+      Redis,
+      datastore: 'ioredis',
+      timeout: options.timeout,
+
+      clientOptions: {
+        host: options.redis.options.host,
+        port: options.redis.options.port,
+      },
     })
   }
 
@@ -251,8 +260,7 @@ export class LiveStream<
           continue
         }
 
-        yield event as unknown as RequestedEvents<Schema, ModelName, Opts>
-        // yield await this.limiter.schedule(() => Promise.resolve(event as RequestedEvents<Schema, ModelName, Opts>))
+        yield await this.limiter.schedule(() => Promise.resolve(event as RequestedEvents<Schema, ModelName, Opts>))
 
         await this.acknowledgeEvent(event.id)
       }
@@ -419,7 +427,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
       model: ModelName
       id: string
       consume?: LiveStreamConsumeOption
-      rateLimit?: LiveStreamRateLimitOption
+      limiter?: LiveStreamLimiterOption
       timeout?: number
     } & Opts,
   ) {
