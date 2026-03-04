@@ -15,6 +15,7 @@ jobs:
           POSTGRES_HOST: postgres
           POSTGRES_PORT: 5432
           POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/postgres
+          POSTGRES_INITDB_ARGS: "--wal-level=logical"
         options: >-
           --health-cmd pg_isready
           --health-interval 5s
@@ -46,6 +47,11 @@ jobs:
           DEBEZIUM_SOURCE_OFFSET_STORAGE: io.debezium.storage.redis.offset.RedisOffsetBackingStore
           DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY: zenstack.metadata.offsets
           SCHEMA_INCLUDE_LIST: public
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/q/health"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
 
       redis:
         image: redis:6.2
