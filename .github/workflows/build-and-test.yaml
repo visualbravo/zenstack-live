@@ -15,8 +15,6 @@ jobs:
           POSTGRES_HOST: postgres
           POSTGRES_PORT: 5432
           POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/postgres
-        volumes:
-          - /home/runner/work/zenstack-live/zenstack-live/.github/workflows/postgres/postgresql.conf:/etc/postgresql.conf
         options: >-
           --health-cmd pg_isready
           --health-interval 5s

@@ -96,7 +96,6 @@ beforeAll(async () => {
   await Promise.all([
     client.$queryRawUnsafe('ALTER TABLE "User" REPLICA IDENTITY FULL'),
     client.$queryRawUnsafe('ALTER TABLE "Post" REPLICA IDENTITY FULL'),
-    // client.$queryRawUnsafe('ALTER TABLE "Profile" REPLICA IDENTITY FULL'),
   ])
 })
 
