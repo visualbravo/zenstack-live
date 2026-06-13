@@ -21,36 +21,36 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-      debezium:
-        image: debezium/server:3.0.0.Final
-        env:
-          DATABASE_USER: default
-          DEBEZIUM_FORMAT_SCHEMAS_ENABLE: false
-          DEBEZIUM_SINK_REDIS_ADDRESS: redis:6379
-          DEBEZIUM_SINK_REDIS_PASSWORD:
-          DEBEZIUM_SINK_REDIS_SSL_ENABLED: false
-          DEBEZIUM_SINK_REDIS_WAIT_RETRY_ENABLED: true
-          DEBEZIUM_SINK_TYPE: redis
-          DEBEZIUM_SOURCE_CONNECTOR_CLASS: io.debezium.connector.postgresql.PostgresConnector
-          DEBEZIUM_SOURCE_DATABASE_DBNAME: postgres
-          DEBEZIUM_SOURCE_DATABASE_HOSTNAME: postgres
-          DEBEZIUM_SOURCE_DATABASE_PASSWORD: postgres
-          DEBEZIUM_SOURCE_DATABASE_PORT: 5432
-          DEBEZIUM_SOURCE_DATABASE_SERVER_NAME: zenstack
-          DEBEZIUM_SOURCE_DATABASE_USER: postgres
-          DEBEZIUM_SOURCE_PLUGIN_NAME: pgoutput
-          DEBEZIUM_SOURCE_SCHEMA_WHITELIST: public
-          DEBEZIUM_SOURCE_SNAPSHOT_MODE: no_data
-          DEBEZIUM_SOURCE_TOPIC_PREFIX: zenstack.table
-          DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL: io.debezium.storage.redis.history.RedisSchemaHistory
-          DEBEZIUM_SOURCE_OFFSET_STORAGE: io.debezium.storage.redis.offset.RedisOffsetBackingStore
-          DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY: zenstack.metadata.offsets
-          SCHEMA_INCLUDE_LIST: public
-        options: >-
-          --health-cmd "curl -f http://localhost:8080/q/health"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
+      # debezium:
+      #   image: debezium/server:3.0.0.Final
+      #   env:
+      #     DATABASE_USER: default
+      #     DEBEZIUM_FORMAT_SCHEMAS_ENABLE: false
+      #     DEBEZIUM_SINK_REDIS_ADDRESS: redis:6379
+      #     DEBEZIUM_SINK_REDIS_PASSWORD:
+      #     DEBEZIUM_SINK_REDIS_SSL_ENABLED: false
+      #     DEBEZIUM_SINK_REDIS_WAIT_RETRY_ENABLED: true
+      #     DEBEZIUM_SINK_TYPE: redis
+      #     DEBEZIUM_SOURCE_CONNECTOR_CLASS: io.debezium.connector.postgresql.PostgresConnector
+      #     DEBEZIUM_SOURCE_DATABASE_DBNAME: postgres
+      #     DEBEZIUM_SOURCE_DATABASE_HOSTNAME: postgres
+      #     DEBEZIUM_SOURCE_DATABASE_PASSWORD: postgres
+      #     DEBEZIUM_SOURCE_DATABASE_PORT: 5432
+      #     DEBEZIUM_SOURCE_DATABASE_SERVER_NAME: zenstack
+      #     DEBEZIUM_SOURCE_DATABASE_USER: postgres
+      #     DEBEZIUM_SOURCE_PLUGIN_NAME: pgoutput
+      #     DEBEZIUM_SOURCE_SCHEMA_WHITELIST: public
+      #     DEBEZIUM_SOURCE_SNAPSHOT_MODE: no_data
+      #     DEBEZIUM_SOURCE_TOPIC_PREFIX: zenstack.table
+      #     DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL: io.debezium.storage.redis.history.RedisSchemaHistory
+      #     DEBEZIUM_SOURCE_OFFSET_STORAGE: io.debezium.storage.redis.offset.RedisOffsetBackingStore
+      #     DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY: zenstack.metadata.offsets
+      #     SCHEMA_INCLUDE_LIST: public
+      #   options: >-
+      #     --health-cmd "curl -f http://localhost:8080/q/health"
+      #     --health-interval 5s
+      #     --health-timeout 5s
+      #     --health-retries 5
 
       redis:
         image: redis:6.2
@@ -77,6 +77,36 @@ jobs:
 
       - name: Build
         run: bun run build
+
+        # We start Debezium manually here so it can successfully resolve 'redis' and 'postgres'
+      - name: Start Debezium Server
+        run: |
+          docker run -d --name debezium-server \
+            --network=${{ job.container.network }} \
+            -e DEBEZIUM_SINK_TYPE=redis \
+            -e DEBEZIUM_SINK_REDIS_ADDRESS=redis:6379 \
+            -e DEBEZIUM_FORMAT_SCHEMAS_ENABLE=false \
+            -e DEBEZIUM_SOURCE_CONNECTOR_CLASS=io.debezium.connector.postgresql.PostgresConnector \
+            -e DEBEZIUM_SOURCE_DATABASE_HOSTNAME=postgres \
+            -e DEBEZIUM_SOURCE_DATABASE_PORT=5432 \
+            -e DEBEZIUM_SOURCE_DATABASE_USER=postgres \
+            -e DEBEZIUM_SOURCE_DATABASE_PASSWORD=postgres \
+            -e DEBEZIUM_SOURCE_DATABASE_DBNAME=postgres \
+            -e DEBEZIUM_SOURCE_DATABASE_SERVER_NAME=zenstack \
+            -e DEBEZIUM_SOURCE_TOPIC_PREFIX=zenstack.table \
+            -e DEBEZIUM_SOURCE_PLUGIN_NAME=pgoutput \
+            -e DEBEZIUM_SOURCE_SCHEMA_WHITELIST=public \
+            -e DEBEZIUM_SOURCE_SNAPSHOT_MODE=no_data \
+            -e DEBEZIUM_SOURCE_OFFSET_STORAGE=io.debezium.storage.redis.offset.RedisOffsetBackingStore \
+            -e DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_ADDRESS=redis:6379 \
+            -e DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY=zenstack.metadata.offsets \
+            -e DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL=io.debezium.storage.redis.history.RedisSchemaHistory \
+            -e DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS_ADDRESS=redis:6379 \
+            -e DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS_KEY=zenstack.metadata.schemahistory \
+            debezium/server:3.0.0.Final
+
+      - name: Wait for Debezium initialization
+        run: sleep 3
 
       - name: Test
         env:
