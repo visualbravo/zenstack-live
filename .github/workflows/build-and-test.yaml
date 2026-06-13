@@ -20,6 +20,8 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
+          --command postgres
+          -c wal_level=logical
 
       debezium:
         image: debezium/server:3.0.0.Final
@@ -77,6 +79,14 @@ jobs:
 
       - name: Build
         run: bun run build
+
+      - name: Wait for Postgres
+        run: |
+          until pg_isready -h localhost -U postgres; do
+            sleep 1
+          done
+        env:
+          PGPASSWORD: postgres
 
       - name: Test
         env:

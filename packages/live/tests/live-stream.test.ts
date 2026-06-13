@@ -11,7 +11,7 @@ let client: ClientContract<typeof schema>
 let live: ZenStackLive<typeof schema>
 let redis: Redis
 
-beforeAll(async () => {
+beforeAll(() => {
   client = new ZenStackClient(schema, {
     dialect: new PostgresDialect({
       pool: new Pool({
@@ -29,9 +29,6 @@ beforeAll(async () => {
   })
 
   redis = new Redis(process.env['REDIS_URL']!)
-
-  await client.$queryRawUnsafe("ALTER SYSTEM SET wal_level = 'logical';")
-  await client.$queryRawUnsafe("SELECT pg_reload_conf();")
 })
 
 beforeEach(async () => {
