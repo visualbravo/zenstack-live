@@ -78,14 +78,6 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Wait for Postgres
-        run: |
-          until pg_isready -h localhost -U postgres; do
-            sleep 1
-          done
-        env:
-          PGPASSWORD: postgres
-
       - name: Test
         env:
           POSTGRES_USER: postgres
