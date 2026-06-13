@@ -46,11 +46,11 @@ jobs:
           DEBEZIUM_SOURCE_OFFSET_STORAGE: io.debezium.storage.redis.offset.RedisOffsetBackingStore
           DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY: zenstack.metadata.offsets
           SCHEMA_INCLUDE_LIST: public
-        # options: >-
-        #   --health-cmd "curl -f http://localhost:8080/q/health"
-        #   --health-interval 5s
-        #   --health-timeout 5s
-        #   --health-retries 5
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/q/health"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
 
       redis:
         image: redis:6.2
