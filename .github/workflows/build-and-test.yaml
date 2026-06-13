@@ -20,8 +20,6 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
-          --command postgres
-          -c wal_level=logical
 
       debezium:
         image: debezium/server:3.0.0.Final
