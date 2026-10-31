@@ -18,43 +18,43 @@
   "exports": {
     ".": {
       "@zenstack-live/source": "./src/index.ts",
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
     },
     "./event-discriminator": {
       "@zenstack-live/source": "./src/event-discriminator.ts",
-      "require": "./dist/event-discriminator.cjs",
-      "import": "./dist/event-discriminator.mjs"
+      "import": "./dist/event-discriminator.mjs",
+      "require": "./dist/event-discriminator.cjs"
     },
     "./internal": {
       "@zenstack-live/source": "./src/internal.ts",
-      "require": "./dist/internal.cjs",
-      "import": "./dist/internal.mjs"
+      "import": "./dist/internal.mjs",
+      "require": "./dist/internal.cjs"
     },
     "./query-compiler": {
       "@zenstack-live/source": "./src/query-compiler.ts",
-      "require": "./dist/query-compiler.cjs",
-      "import": "./dist/query-compiler.mjs"
+      "import": "./dist/query-compiler.mjs",
+      "require": "./dist/query-compiler.cjs"
     },
     "./package.json": "./package.json"
   },
   "publishConfig": {
     "exports": {
       ".": {
-        "require": "./dist/index.cjs",
-        "import": "./dist/index.mjs"
+        "import": "./dist/index.mjs",
+        "require": "./dist/index.cjs"
       },
       "./event-discriminator": {
-        "require": "./dist/event-discriminator.cjs",
-        "import": "./dist/event-discriminator.mjs"
+        "import": "./dist/event-discriminator.mjs",
+        "require": "./dist/event-discriminator.cjs"
       },
       "./internal": {
-        "require": "./dist/internal.cjs",
-        "import": "./dist/internal.mjs"
+        "import": "./dist/internal.mjs",
+        "require": "./dist/internal.cjs"
       },
       "./query-compiler": {
-        "require": "./dist/query-compiler.cjs",
-        "import": "./dist/query-compiler.mjs"
+        "import": "./dist/query-compiler.mjs",
+        "require": "./dist/query-compiler.cjs"
       },
       "./package.json": "./package.json"
     }
