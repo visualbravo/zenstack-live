@@ -26,6 +26,15 @@ const operationMap: Record<DebeziumShortEventType, DatabaseEventType> = {
 export type DatabaseEventType = 'created' | 'updated' | 'deleted'
 export type LiveStreamConsumeOption = 'new' | 'errored' | 'all'
 
+export type LiveStreamWhen<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
+  created?: WhereInput<Schema, ModelName, {}, true>
+  updated?: {
+    before?: WhereInput<Schema, ModelName, {}, true>
+    after?: WhereInput<Schema, ModelName, {}, true>
+  }
+  deleted?: WhereInput<Schema, ModelName, {}, true>
+}
+
 export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
   model: ModelName
   redis: Redis
@@ -34,12 +43,7 @@ export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetMod
   clientId: string
   consume?: LiveStreamConsumeOption
   timeout?: number
-  created?: WhereInput<Schema, ModelName, {}, true>
-  updated?: {
-    before?: WhereInput<Schema, ModelName, {}, true>
-    after?: WhereInput<Schema, ModelName, {}, true>
-  }
-  deleted?: WhereInput<Schema, ModelName, {}, true>
+  when?: LiveStreamWhen<Schema, ModelName>
 }
 
 export type RecordCreatedEvent<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
@@ -80,29 +84,9 @@ export type RecordResultMap<Schema extends SchemaDef, ModelName extends GetModel
   deleted: RecordDeletedEvent<Schema, ModelName>
 }
 
-export type ExtractRequestedEvents<
-  Schema extends SchemaDef,
-  ModelName extends GetModels<Schema>,
-  Opts,
-> =
-  | (Opts extends { created: any } ? RecordCreatedEvent<Schema, ModelName> : never)
-  | (Opts extends { updated: any } ? RecordUpdatedEvent<Schema, ModelName> : never)
-  | (Opts extends { deleted: any } ? RecordDeletedEvent<Schema, ModelName> : never)
-
-export type RequestedEvents<Schema extends SchemaDef, ModelName extends GetModels<Schema>, Opts> = [
-  ExtractRequestedEvents<Schema, ModelName, Opts>,
-] extends [never]
-  ? RecordEvent<Schema, ModelName>
-  : ExtractRequestedEvents<Schema, ModelName, Opts>
-
-export type PickStreamFilters<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
-  created?: WhereInput<Schema, ModelName, {}, true>
-  updated?: {
-    before?: WhereInput<Schema, ModelName, {}, true>
-    after?: WhereInput<Schema, ModelName, {}, true>
-  }
-  deleted?: WhereInput<Schema, ModelName, {}, true>
-}
+export type RequestedEventType<When> = {} extends When
+  ? DatabaseEventType
+  : keyof When & DatabaseEventType
 
 export type ZenStackLiveOptions<Schema extends SchemaDef> = {
   client: ClientContract<Schema>
@@ -120,8 +104,8 @@ export type ZenStackLiveOptions<Schema extends SchemaDef> = {
 export class LiveStream<
   Schema extends SchemaDef,
   ModelName extends GetModels<Schema>,
-  Opts = unknown,
-> implements AsyncIterable<RequestedEvents<Schema, ModelName, Opts>> {
+  EventType extends DatabaseEventType = DatabaseEventType,
+> implements AsyncIterable<RecordResultMap<Schema, ModelName>[EventType]> {
   private readonly options: LiveStreamOptions<Schema, ModelName>
   private readonly modelName: ModelName
   private readonly streamName: string
@@ -130,15 +114,15 @@ export class LiveStream<
   private readonly discriminator: EventDiscriminator<Schema, ModelName>
   private readonly timeout: number
 
-  readonly id: string
+  readonly hash: string
 
   constructor(options: LiveStreamOptions<Schema, ModelName>) {
     const hashed = hash({
       id: options.id,
       model: options.model,
-      created: options.created,
-      updated: options.updated,
-      deleted: options.deleted,
+      created: options.when?.created,
+      updated: options.when?.updated,
+      deleted: options.when?.deleted,
     })
 
     this.options = options
@@ -148,7 +132,7 @@ export class LiveStream<
     this.consumerName = `zenstack.${options.clientId}`
     this.consumerGroupName = `zenstack.table.public.${this.modelName}.${hashed}`
     this.discriminator = new EventDiscriminator(options)
-    this.id = hashed
+    this.hash = hashed
 
     // Create the consumer group now, otherwise events written before iteration starts are skipped.
     // Failures are ignored here because they resurface when iteration calls `prepare` again.
@@ -206,7 +190,7 @@ export class LiveStream<
     await new Promise(resolve => setTimeout(resolve, ms))
   }
 
-  async *[Symbol.asyncIterator](): AsyncIterator<RequestedEvents<Schema, ModelName, Opts>> {
+  async *[Symbol.asyncIterator](): AsyncIterator<RecordResultMap<Schema, ModelName>[EventType]> {
     await this.prepare()
 
     const consume = this.options.consume ?? 'new'
@@ -241,7 +225,7 @@ export class LiveStream<
           continue
         }
 
-        yield event as RequestedEvents<Schema, ModelName, Opts>
+        yield event as RecordResultMap<Schema, ModelName>[EventType]
 
         await this.acknowledgeEvent(event.id)
       }
@@ -403,15 +387,21 @@ export class ZenStackLive<Schema extends SchemaDef> {
     this.redis = new Redis(options.redis.url)
   }
 
-  stream<ModelName extends GetModels<Schema>, Opts extends PickStreamFilters<Schema, ModelName>>(
-    streamOptions: {
-      model: ModelName
-      id: string
-      consume?: LiveStreamConsumeOption
-      timeout?: number
-    } & Opts,
-  ) {
-    return new LiveStream<Schema, ModelName, Opts>({
+  stream<
+    ModelName extends GetModels<Schema>,
+    When extends LiveStreamWhen<Schema, ModelName>,
+  >(streamOptions: {
+    model: ModelName
+    id: string
+    consume?: LiveStreamConsumeOption
+    timeout?: number
+
+    /**
+     * The events to listen for. All events are listened for if this is omitted or empty.
+     */
+    when?: When
+  }) {
+    return new LiveStream<Schema, ModelName, RequestedEventType<When>>({
       ...streamOptions,
       redis: this.redis,
       clientId: this.options.id ?? 'zenstack',
@@ -424,14 +414,26 @@ export class ZenStackLive<Schema extends SchemaDef> {
   }
 }
 
-export type BeforeAfterResult<Schema extends SchemaDef, ModelName extends GetModels<Schema>> = {
-  before: SimplifiedPlainResult<Schema, ModelName> | null
-  after: SimplifiedPlainResult<Schema, ModelName> | null
-}
+// Structural because inferring `Schema` and `ModelName` from an event exceeds the compiler's
+// stack depth (TS2321) when comparing `SimplifiedPlainResult`.
+export type BeforeAfterEvent =
+  | { type: 'created'; created: unknown }
+  | { type: 'updated'; updated: { before: unknown; after: unknown } }
+  | { type: 'deleted'; deleted: unknown }
 
-export function beforeAfter<Schema extends SchemaDef, ModelName extends GetModels<Schema>>(
-  event: RecordEvent<Schema, ModelName>,
-): BeforeAfterResult<Schema, ModelName> {
+export type BeforeAfterResult<Event extends BeforeAfterEvent> = Event extends {
+  type: 'created'
+  created: infer Row
+}
+  ? { before: null; after: Row }
+  : Event extends { type: 'updated'; updated: infer Updated }
+    ? Updated
+    : Event extends { type: 'deleted'; deleted: infer Row }
+      ? { before: Row; after: null }
+      : never
+
+export function beforeAfter<Event extends BeforeAfterEvent>(event: Event): BeforeAfterResult<Event>
+export function beforeAfter(event: BeforeAfterEvent) {
   if (event.type === 'created') {
     return {
       before: null,

@@ -43,6 +43,57 @@ afterAll(async () => {
 })
 
 describe('ZenStackLive', () => {
+  describe('when', () => {
+    test.each([
+      ['omitted', undefined],
+      ['empty', {}],
+    ])(
+      'listens for all events when %s',
+      async (name, when) => {
+        const userStream = live.stream({
+          model: 'User',
+          id: `test-when-${name}`,
+          when,
+        })
+
+        const user = await client.user.create({
+          data: {
+            enum: 'USER',
+          },
+        })
+
+        await client.user.update({
+          data: {
+            enum: 'ADMIN',
+          },
+
+          where: {
+            id: user.id,
+          },
+        })
+
+        await client.user.delete({
+          where: {
+            id: user.id,
+          },
+        })
+
+        const iterations: DatabaseEventType[] = []
+
+        for await (const event of userStream) {
+          iterations.push(event.type)
+
+          if (event.type === 'deleted') {
+            break
+          }
+        }
+
+        expect(iterations).toEqual(['created', 'updated', 'deleted'])
+      },
+      10000,
+    )
+  })
+
   describe('consume', () => {
     test('new', async () => {
       // This test leaves a read blocking, which would stall other streams sharing the connection.
@@ -58,9 +109,11 @@ describe('ZenStackLive', () => {
         model: 'User',
         id: 'test-consume-new',
         consume: 'new',
-        created: {},
-        updated: {},
-        deleted: {},
+        when: {
+          created: {},
+          updated: {},
+          deleted: {},
+        },
       })
 
       const user = await client.user.create({
@@ -126,9 +179,11 @@ describe('ZenStackLive', () => {
         id: 'test-consume-errored',
         consume: 'errored',
         timeout: 2000,
-        created: {},
-        updated: {},
-        deleted: {},
+        when: {
+          created: {},
+          updated: {},
+          deleted: {},
+        },
       })
 
       const user = await client.user.create({
@@ -190,9 +245,11 @@ describe('ZenStackLive', () => {
           model: 'User',
           id: 'test-consume-errored',
           consume: 'new',
-          created: {},
-          updated: {},
-          deleted: {},
+          when: {
+            created: {},
+            updated: {},
+            deleted: {},
+          },
         })
 
         try {
@@ -229,9 +286,11 @@ describe('ZenStackLive', () => {
         model: 'User',
         id: 'test-consume-all',
         consume: 'all',
-        created: {},
-        updated: {},
-        deleted: {},
+        when: {
+          created: {},
+          updated: {},
+          deleted: {},
+        },
       })
 
       const user = await client.user.create({

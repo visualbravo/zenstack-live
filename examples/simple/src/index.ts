@@ -1,3 +1,4 @@
+// oxlint-disable one-var
 import { schema } from './schema'
 import { ZenStackLive } from '@visualbravo/zenstack-live'
 import { ZenStackClient } from '@zenstackhq/orm'
@@ -24,9 +25,6 @@ const live = new ZenStackLive({
 const userStream = live.stream({
   model: 'User',
   id: 'all-user-changes',
-  created: {},
-  updated: {},
-  deleted: {},
 })
 
 setInterval(async () => {
@@ -55,7 +53,7 @@ setInterval(async () => {
 
 const userStreamLimiter = new Bottleneck({
   minTime: 2000,
-  id: userStream.id,
+  id: userStream.hash,
 })
 
 ;(async () => {
