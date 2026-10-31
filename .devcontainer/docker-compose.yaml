@@ -39,9 +39,12 @@ services:
   debezium:
     container_name: zenstack-live-debezium
     image: debezium/server:3.0.0.Final
+    restart: on-failure
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       DATABASE_USER: default
       DEBEZIUM_FORMAT_SCHEMAS_ENABLE: false
@@ -105,7 +108,8 @@ services:
     container_name: zenstack-live-redis-insight
     image: redis/redisinsight:3.0
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - workspace
     ports:
