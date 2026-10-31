@@ -4,7 +4,7 @@ import { EventDiscriminator, type EventDiscriminatorOptions } from '../src/event
 import { ZenStackClient, type ClientContract } from '@zenstackhq/orm'
 import { PostgresDialect } from 'kysely'
 import { Pool } from 'pg'
-import type { RecordCreatedEvent } from '../'
+import type { RecordCreatedEvent, RecordEvent } from '../'
 import Decimal from 'decimal.js'
 
 const baseDate = new Date('2024-01-01T00:00:00.000Z')
@@ -55,15 +55,12 @@ let client: ClientContract<typeof schema>
 
 async function matches(
   event: RecordCreatedEvent<typeof schema, 'User'>,
-  options: Pick<
-    EventDiscriminatorOptions<typeof schema, 'User'>,
-    'created' | 'updated' | 'deleted'
-  >,
+  when: NonNullable<EventDiscriminatorOptions<typeof schema, 'User'>['when']>,
 ) {
   const discriminator = new EventDiscriminator({
     client,
     model: 'User',
-    ...options,
+    when,
   })
 
   const discriminatorMatches = discriminator.eventMatchesWhere(event)
@@ -75,7 +72,7 @@ async function matches(
     })
 
     databaseMatches = await client.user.exists({
-      where: options.created,
+      where: when.created,
     })
   }
 
@@ -112,6 +109,38 @@ afterAll(async () => {
 })
 
 describe('EventDiscriminator', () => {
+  describe('when', () => {
+    const { created: record, ...eventBase } = baseEvent
+
+    const events = [
+      baseEvent,
+      { ...eventBase, type: 'updated', updated: { before: record, after: record } },
+      { ...eventBase, type: 'deleted', deleted: record },
+    ] as RecordEvent<typeof schema, 'User'>[]
+
+    function matchedTypes(when?: EventDiscriminatorOptions<typeof schema, 'User'>['when']) {
+      const discriminator = new EventDiscriminator({ client, model: 'User', when })
+
+      return events.filter(event => discriminator.eventMatchesWhere(event)).map(({ type }) => type)
+    }
+
+    test('matches all events when omitted', () => {
+      expect(matchedTypes()).toEqual(['created', 'updated', 'deleted'])
+    })
+
+    test('matches all events when empty', () => {
+      expect(matchedTypes({})).toEqual(['created', 'updated', 'deleted'])
+    })
+
+    test('matches only the subscribed event', () => {
+      expect(matchedTypes({ created: {} })).toEqual(['created'])
+    })
+
+    test('matches multiple subscribed events', () => {
+      expect(matchedTypes({ created: {}, deleted: {} })).toEqual(['created', 'deleted'])
+    })
+  })
+
   describe('types', () => {
     describe('String', () => {
       test('equals (positive)', async () => {

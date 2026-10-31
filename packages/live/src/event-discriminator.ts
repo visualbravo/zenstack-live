@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 import type { SchemaDef, GetModels } from '@zenstackhq/schema'
-import type { LiveStreamOptions, RecordEvent } from '.'
+import type { LiveStreamOptions, LiveStreamWhen, RecordEvent } from '.'
 import { QueryCompiler } from './query-compiler'
 import { z } from 'zod/v4'
 
@@ -11,7 +11,7 @@ export type EventDiscriminatorOptions<
 > = Omit<LiveStreamOptions<Schema, ModelName>, 'redis' | 'id' | 'clientId'>
 
 export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetModels<Schema>> {
-  private readonly streamOptions: EventDiscriminatorOptions<Schema, ModelName>
+  private readonly when: LiveStreamWhen<Schema, ModelName>
   private readonly queryCompiler: QueryCompiler<Schema, ModelName>
   private readonly createdSchema?: z.ZodSchema
   private readonly updatedBeforeSchema?: z.ZodSchema
@@ -19,32 +19,38 @@ export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetM
   private readonly deletedSchema?: z.ZodSchema
 
   constructor(streamOptions: EventDiscriminatorOptions<Schema, ModelName>) {
-    this.streamOptions = streamOptions
+    const { when = {} } = streamOptions
+
+    // Without any subscriptions, all events are listened for.
+    this.when =
+      when.created || when.updated || when.deleted
+        ? when
+        : { created: {}, updated: {}, deleted: {} }
 
     this.queryCompiler = new QueryCompiler({
       schema: streamOptions.client.$schema,
       modelName: streamOptions.model,
     })
 
-    if (this.streamOptions.created) {
-      this.createdSchema = this.queryCompiler.compile(this.streamOptions.created)
+    if (this.when.created) {
+      this.createdSchema = this.queryCompiler.compile(this.when.created)
     }
 
-    if (this.streamOptions.updated?.before) {
-      this.updatedBeforeSchema = this.queryCompiler.compile(this.streamOptions.updated.before)
+    if (this.when.updated?.before) {
+      this.updatedBeforeSchema = this.queryCompiler.compile(this.when.updated.before)
     }
 
-    if (this.streamOptions.updated?.after) {
-      this.updatedAfterSchema = this.queryCompiler.compile(this.streamOptions.updated.after)
+    if (this.when.updated?.after) {
+      this.updatedAfterSchema = this.queryCompiler.compile(this.when.updated.after)
     }
 
-    if (this.streamOptions.deleted) {
-      this.deletedSchema = this.queryCompiler.compile(this.streamOptions.deleted)
+    if (this.when.deleted) {
+      this.deletedSchema = this.queryCompiler.compile(this.when.deleted)
     }
   }
 
   eventMatchesWhere(event: RecordEvent<Schema, ModelName>) {
-    if (!this.streamOptions[event.type]) {
+    if (!this.when[event.type]) {
       return false
     }
 
@@ -73,6 +79,8 @@ export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetM
       }
     }
 
-    throw new Error('All possible where clause combinations exhausted. This error should never occur.')
+    throw new Error(
+      'All possible where clause combinations exhausted. This error should never occur.',
+    )
   }
 }
