@@ -8,6 +8,7 @@ jobs:
     services:
       postgres:
         image: postgres:10
+        command: postgres -c wal_level=logical
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -23,6 +24,12 @@ jobs:
 
       debezium:
         image: debezium/server:3.0.0.Final
+        options: >-
+          --restart on-failure
+          --health-cmd "curl -f http://localhost:8080/q/health"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
         env:
           JAVA_OPTS: "-Dnetworkaddress.cache.negative.ttl=0"
           

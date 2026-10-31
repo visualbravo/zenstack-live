@@ -30,8 +30,8 @@ beforeAll(async () => {
 
   redis = new Redis(process.env['REDIS_URL']!)
 
-  await client.$queryRawUnsafe("ALTER SYSTEM SET wal_level = 'logical';")
-  await client.$queryRawUnsafe("SELECT pg_reload_conf();")
+  // Let Debezium flush events from earlier test files so that they don't reach these streams.
+  await new Promise(resolve => setTimeout(resolve, 2000))
 })
 
 beforeEach(async () => {
@@ -45,7 +45,16 @@ afterAll(async () => {
 describe('ZenStackLive', () => {
   describe('consume', () => {
     test('new', async () => {
-      const userStream = live.stream({
+      // This test leaves a read blocking, which would stall other streams sharing the connection.
+      const blockingLive = new ZenStackLive({
+        client,
+
+        redis: {
+          url: process.env['REDIS_URL']!,
+        },
+      })
+
+      const userStream = blockingLive.stream({
         model: 'User',
         id: 'test-consume-new',
         consume: 'new',
@@ -105,6 +114,8 @@ describe('ZenStackLive', () => {
           }
         }
       }
+
+      blockingLive.disconnect()
 
       expect(iterations).toHaveLength(3)
     }, 10000)
@@ -266,10 +277,11 @@ describe('ZenStackLive', () => {
           }
         }
       } catch {
+        // The retried event can arrive after `deleted`, so wait for the full count.
         for await (const event of userStream) {
           iterations.push(event.type)
 
-          if (event.type === 'deleted') {
+          if (iterations.length === 5) {
             break
           }
         }
