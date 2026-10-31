@@ -149,6 +149,14 @@ export class LiveStream<
     this.consumerGroupName = `zenstack.table.public.${this.modelName}.${hashed}`
     this.discriminator = new EventDiscriminator(options)
     this.id = hashed
+
+    // Create the consumer group now, otherwise events written before iteration starts are skipped.
+    // Failures are ignored here because they resurface when iteration calls `prepare` again.
+    this.prepare().catch(() => {})
+  }
+
+  private async prepare() {
+    await Promise.all([this.makeConsumerGroup(), this.alterTable()])
   }
 
   private async alterTable() {
@@ -199,7 +207,7 @@ export class LiveStream<
   }
 
   async *[Symbol.asyncIterator](): AsyncIterator<RequestedEvents<Schema, ModelName, Opts>> {
-    await Promise.all([this.makeConsumerGroup(), this.alterTable()])
+    await this.prepare()
 
     const consume = this.options.consume ?? 'new'
 
