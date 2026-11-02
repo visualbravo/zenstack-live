@@ -1,5 +1,6 @@
 datasource db {
   provider = 'postgresql'
+  url = env('POSTGRES_URL')
 }
 
 model User {
@@ -34,6 +35,62 @@ model Post {
   published Boolean  @default(false)
   author    User     @relation(fields: [authorId], references: [id])
   authorId  String
+}
+
+model Contact with Timestamped {
+  id        String    @id @default(cuid())
+  email     Email
+  emails    Email[]
+  age       Age?
+  balance   Balance?
+  visits    Visits?
+  lastSeen  LastSeen?
+  profile   Profile?  @json
+  addresses Address[] @json
+  metadata  Json?
+  history   Json[]
+  avatar    Bytes?
+  seenAt    DateTime[]
+}
+
+type Timestamped {
+  createdAt DateTime @default(now())
+}
+
+type Email with String {
+  this String @email
+}
+
+type Age with Int {}
+
+type Balance with Decimal {}
+
+type Visits with BigInt {}
+
+type LastSeen with DateTime {}
+
+type Geo {
+  lat Float
+  lng Float
+}
+
+type Address {
+  city    String
+  country String?
+  geo     Geo?
+  tags    String[]
+  role    Role?
+  movedAt DateTime?
+}
+
+type Profile {
+  name      String
+  nickname  Email?
+  age       Age?
+  joinedAt  DateTime?
+  balance   Decimal?
+  address   Address?
+  addresses Address[]
 }
 
 type Meta {

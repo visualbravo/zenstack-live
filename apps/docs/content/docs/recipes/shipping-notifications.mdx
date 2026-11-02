@@ -1,0 +1,31 @@
+---
+title: Shipping Notifications
+description: Notify customers when an order transitions to delivered.
+icon: PackageCheck
+---
+
+```typescript
+const deliveredOrdersStream = live.stream({
+  model: 'Order',
+  slug: 'send-delivered-email',
+
+  when: {
+    updated: {
+      // This is a transition. You're only notified if the record goes from *not* matching
+      // before, to *matching* afterwards.
+      after: {
+        status: 'DELIVERED',
+      },
+    },
+  },
+})
+
+for await (const event of deliveredOrdersStream) {
+  const order = event.updated.after
+
+  await sendEmail({
+    to: order.contactEmail,
+    subject: `✅ Delivered at ${toHumanReadable(event.date)}`,
+  })
+}
+```

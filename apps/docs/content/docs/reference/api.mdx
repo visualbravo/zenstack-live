@@ -1,0 +1,150 @@
+---
+title: API Reference
+description: The public API of @visualbravo/zenstack-live.
+icon: Code
+---
+
+## ZenStackLive
+
+The entry point. It connects to Redis as soon as it's created.
+
+```typescript
+import { ZenStackLive } from '@visualbravo/zenstack-live'
+
+const live = new ZenStackLive({
+  client,
+
+  redis: {
+    url: process.env.REDIS_URL!,
+  },
+})
+```
+
+| Option      | Type             | Default    | Description                                                                                                 |
+| ----------- | ---------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| `client`    | `ClientContract` | Required   | Your ZenStack client. Its schema provides the types, and its database connection is used to publish tables. |
+| `redis.url` | `string`         | Required   | The Redis that Debezium writes to.                                                                          |
+| `id`        | `string`         | `zenstack` | This instance's unique ID. See [Scaling](/docs/deployment/scaling#instance-ids).                            |
+| `retention` | `number`         | 24 hours   | How long events are kept in Redis, in milliseconds. See [Retention](/docs/deployment/retention).            |
+
+### live.stream()
+
+Creates a [`LiveStream`](#livestream). It throws if a filter is invalid or [unsupported](/docs/guides/filtering#what-you-cant-filter-on).
+
+```typescript
+const stream = live.stream({
+  model: 'User',
+  slug: 'send-welcome-email',
+  when: { created: {} },
+})
+```
+
+| Option    | Type                          | Default    | Description                                                                                              |
+| --------- | ----------------------------- | ---------- | -------------------------------------------------------------------------------------------------------- |
+| `model`   | `string`                      | Required   | The model to listen to. Autocompleted from your schema.                                                  |
+| `slug`    | `string`                      | Required   | The name of this stream. Part of its [identity](/docs/guides/streams#stream-identity).                   |
+| `when`    | `LiveStreamWhen`              | All events | The events to listen for. See [Filtering Events](/docs/guides/filtering). Part of the stream's identity. |
+| `consume` | `'all' \| 'new' \| 'errored'` | `all`      | Which events to read. See [Choosing What to Consume](/docs/guides/streams#choosing-what-to-consume).     |
+| `timeout` | `number`                      | `30000`    | How long an event can go unacknowledged before it's retried, in milliseconds.                            |
+
+### live.prune()
+
+Removes what's left behind by streams that are gone. See [Pruning](/docs/deployment/pruning).
+
+```typescript
+const report = await live.prune({
+  olderThan: 7 * 24 * 60 * 60 * 1000,
+  dryRun: true,
+})
+```
+
+| Option      | Type      | Default  | Description                                                                                               |
+| ----------- | --------- | -------- | --------------------------------------------------------------------------------------------------------- |
+| `olderThan` | `number`  | Required | How long a stream has to be gone before it's removed, in milliseconds. Can't be shorter than `retention`. |
+| `dryRun`    | `boolean` | `false`  | Reports what would be removed without changing anything.                                                  |
+
+It returns a `LivePruneReport`:
+
+| Field            | Type               | Description                                                                    |
+| ---------------- | ------------------ | ------------------------------------------------------------------------------ |
+| `dryRun`         | `boolean`          | Whether this was a dry run.                                                    |
+| `streams`        | `PrunedStream[]`   | Streams that were removed.                                                     |
+| `consumers`      | `PrunedConsumer[]` | Consumers that were removed from streams that are still in use.                |
+| `tables`         | `PrunedTable[]`    | Tables dropped from the publication, along with their events.                  |
+| `unknownStreams` | `PrunedStream[]`   | Streams that were kept, because nothing shows when they were last used.        |
+| `allTables`      | `PrunedTable[]`    | Tables with no streams left, kept because the publication is `FOR ALL TABLES`. |
+
+```typescript
+type PrunedStream = {
+  slug?: string // Missing for streams last run by a version that didn't record them.
+  model?: string
+  redisStream: string
+  consumerGroup: string
+  lastSeenAt: Date | null
+}
+
+type PrunedConsumer = {
+  name: string
+  redisStream: string
+  consumerGroup: string
+  lastSeenAt: Date
+}
+
+type PrunedTable = {
+  table?: { schema: string; name: string } // Missing if the table is no longer published.
+  redisStream: string
+  replicaIdentityFull: boolean
+}
+```
+
+### live.disconnect()
+
+Stops background trimming and closes the Redis connections. Streams from this instance stop reading, and may reject rather than end cleanly. Your ZenStack client is left open.
+
+## LiveStream
+
+Returned by `live.stream()`. It's an `AsyncIterable` of events, typed according to `when`.
+
+| Member                   | Description                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------ |
+| `id`                     | A stable hash of the stream's identity. The same across every instance of the same stream. |
+| `[Symbol.asyncIterator]` | Lets you use `for await`. See [Stopping a Stream](/docs/guides/streams#stopping-a-stream). |
+
+## Events
+
+All events share these fields.
+
+| Field           | Type                                  | Description                                          |
+| --------------- | ------------------------------------- | ---------------------------------------------------- |
+| `type`          | `'created' \| 'updated' \| 'deleted'` | What happened. Use this to narrow the type.          |
+| `id`            | `string`                              | The event's unique ID. Stays the same on redelivery. |
+| `transactionId` | `string`                              | The Postgres transaction that made the change.       |
+| `date`          | `Date`                                | When Debezium processed the change.                  |
+
+Each event type adds one field, holding the record. See [Reading Events](/docs/guides/events).
+
+| Type                 | `type`    | Field                                |
+| -------------------- | --------- | ------------------------------------ |
+| `RecordCreatedEvent` | `created` | `created`                            |
+| `RecordUpdatedEvent` | `updated` | `updated.before` and `updated.after` |
+| `RecordDeletedEvent` | `deleted` | `deleted`                            |
+
+## beforeAfter()
+
+Gives every event the same `{ before, after }` shape. See [beforeAfter](/docs/guides/events#beforeafter).
+
+```typescript
+function beforeAfter<Event extends BeforeAfterEvent>(event: Event): BeforeAfterResult<Event>
+```
+
+## Types
+
+| Type                                  | Description                             |
+| ------------------------------------- | --------------------------------------- |
+| `DatabaseEventType`                   | `'created' \| 'updated' \| 'deleted'`   |
+| `LiveStreamConsumeOption`             | `'new' \| 'errored' \| 'all'`           |
+| `LiveStreamWhen<Schema, Model>`       | The shape of `when`.                    |
+| `RecordEvent<Schema, Model>`          | The union of all three event types.     |
+| `RecordResultMap<Schema, Model>`      | Maps each event type name to its event. |
+| `ZenStackLiveOptions<Schema>`         | The options of `ZenStackLive`.          |
+| `LivePruneOptions`, `LivePruneReport` | The input and output of `prune`.        |

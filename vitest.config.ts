@@ -9,5 +9,5 @@ export default defineConfig({
       enabled: true,
       tsconfig: 'packages/live/tsconfig.json',
     },
-  }
+  },
 })

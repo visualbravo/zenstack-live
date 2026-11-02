@@ -1,0 +1,90 @@
+---
+title: Introduction
+description: Realtime streaming for your ZenStack backend.
+icon: Book
+---
+
+import { Rocket, Workflow, ChefHat, Code } from 'lucide-react'
+
+Supercharge your ZenStack backend with realtime streaming capabilities. Instantly react to any insert, update, or delete, and declaratively filter records using the same Prisma API you've come to love.
+
+```typescript
+const deliveredOrdersStream = live.stream({
+  model: 'Order',
+  slug: 'send-delivered-email',
+
+  when: {
+    updated: {
+      after: {
+        status: 'DELIVERED',
+      },
+    },
+  },
+})
+
+for await (const event of deliveredOrdersStream) {
+  const order = event.updated.after
+  //    ^ properly typed as the `Order` model
+
+  await sendEmail({
+    to: order.contactEmail,
+    subject: `Delivered at ${event.date.toLocaleString()}`,
+  })
+}
+```
+
+Changes are read from the database's own log, so you see all of them, even those made outside of ZenStack.
+
+## Features
+
+- **Type-safe:** Queries have full intellisense based on your ZenStack models.
+- **Durable:** Server went down? Your app picks up right where it left off, and even detects all the changes that happened while it was offline.
+- **Scalable:** Just add more instances.
+- **Simple:** Build event-driven apps with fewer headaches.
+
+## Requirements
+
+- ZenStack (version >= `3.10.0`)
+- Node.js (version >= `22.0.0`)
+- Postgres that supports [logical replication](https://www.postgresql.org/docs/current/logical-replication.html) (version >= `12`)
+- Redis (version >= `7.2.0`)
+- A non-serverless server that will process events. You can forward events to serverless if you so desire.
+
+<Callout
+  type='info'
+  title='This project is in beta'
+>
+  There are still some things missing or broken, so read the
+  [Limitations](/docs/reference/limitations) before you commit to it, especially the part on [column
+  types](/docs/reference/limitations#column-types). This project is not affiliated with or endorsed
+  by the ZenStack team.
+</Callout>
+
+## Where to Next
+
+<Cards>
+  <Card
+    icon={<Rocket />}
+    title='Quick Start'
+    href='/docs/quick-start'
+    description='See your first event in a few minutes.'
+  />
+  <Card
+    icon={<Workflow />}
+    title='How it Works'
+    href='/docs/how-it-works'
+    description="What's happening between Postgres and your loop."
+  />
+  <Card
+    icon={<ChefHat />}
+    title='Recipes'
+    href='/docs/recipes'
+    description='Welcome emails, audit logs, caching, and more.'
+  />
+  <Card
+    icon={<Code />}
+    title='API Reference'
+    href='/docs/reference/api'
+    description='Every option, event field, and type.'
+  />
+</Cards>

@@ -1,0 +1,89 @@
+---
+title: Limitations
+description: What LIVE can't do yet, and what it can never do.
+icon: TriangleAlert
+---
+
+## This Project is in Beta
+
+There are still some things missing or broken. Please [open an issue](https://github.com/visualbravo/zenstack-live/issues) if you run into something that isn't listed here.
+
+## Column Types
+
+Debezium encodes a column based on its exact type, and LIVE currently only understands some of those encodings. The column types that `zen db push` and `zen migrate` create by default for `DateTime` and `Decimal` aren't among them, so these fields need a native type attribute:
+
+```prisma
+model Invoice {
+  id        String     @id @default(cuid())
+  total     Decimal    @db.Decimal
+  createdAt DateTime   @default(now()) @db.Timestamp(6)
+  reminders DateTime[] @db.Timestamp(6)
+}
+```
+
+| Field                         | Column           | Result                                                                                        |
+| ----------------------------- | ---------------- | --------------------------------------------------------------------------------------------- |
+| `DateTime @db.Timestamp(6)`   | `TIMESTAMP(6)`   | ✅ Correct.                                                                                   |
+| `DateTime`                    | `TIMESTAMP(3)`   | ❌ No error, but the date is wrong, somewhere in January 1970. Date filters are affected too. |
+| `DateTime @db.Timestamptz(3)` | `TIMESTAMPTZ(3)` | ❌ `Invalid Date`.                                                                            |
+| `Decimal @db.Decimal`         | `DECIMAL`        | ✅ Correct, with full precision.                                                              |
+| `Decimal`                     | `DECIMAL(65,30)` | ❌ Any non-null value throws while reading the event, which ends your loop.                   |
+| `Decimal @db.Decimal(10, 2)`  | `DECIMAL(10,2)`  | ❌ Same as above.                                                                             |
+
+The same applies to arrays of these types. `DateTime` and `Decimal` inside of JSON are fine.
+
+<Callout
+  type='error'
+  title="A Decimal error doesn't go away on its own"
+>
+  The failing event stays unacknowledged, so it's read again after a restart, and throws again.
+  Fixing the column doesn't help events that are already in Redis, so they keep failing until they
+  pass [`retention`](/docs/deployment/retention).
+</Callout>
+
+If your columns already exist, changing the attributes and running a migration converts them. Changing a column's type rewrites the table, so plan for that on large ones.
+
+## Field Mapping
+
+`@@map` and `@@schema` on a model work without any configuration. `@map` on a field doesn't. Events are keyed by column name, and LIVE reads them by field name, so a mapped field comes through as `null`, and its value ends up under the column's name, which isn't in the type:
+
+```prisma
+model User {
+  id        String @id
+  firstName String @map("first_name") // Always `null` in events, and in filters.
+}
+```
+
+Enum values that use `@map` likewise arrive as their database value, and not their name in your schema.
+
+## Postgres Only
+
+Actually, that might not be totally true. Debezium has MySQL support, but this project has not been tested with it. Want to help? Give it a try and tell us how it goes.
+
+## Events Are Snapshots
+
+An event represents one record at one moment. If you're listening to `created` events, the record might not exist in the database anymore if it was deleted before your handler processed it. Use [`event.date`](/docs/guides/events#timing) to see when a change was processed.
+
+## No Relation Queries
+
+You can't filter on relations, and relations aren't included in events. Although that would be very cool, an event is a snapshot of one row, so there's nothing reliable to compare against. Computed fields are unavailable for the same reason. See [What Events Don't Contain](/docs/guides/events#what-events-dont-contain).
+
+## Filter Differences
+
+Filters are validated by ZenStack and follow the same semantics as a query, including how nulls behave, but they're evaluated in JavaScript, not by Postgres. So:
+
+- `$expr`, `fuzzy`, `fts`, computed fields, and `Json` paths with filter expressions or `.**` aren't supported.
+- Strings are ordered by code unit, and not by your database's collation.
+- Timestamps are compared to the millisecond.
+
+## Events Are Kept for 24 Hours
+
+Every stream on a model reads the same events, so they're removed by age, not when they're consumed. A stream that's offline for longer misses what it didn't read, and events waiting to be retried are dropped. [Set `retention`](/docs/deployment/retention) to change this.
+
+## No Serverless Hosting
+
+Stream handlers need to be constantly waiting for new events to come in. Your main backend can still be serverless, and you just [communicate between the two](/docs/recipes/forwarding-to-serverless) like any other service.
+
+## History Isn't Captured
+
+Changes made before a table's first stream aren't captured. Once a table has a stream it stays captured, even while nothing is running, until you [remove it](/docs/deployment/pruning#removing-streams). A new stream on an already captured table also starts from new events, and doesn't replay what's in Redis.

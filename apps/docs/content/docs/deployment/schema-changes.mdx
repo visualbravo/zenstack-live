@@ -1,0 +1,9 @@
+---
+title: Schema Changes
+description: What happens to streams and old events when your schema changes.
+icon: GitCompare
+---
+
+Use your normal migrations. Debezium picks up changes to a captured table's columns, and new fields start appearing in events.
+
+Events already in Redis keep the shape they were written with. So once a field is added, your handlers see `null` for it on older events, even if it's required.

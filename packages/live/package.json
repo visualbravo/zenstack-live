@@ -64,6 +64,7 @@
     "watch": "tsdown --watch",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix --fix-suggestions",
+    "format": "oxfmt --check",
     "format:fix": "oxfmt",
     "test": "vitest run",
     "test:watch": "vitest --watch"

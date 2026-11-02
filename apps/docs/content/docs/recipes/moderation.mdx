@@ -1,0 +1,31 @@
+---
+title: Moderation
+description: React to new content that matches a filter.
+icon: ShieldAlert
+---
+
+```typescript
+const potentiallyHarmfulPostsStream = live.stream({
+  model: 'Post',
+  slug: 'sentiment-moderation',
+
+  when: {
+    created: {
+      // All of this is type-safe, with autocomplete based on your model.
+      OR: [
+        { title: { contains: 'ugly', mode: 'insensitive' } },
+        { title: { contains: 'stupid', mode: 'insensitive' } },
+      ],
+    },
+  },
+})
+
+for await (const event of potentiallyHarmfulPostsStream) {
+  const post = event.created
+  const sentiment = await analyzeSentiment(post)
+
+  if (sentiment === 'rude') {
+    await suspendUser(post.authorId)
+  }
+}
+```

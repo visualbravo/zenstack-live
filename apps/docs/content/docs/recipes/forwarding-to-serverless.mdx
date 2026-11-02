@@ -1,0 +1,34 @@
+---
+title: Forwarding to Serverless
+description: Pass events from a long-running worker to serverless functions.
+icon: Cloud
+---
+
+Streams need a long-running process, but your handlers don't. A small worker can pass events along to anything. Here, a failed request is saved so that it can be replayed later, like any other [handler error](/docs/guides/error-handling).
+
+```typescript
+for await (const event of stream) {
+  try {
+    const response = await fetch(process.env.WEBHOOK_URL!, {
+      method: 'POST',
+
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': event.id,
+      },
+
+      body: JSON.stringify(event, (key, value) =>
+        typeof value === 'bigint' ? value.toString() : value,
+      ),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Webhook responded with ${response.status}`)
+    }
+  } catch (error) {
+    await saveFailedEvent(event, error)
+  }
+}
+```
+
+`bigint` values can't be serialized by `JSON.stringify` on its own, which is what the replacer is for. Pass `event.id` along, so that the receiver can [detect duplicates](/docs/guides/error-handling#handlers-need-to-be-idempotent).

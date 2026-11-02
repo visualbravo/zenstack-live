@@ -7,7 +7,7 @@ jobs:
     container: node:22
     services:
       postgres:
-        image: postgres:10
+        image: postgres:15
         command: postgres -c wal_level=logical
         env:
           POSTGRES_USER: postgres
@@ -23,7 +23,7 @@ jobs:
           --health-retries 5
 
       debezium:
-        image: debezium/server:3.0.0.Final
+        image: quay.io/debezium/server:3.7.0.Final
         options: >-
           --restart on-failure
           --health-cmd "curl -f http://localhost:8080/q/health"
@@ -31,8 +31,8 @@ jobs:
           --health-timeout 5s
           --health-retries 12
         env:
-          JAVA_OPTS: "-Dnetworkaddress.cache.negative.ttl=0"
-          
+          JAVA_OPTS: '-Dnetworkaddress.cache.negative.ttl=0'
+
           DATABASE_USER: default
           DEBEZIUM_FORMAT_SCHEMAS_ENABLE: false
           DEBEZIUM_SINK_REDIS_ADDRESS: redis:6379
@@ -40,7 +40,7 @@ jobs:
           DEBEZIUM_SINK_REDIS_SSL_ENABLED: false
           DEBEZIUM_SINK_REDIS_WAIT_RETRY_ENABLED: true
           DEBEZIUM_SINK_TYPE: redis
-          
+
           DEBEZIUM_SOURCE_CONNECTOR_CLASS: io.debezium.connector.postgresql.PostgresConnector
           DEBEZIUM_SOURCE_DATABASE_DBNAME: postgres
           DEBEZIUM_SOURCE_DATABASE_HOSTNAME: postgres
@@ -49,21 +49,21 @@ jobs:
           DEBEZIUM_SOURCE_DATABASE_SERVER_NAME: zenstack
           DEBEZIUM_SOURCE_DATABASE_USER: postgres
           DEBEZIUM_SOURCE_PLUGIN_NAME: pgoutput
-          
+          DEBEZIUM_SOURCE_PUBLICATION_AUTOCREATE_MODE: no_tables
+          DEBEZIUM_SOURCE_PUBLICATION_NAME: zenstack_live
+
           DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL: io.debezium.storage.redis.history.RedisSchemaHistory
           DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS_ADDRESS: redis:6379
-          
+
           DEBEZIUM_SOURCE_OFFSET_STORAGE: io.debezium.storage.redis.offset.RedisOffsetBackingStore
           DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY: zenstack.metadata.offsets
           DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_ADDRESS: redis:6379
-          
+
           DEBEZIUM_SOURCE_SNAPSHOT_MODE: no_data
           DEBEZIUM_SOURCE_TOPIC_PREFIX: zenstack.table
-          
-          DEBEZIUM_SOURCE_SCHEMA_INCLUDE_LIST: public
 
       redis:
-        image: redis:6.2
+        image: redis:7.2
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -74,7 +74,7 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v5
 
-      - name: Install system dependencies  
+      - name: Install system dependencies
         run: |
           apt-get update
           apt-get install -y unzip

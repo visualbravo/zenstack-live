@@ -1,0 +1,70 @@
+---
+title: Pruning
+description: Clean up streams and tables you no longer use.
+icon: Scissors
+---
+
+## Removing Streams
+
+Deleting a stream from your code doesn't remove it from Redis, or its table from the publication, because a stream that's been deleted looks exactly like one that's offline, and offline streams are expected to catch up. Instead, you remove what's left behind with `prune`.
+
+## Running Prune
+
+```typescript
+const DAY = 24 * 60 * 60 * 1000
+
+const report = await live.prune({
+  olderThan: 7 * DAY,
+  dryRun: true,
+})
+
+console.log(report)
+```
+
+Anything that's been gone for `olderThan` is removed, and the report lists what was. With `dryRun`, it lists what would be, without changing anything. Run it this way first.
+
+Editing a stream's `when` makes it a new stream, so the old one shows up here with the same slug.
+
+`olderThan` can't be shorter than `retention`, otherwise `prune` throws. If another service created a stream with a longer `retention`, that value is used for it instead, so a stream is never removed while Redis is still holding events for it.
+
+## What Gets Removed
+
+| What             | What happens                                                                                                                                                | Reported in      |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Streams          | Their consumer groups are destroyed, along with any events waiting to be retried. A stream that comes back later starts from new events.                    | `streams`        |
+| Consumers        | Those that have been gone for `olderThan` with nothing pending are removed from streams that are still in use. This keeps things tidy if your `id` changes. | `consumers`      |
+| Tables           | A table with no streams left is dropped from the publication, and its events are deleted. This stops Debezium from capturing it.                            | `tables`         |
+| `FOR ALL TABLES` | Individual tables can't be dropped from such a publication, so they're only listed. Their events still age out.                                             | `allTables`      |
+| Unknown streams  | If a stream has never been read and was created before LIVE recorded its streams, nothing shows when it was last used, so it's kept.                        | `unknownStreams` |
+
+`REPLICA IDENTITY FULL` is never undone. LIVE doesn't know what it was before, so each table in the report has a `replicaIdentityFull` flag, and restoring it is up to you:
+
+```sql
+ALTER TABLE "Order" REPLICA IDENTITY DEFAULT;
+```
+
+A stream that starts while `prune` is running is safe. Its table either stays published, or is published again.
+
+## Running it on a Schedule
+
+`prune` isn't urgent, so running it from a weekly job or by hand is fine.
+
+```typescript title="scripts/prune-streams.ts"
+const DAY = 24 * 60 * 60 * 1000
+
+const live = new ZenStackLive({
+  client,
+
+  redis: {
+    url: process.env.REDIS_URL!,
+  },
+})
+
+const report = await live.prune({ olderThan: 30 * DAY })
+
+console.log(report)
+
+live.disconnect()
+```
+
+Pick an `olderThan` that's longer than any outage you'd expect to recover from, because a stream that's offline for that long is indistinguishable from one you deleted.

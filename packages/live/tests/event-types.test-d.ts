@@ -23,14 +23,14 @@ declare function eventOf<Event>(stream: AsyncIterable<Event>): Event
 
 describe('stream events', () => {
   test('are limited to one subscription', () => {
-    const event = eventOf(live.stream({ model: 'User', id: 'test', when: { created: {} } }))
+    const event = eventOf(live.stream({ model: 'User', slug: 'test', when: { created: {} } }))
 
     expectTypeOf(event).toEqualTypeOf<Created>()
   })
 
   test('are a union of multiple subscriptions', () => {
     const event = eventOf(
-      live.stream({ model: 'User', id: 'test', when: { created: {}, deleted: {} } }),
+      live.stream({ model: 'User', slug: 'test', when: { created: {}, deleted: {} } }),
     )
 
     expectTypeOf(event).toEqualTypeOf<Created | Deleted>()
@@ -38,7 +38,7 @@ describe('stream events', () => {
 
   test('are a union of all subscriptions', () => {
     const event = eventOf(
-      live.stream({ model: 'User', id: 'test', when: { created: {}, updated: {}, deleted: {} } }),
+      live.stream({ model: 'User', slug: 'test', when: { created: {}, updated: {}, deleted: {} } }),
     )
 
     expectTypeOf(event).toEqualTypeOf<RecordEvent<Schema, 'User'>>()
@@ -46,41 +46,41 @@ describe('stream events', () => {
   })
 
   test('are every event without a subscription', () => {
-    const event = eventOf(live.stream({ model: 'User', id: 'test' }))
+    const event = eventOf(live.stream({ model: 'User', slug: 'test' }))
 
     expectTypeOf(event).toEqualTypeOf<RecordEvent<Schema, 'User'>>()
   })
 
   test('are every event with an empty when', () => {
-    const event = eventOf(live.stream({ model: 'User', id: 'test', when: {} }))
+    const event = eventOf(live.stream({ model: 'User', slug: 'test', when: {} }))
 
     expectTypeOf(event).toEqualTypeOf<RecordEvent<Schema, 'User'>>()
   })
 
   test('are every event when no subscription is guaranteed', () => {
-    const event = eventOf(live.stream({ model: 'User', id: 'test', when: {} as OptionalWhen }))
+    const event = eventOf(live.stream({ model: 'User', slug: 'test', when: {} as OptionalWhen }))
 
     expectTypeOf(event).toEqualTypeOf<RecordEvent<Schema, 'User'>>()
   })
 
   test('require subscriptions to be under when', () => {
     // @ts-expect-error
-    live.stream({ model: 'User', id: 'test', created: {} })
+    live.stream({ model: 'User', slug: 'test', created: {} })
   })
 
   test('require valid filters', () => {
     // @ts-expect-error
-    live.stream({ model: 'User', id: 'test', when: { created: { doesNotExist: true } } })
+    live.stream({ model: 'User', slug: 'test', when: { created: { doesNotExist: true } } })
   })
 
   test('reject unknown subscriptions', () => {
     // @ts-expect-error
-    live.stream({ model: 'User', id: 'test', when: { creatd: {} } })
+    live.stream({ model: 'User', slug: 'test', when: { creatd: {} } })
   })
 
   test('narrow on type', () => {
     const event = eventOf(
-      live.stream({ model: 'User', id: 'test', when: { created: {}, deleted: {} } }),
+      live.stream({ model: 'User', slug: 'test', when: { created: {}, deleted: {} } }),
     )
 
     if (event.type === 'created') {
@@ -95,26 +95,26 @@ describe('beforeAfter', () => {
   type Row = Created['created']
 
   test('has no before for a created event', () => {
-    const event = eventOf(live.stream({ model: 'User', id: 'test', when: { created: {} } }))
+    const event = eventOf(live.stream({ model: 'User', slug: 'test', when: { created: {} } }))
 
     expectTypeOf(beforeAfter(event)).toEqualTypeOf<{ before: null; after: Row }>()
   })
 
   test('has both sides for an updated event', () => {
-    const event = eventOf(live.stream({ model: 'User', id: 'test', when: { updated: {} } }))
+    const event = eventOf(live.stream({ model: 'User', slug: 'test', when: { updated: {} } }))
 
     expectTypeOf(beforeAfter(event)).toEqualTypeOf<{ before: Row; after: Row }>()
   })
 
   test('has no after for a deleted event', () => {
-    const event = eventOf(live.stream({ model: 'User', id: 'test', when: { deleted: {} } }))
+    const event = eventOf(live.stream({ model: 'User', slug: 'test', when: { deleted: {} } }))
 
     expectTypeOf(beforeAfter(event)).toEqualTypeOf<{ before: Row; after: null }>()
   })
 
   test('is a union for multiple subscriptions', () => {
     const event = eventOf(
-      live.stream({ model: 'User', id: 'test', when: { created: {}, deleted: {} } }),
+      live.stream({ model: 'User', slug: 'test', when: { created: {}, deleted: {} } }),
     )
 
     expectTypeOf(beforeAfter(event)).toEqualTypeOf<
@@ -124,7 +124,7 @@ describe('beforeAfter', () => {
 
   test('narrows when destructured', () => {
     const event = eventOf(
-      live.stream({ model: 'User', id: 'test', when: { created: {}, deleted: {} } }),
+      live.stream({ model: 'User', slug: 'test', when: { created: {}, deleted: {} } }),
     )
 
     const { before, after } = beforeAfter(event)
@@ -138,7 +138,7 @@ describe('beforeAfter', () => {
 
   test('follows a narrowed event', () => {
     const event = eventOf(
-      live.stream({ model: 'User', id: 'test', when: { created: {}, deleted: {} } }),
+      live.stream({ model: 'User', slug: 'test', when: { created: {}, deleted: {} } }),
     )
 
     if (event.type === 'created') {
@@ -148,7 +148,7 @@ describe('beforeAfter', () => {
 
   test('has a row after once deleted events are excluded', () => {
     const event = eventOf(
-      live.stream({ model: 'User', id: 'test', when: { created: {}, updated: {}, deleted: {} } }),
+      live.stream({ model: 'User', slug: 'test', when: { created: {}, updated: {}, deleted: {} } }),
     )
 
     if (event.type !== 'deleted') {
@@ -158,7 +158,7 @@ describe('beforeAfter', () => {
 
   test('covers every event type', () => {
     const event = eventOf(
-      live.stream({ model: 'User', id: 'test', when: { created: {}, updated: {}, deleted: {} } }),
+      live.stream({ model: 'User', slug: 'test', when: { created: {}, updated: {}, deleted: {} } }),
     )
 
     expectTypeOf(beforeAfter(event)).toEqualTypeOf<

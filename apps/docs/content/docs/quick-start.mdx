@@ -1,0 +1,252 @@
+---
+title: Quick Start
+description: Run the infrastructure, open a stream, and see your first event.
+icon: Rocket
+---
+
+import { Workflow, WavesHorizontal, ListFilter, Bug } from 'lucide-react'
+
+import { Step, Steps } from 'fumadocs-ui/components/steps'
+
+This guide assumes you already have a ZenStack project using Postgres. By the end, you'll have a script that prints every new user, including users created outside of ZenStack.
+
+<Steps>
+<Step>
+
+### Install LIVE
+
+```package-install
+@visualbravo/zenstack-live
+```
+
+</Step>
+<Step>
+
+### Start Postgres, Debezium, and Redis
+
+Save this as `docker-compose.yaml`. It's the setup the project is tested against. Postgres needs `wal_level=logical`, and most of the Debezium settings need to stay as they are, because LIVE expects them. See [Deploying to Production](/docs/deployment/debezium) for which ones.
+
+```yaml title="docker-compose.yaml"
+volumes:
+  postgres-data:
+  redis-data:
+
+services:
+  postgres:
+    image: postgres:12.0
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    command:
+      - 'postgres'
+      - '-c'
+      - 'wal_level=logical'
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  debezium:
+    image: debezium/server:3.0.0.Final
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_USER: default
+      DEBEZIUM_FORMAT_SCHEMAS_ENABLE: false
+      DEBEZIUM_SINK_REDIS_ADDRESS: redis:6379
+      DEBEZIUM_SINK_REDIS_PASSWORD:
+      DEBEZIUM_SINK_REDIS_SSL_ENABLED: false
+      DEBEZIUM_SINK_REDIS_WAIT_RETRY_ENABLED: true
+      DEBEZIUM_SINK_TYPE: redis
+      DEBEZIUM_SOURCE_CONNECTOR_CLASS: io.debezium.connector.postgresql.PostgresConnector
+      DEBEZIUM_SOURCE_DATABASE_DBNAME: postgres
+      DEBEZIUM_SOURCE_DATABASE_HOSTNAME: postgres
+      DEBEZIUM_SOURCE_DATABASE_PASSWORD: postgres
+      DEBEZIUM_SOURCE_DATABASE_PORT: 5432
+      DEBEZIUM_SOURCE_DATABASE_SERVER_NAME: zenstack
+      DEBEZIUM_SOURCE_DATABASE_USER: postgres
+      DEBEZIUM_SOURCE_PLUGIN_NAME: pgoutput
+      DEBEZIUM_SOURCE_PUBLICATION_AUTOCREATE_MODE: no_tables
+      DEBEZIUM_SOURCE_PUBLICATION_NAME: zenstack_live
+      DEBEZIUM_SOURCE_SNAPSHOT_MODE: no_data
+      DEBEZIUM_SOURCE_TOPIC_PREFIX: zenstack.table
+      DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL: io.debezium.storage.redis.history.RedisSchemaHistory
+      DEBEZIUM_SOURCE_OFFSET_STORAGE: io.debezium.storage.redis.offset.RedisOffsetBackingStore
+      DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY: zenstack.metadata.offsets
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/q/health']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2
+    volumes:
+      - redis-data:/data
+    command: redis-server
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping | grep PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+```
+
+```bash
+docker compose up -d
+```
+
+</Step>
+<Step>
+
+### Define a model
+
+```prisma title="schema.zmodel"
+datasource db {
+  provider = 'postgresql'
+  url = env('POSTGRES_URL')
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+}
+```
+
+<Callout
+  type='warn'
+  title='Keep the @db.Timestamp(6)'
+>
+  Without it, ZenStack creates a `TIMESTAMP(3)` column, which LIVE turns into a date in January
+  1970. `Decimal` fields need `@db.Decimal` for a similar reason. See [Column
+  Types](/docs/reference/limitations#column-types).
+</Callout>
+
+Generate the schema and create the table:
+
+```bash
+export POSTGRES_URL=postgresql://postgres:postgres@localhost:5432/postgres
+
+npx zen generate --schema ./schema.zmodel --output ./zenstack
+npx zen db push --schema ./schema.zmodel
+```
+
+</Step>
+<Step>
+
+### Open a stream
+
+Install the Postgres driver, if you don't have it already:
+
+```package-install
+pg kysely
+```
+
+Then create the script:
+
+```typescript title="live.ts"
+import { ZenStackClient } from '@zenstackhq/orm'
+import { ZenStackLive } from '@visualbravo/zenstack-live'
+import { PostgresDialect } from 'kysely'
+import { Pool } from 'pg'
+import { schema } from './zenstack/schema'
+
+const client = new ZenStackClient(schema, {
+  dialect: new PostgresDialect({
+    pool: new Pool({
+      connectionString: process.env.POSTGRES_URL,
+    }),
+  }),
+})
+
+const live = new ZenStackLive({
+  client,
+
+  redis: {
+    url: process.env.REDIS_URL!,
+  },
+})
+
+const newUserStream = live.stream({
+  model: 'User',
+  slug: 'log-new-users',
+
+  when: {
+    created: {},
+  },
+})
+
+for await (const event of newUserStream) {
+  const user = event.created
+  //    ^ typed as your `User` model
+
+  console.log(`${user.name} signed up at ${user.createdAt.toISOString()}`)
+}
+```
+
+Run it, and leave it running:
+
+```bash
+export REDIS_URL=redis://localhost:6379
+
+npx tsx live.ts
+```
+
+</Step>
+<Step>
+
+### Make a change
+
+In a second terminal, insert a row directly with `psql`, so that ZenStack isn't involved at all:
+
+```bash
+docker compose exec postgres psql -U postgres -c \
+  "INSERT INTO \"User\" (id, email, name) VALUES ('1', 'ada@example.com', 'Ada')"
+```
+
+Your script prints the new user. Now stop it, insert another row, and start it again. That user shows up too, because the stream picks up where it left off.
+
+</Step>
+</Steps>
+
+## Next Steps
+
+<Cards>
+  <Card
+    icon={<Workflow />}
+    title='How it Works'
+    href='/docs/how-it-works'
+    description="What's happening between Postgres and your loop."
+  />
+  <Card
+    icon={<WavesHorizontal />}
+    title='Creating Streams'
+    href='/docs/guides/streams'
+    description='Slugs, stream identity, and running several streams.'
+  />
+  <Card
+    icon={<ListFilter />}
+    title='Filtering Events'
+    href='/docs/guides/filtering'
+    description='Only receive the events you care about.'
+  />
+  <Card
+    icon={<Bug />}
+    title='Handling Errors'
+    href='/docs/guides/error-handling'
+    description='What your handlers need to do before you ship.'
+  />
+</Cards>

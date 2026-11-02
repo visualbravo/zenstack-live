@@ -1,0 +1,35 @@
+---
+title: Retention
+description: How long events are kept in Redis, and how old ones are trimmed.
+icon: Clock
+---
+
+Events are kept in Redis for 24 hours by default. Every stream on a model reads the same events, so they're removed by age, and not when they're consumed.
+
+```typescript
+const DAY = 24 * 60 * 60 * 1000
+
+const live = new ZenStackLive({
+  client,
+  retention: 3 * DAY,
+
+  redis: {
+    url: process.env.REDIS_URL!,
+  },
+})
+```
+
+`retention` is how long a stream can be offline and still catch up. Anything older is gone: a stream that's offline for longer misses what it didn't read, and events waiting to be retried are dropped. The cost of a longer `retention` is memory, which depends on how much your captured tables change, whether or not anyone is reading.
+
+`retention` is set per `ZenStackLive`, and can't be set per stream. If several services read the same table with different values, the shortest one takes effect while that service is running, so give them all the same value.
+
+## How Trimming Works
+
+Old events are removed once a minute in two places:
+
+- **Each running stream** trims its own table, using its `retention`.
+- **Each `ZenStackLive`** trims every published table in the background. It keeps events for the longest `retention` recorded for that table, or its own if there are none, so it covers tables whose streams aren't running.
+
+So you never need to do anything to keep Redis from growing. What a deleted stream leaves behind can't outgrow `retention`.
+
+The exception is when you remove LIVE altogether. With no instance running, nothing trims, and Debezium keeps writing. Run [`prune`](/docs/deployment/pruning) first.

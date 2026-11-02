@@ -1,9 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": [
-    "typescript",
-    "react"
-  ],
+  "plugins": ["typescript", "react"],
   "categories": {
     "correctness": "warn",
     "pedantic": "warn",
@@ -14,22 +11,31 @@
     "nursery": "warn"
   },
   "globals": {
-    "Bun": "readonly",
-    "umami": "readonly"
+    "Bun": "readonly"
   },
   "env": {
     "builtin": true
   },
   "rules": {
     "eslint/sort-keys": "off",
+    "eslint/sort-vars": "off",
+    "eslint/one-var": "off",
     "eslint/func-style": "off",
     "eslint/no-ternary": "off",
     "eslint/id-length": "off",
+    "eslint/complexity": "off",
     "eslint/no-undefined": "off",
     "eslint/no-empty-function": "off",
     "eslint/no-continue": "off",
+    "eslint/no-nested-ternary": "off",
     "eslint/max-depth": "off",
+    "eslint/no-alert": "off",
+    "eslint/no-inline-comments": "off",
+    "react/hook-use-state": "off",
+    "react/hooks": "off",
     "eslint/max-statements": "off",
+    "react/jsx-no-literals": "off",
+    "eslint/no-use-before-define": "off",
     "eslint/no-implicit-coercion": "off",
     "eslint/no-plusplus": "off",
     "eslint/init-declarations": "off",
@@ -37,7 +43,9 @@
     "eslint/max-lines": "off",
     "react/only-export-components": "off",
     "react/jsx-filename-extension": ["error", { "extensions": [".jsx", ".tsx"] }],
+    "react/jsx-max-depth": "off",
     "react/jsx-props-no-spreading": "off",
+    "react/forbid-component-props": "off",
     "@typescript-eslint/ban-ts-comment": "off",
     "@typescript-eslint/no-empty-interface": "off",
     "typescript/consistent-type-definitions": "off",
@@ -96,18 +104,19 @@
     "**/.turbo/*",
     "**/.out/*",
     "**/.nitro/*",
-    "packages/database/src/.generated/*",
+    "packages/database/src/input.ts",
+    "packages/database/src/models.ts",
+    "packages/database/src/schema.ts",
+    "packages/database/src/schema-lite.ts",
     "packages/ui/src/*",
     "apps/next/src/payload/types.ts",
-    "apps/next/src/app/(payload)/*",
+    "apps/next/src/app/(payload)/**/*",
     "apps/start/.wrangler/*",
     "apps/start/src/routeTree.gen.ts"
   ],
   "overrides": [
     {
-      "files": [
-        "**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"
-      ],
+      "files": ["**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
       "rules": {
         "for-direction": "error",
         "no-async-promise-executor": "error",
@@ -165,9 +174,7 @@
       }
     },
     {
-      "files": [
-        "**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"
-      ],
+      "files": ["**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
       "env": {
         "browser": true,
         "commonjs": true,
@@ -176,12 +183,7 @@
       }
     },
     {
-      "files": [
-        "**/*.ts",
-        "**/*.tsx",
-        "**/*.mts",
-        "**/*.cts"
-      ],
+      "files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
       "rules": {
         "no-class-assign": "off",
         "no-const-assign": "off",

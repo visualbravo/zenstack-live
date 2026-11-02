@@ -3,20 +3,19 @@
 import type { SchemaDef, GetModels } from '@zenstackhq/schema'
 import type { LiveStreamOptions, LiveStreamWhen, RecordEvent } from '.'
 import { QueryCompiler } from './query-compiler'
-import { z } from 'zod/v4'
 
 export type EventDiscriminatorOptions<
   Schema extends SchemaDef,
   ModelName extends GetModels<Schema>,
-> = Omit<LiveStreamOptions<Schema, ModelName>, 'redis' | 'id' | 'clientId'>
+> = Omit<LiveStreamOptions<Schema, ModelName>, 'redis' | 'slug' | 'clientId'>
 
 export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetModels<Schema>> {
   private readonly when: LiveStreamWhen<Schema, ModelName>
   private readonly queryCompiler: QueryCompiler<Schema, ModelName>
-  private readonly createdSchema?: z.ZodSchema
-  private readonly updatedBeforeSchema?: z.ZodSchema
-  private readonly updatedAfterSchema?: z.ZodSchema
-  private readonly deletedSchema?: z.ZodSchema
+  private readonly createdSchema?: (payload: unknown) => boolean
+  private readonly updatedBeforeSchema?: (payload: unknown) => boolean
+  private readonly updatedAfterSchema?: (payload: unknown) => boolean
+  private readonly deletedSchema?: (payload: unknown) => boolean
 
   constructor(streamOptions: EventDiscriminatorOptions<Schema, ModelName>) {
     const { when = {} } = streamOptions
@@ -28,7 +27,7 @@ export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetM
         : { created: {}, updated: {}, deleted: {} }
 
     this.queryCompiler = new QueryCompiler({
-      schema: streamOptions.client.$schema,
+      client: streamOptions.client,
       modelName: streamOptions.model,
     })
 
@@ -55,24 +54,24 @@ export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetM
     }
 
     if (event.type === 'created' && this.createdSchema) {
-      return this.createdSchema.safeParse(event.created).success
+      return this.createdSchema(event.created)
     } else if (event.type === 'deleted' && this.deletedSchema) {
-      return this.deletedSchema.safeParse(event.deleted).success
+      return this.deletedSchema(event.deleted)
     } else if (event.type === 'updated') {
       if (this.updatedBeforeSchema && this.updatedAfterSchema) {
         return (
-          this.updatedBeforeSchema.safeParse(event.updated.before).success &&
-          this.updatedAfterSchema.safeParse(event.updated.after).success
+          this.updatedBeforeSchema(event.updated.before) &&
+          this.updatedAfterSchema(event.updated.after)
         )
       } else if (this.updatedBeforeSchema && !this.updatedAfterSchema) {
         return (
-          this.updatedBeforeSchema.safeParse(event.updated.before).success &&
-          !this.updatedBeforeSchema.safeParse(event.updated.after).success
+          this.updatedBeforeSchema(event.updated.before) &&
+          !this.updatedBeforeSchema(event.updated.after)
         )
       } else if (!this.updatedBeforeSchema && this.updatedAfterSchema) {
         return (
-          this.updatedAfterSchema.safeParse(event.updated.after).success &&
-          !this.updatedAfterSchema.safeParse(event.updated.before).success
+          this.updatedAfterSchema(event.updated.after) &&
+          !this.updatedAfterSchema(event.updated.before)
         )
       } else if (!this.updatedBeforeSchema && !this.updatedAfterSchema) {
         return true

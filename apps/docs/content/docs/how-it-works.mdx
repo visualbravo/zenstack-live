@@ -1,0 +1,58 @@
+---
+title: How it Works
+description: The path a change takes from Postgres to your loop.
+icon: Workflow
+---
+
+LIVE doesn't sit between your app and the database. It reads Postgres's own change log through [Debezium](https://debezium.io), which is why it sees every change, whether it came from ZenStack, a migration, or someone with a `psql` prompt.
+
+```text
+Postgres ──▶ Debezium ──▶ Redis ──▶ LIVE ──▶ your for await loop
+   WAL      publication   stream   filter
+```
+
+1. **LIVE publishes the table.** When you create a stream, LIVE adds its table to a Postgres publication called `zenstack_live`.
+2. **Debezium captures the change.** It reads the publication through a replication slot, and writes each insert, update, and delete to a Redis stream.
+3. **LIVE reads the event.** Each of your streams reads from Redis, converts the row to the types your model expects, and compares it against your filter.
+4. **Your loop receives it.** Events that match are yielded to your `for await` loop. Events that don't are acknowledged and skipped.
+
+## What Lives Where
+
+"Stream" means two things here. A **LIVE stream** is what `live.stream()` returns. A **Redis stream** is the log that events are stored in. There's one Redis stream per table, and any number of LIVE streams can read from it.
+
+| Name                                     | What it is                                                                      |
+| ---------------------------------------- | ------------------------------------------------------------------------------- |
+| `zenstack_live`                          | The Postgres publication that lists captured tables.                            |
+| `zenstack.table.<schema>.<table>`        | The Redis stream that holds a table's events.                                   |
+| `zenstack.table.<schema>.<table>.<hash>` | The consumer group of one LIVE stream. It tracks what that stream has read.     |
+| `zenstack.<id>`                          | The consumer that a `ZenStackLive` instance reads as.                           |
+| `zenstack.metadata.streams`              | A Redis hash that records each stream, for [`prune`](/docs/deployment/pruning). |
+| `zenstack.metadata.offsets`              | Debezium's position in the database's log.                                      |
+
+## What Creating a Stream Does
+
+Creating a stream changes both Redis and your database, and it starts as soon as you call `live.stream()`, before you begin iterating:
+
+1. It creates a consumer group, positioned at the end of the Redis stream.
+2. It records the stream in `zenstack.metadata.streams`.
+3. It sets the table to `REPLICA IDENTITY FULL`, so that Postgres logs the full previous row. That's what makes `before` available on updates and deletes.
+4. It adds the table to `zenstack_live`, creating the publication if it doesn't exist.
+
+That has a few consequences:
+
+- **You don't list your tables anywhere.** A table is captured because a stream asked for it.
+- **A new stream only sees what happens after it's created.** Changes made before a table's first stream were never captured, and a new stream on a table that's already captured still starts from the end.
+- **Your database user needs more than the usual permissions.** It has to own your tables, and be able to create and own the publication.
+- **Writes get a little heavier.** `REPLICA IDENTITY FULL` logs whole rows, so updates and deletes on captured tables take up more space in the WAL.
+
+## Why Events Survive Downtime
+
+Nothing about a stream lives in your process. Debezium's position is stored in Redis, and so is what each consumer group has read. If your server goes down, Debezium keeps writing events to Redis, and your stream carries on from where it was once it's back, as long as it's within [`retention`](/docs/deployment/retention).
+
+If Debezium goes down, Postgres holds on to its log until Debezium reconnects, so nothing is lost there either. That log takes up disk space in the meantime, which is worth [monitoring](/docs/deployment/postgres).
+
+## Delivery Guarantees
+
+Delivery is **at-least-once**. An event is acknowledged when your loop asks for the next one, so an event whose handler didn't finish is delivered again. That's why [your handlers need to be idempotent](/docs/guides/error-handling).
+
+Events from one table arrive in the order Debezium wrote them, with two exceptions: retries arrive after the events around them have moved on, and several instances share the work between them. There's no ordering between tables, so compare `event.date` if the order matters.

@@ -1,0 +1,119 @@
+---
+title: Creating Streams
+description: Slugs, stream identity, and running several streams at once.
+icon: WavesHorizontal
+---
+
+A stream is an async iterable of the changes to one model.
+
+```typescript
+const stream = live.stream({
+  model: 'Order',
+  slug: 'send-delivered-email',
+
+  when: {
+    updated: {
+      after: { status: 'DELIVERED' },
+    },
+  },
+})
+
+for await (const event of stream) {
+  // ...
+}
+```
+
+Only `model` and `slug` are required. All of the options are listed in the [API Reference](/docs/reference/api#livestream).
+
+## Stream Identity
+
+A stream is identified by its `slug`, `model`, and `when`. Together, they decide which consumer group it reads from, and that decides what it has already seen.
+
+| If you...                                 | Then...                                                                                                                      |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Restart with the same options             | The stream picks up where it left off.                                                                                       |
+| Run the same options in several processes | They share the work, and each event goes to [one of them](/docs/deployment/scaling).                                         |
+| Use a different slug                      | It's a separate stream that gets its own copy of every event.                                                                |
+| Change `when`                             | It's a new stream. It starts from new events, and the old one is left behind until you [prune it](/docs/deployment/pruning). |
+| Change `consume` or `timeout`             | Nothing changes. They aren't part of a stream's identity.                                                                    |
+
+<Callout type="warn" title="Keep filters stable">
+  Anything computed in `when` becomes part of the stream's identity. A filter like `{ createdAt: { gt: new Date() } }` is different every time your process starts, so you'd get a new stream on every restart, and lose whatever happened while you were down.
+</Callout>
+
+Name slugs after what the stream does, like `send-welcome-email`, and not what it reads. Several features can then read the same table without getting in each other's way.
+
+## Running Several Streams
+
+A `for await` loop runs until the stream ends, so anything after it never runs. Give each stream its own async function:
+
+```typescript
+async function sendWelcomeEmails() {
+  for await (const event of live.stream({
+    model: 'User',
+    slug: 'send-welcome-email',
+    when: { created: {} },
+  })) {
+    await sendEmail(event.created)
+  }
+}
+
+async function auditPatients() {
+  for await (const event of live.stream({
+    model: 'Patient',
+    slug: 'audit-log',
+  })) {
+    await writeAuditLog(event)
+  }
+}
+
+await Promise.all([sendWelcomeEmails(), auditPatients()])
+```
+
+Events within a stream are handled one at a time. Your loop only gets the next one once your handler is done, so a slow handler slows that stream down, but not the others.
+
+Streams created by one `ZenStackLive` share a single Redis connection, and a stream on a quiet table holds it for up to 2 seconds per read. That's fine for a few streams, but if you have many of them and care about latency, split them across several `ZenStackLive` instances.
+
+## Choosing What to Consume
+
+`consume` decides which events a particular instance reads:
+
+| Value     | Reads                                                            |
+| --------- | ---------------------------------------------------------------- |
+| `all`     | Unacknowledged events first, then new ones. This is the default. |
+| `new`     | Only events that haven't been delivered yet. Nothing is retried. |
+| `errored` | Only events that were delivered, but never acknowledged.         |
+
+Since `consume` isn't part of a stream's identity, you can use it to split the work. For example, one service can handle new events while another retries the failures on its own schedule:
+
+```typescript
+// In your main worker.
+live.stream({ model: 'Order', slug: 'fulfillment', consume: 'new' })
+
+// In a separate retry worker.
+live.stream({ model: 'Order', slug: 'fulfillment', consume: 'errored', timeout: 60_000 })
+```
+
+## Stopping a Stream
+
+The loop ends on its own when its Redis connection is no longer ready, without throwing, so don't assume that it runs forever. It's safest to let the process exit when that happens, and have your process manager start it again:
+
+```typescript
+async function run() {
+  for await (const event of stream) {
+    await handle(event)
+  }
+}
+
+run()
+  .catch(error => console.error(error))
+  .finally(() => process.exit(1))
+```
+
+To shut down on purpose, call `live.disconnect()`. Your loop then either ends or rejects, depending on what it was doing at the time, so handle both. An event that's in progress is delivered again later.
+
+```typescript
+process.once('SIGTERM', () => live.disconnect())
+```
+
+If you leave a loop early with `break` or `return`, the current event is left unacknowledged, along with the rest of its batch, which can be up to 5 events. They're retried after `timeout`, unless the stream uses `consume: 'new'`.

@@ -1,0 +1,36 @@
+---
+title: Audit Logging
+description: Record every change to a model, including ones made outside your app.
+icon: ScrollText
+---
+
+Leaving out `when` listens for all events.
+
+```typescript
+import { beforeAfter } from '@visualbravo/zenstack-live'
+
+const patientStream = live.stream({
+  model: 'Patient',
+  slug: 'audit-log',
+})
+
+for await (const event of patientStream) {
+  const { before, after } = beforeAfter(event)
+
+  await client.auditLog.upsert({
+    where: { eventId: event.id },
+    update: {},
+
+    create: {
+      before,
+      after,
+      eventId: event.id,
+      model: 'Patient',
+      operation: event.type,
+      occurredAt: event.date,
+    },
+  })
+}
+```
+
+This also records changes made outside of your app. With a unique `eventId`, the upsert makes retries harmless.

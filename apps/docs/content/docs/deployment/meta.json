@@ -1,0 +1,14 @@
+{
+  "title": "Deployment",
+  "icon": "Server",
+  "pages": [
+    "postgres",
+    "debezium",
+    "redis",
+    "workers",
+    "schema-changes",
+    "scaling",
+    "retention",
+    "pruning"
+  ]
+}

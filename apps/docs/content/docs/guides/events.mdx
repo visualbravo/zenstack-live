@@ -1,0 +1,101 @@
+---
+title: Reading Events
+description: What's in an event, and how field values are converted.
+icon: Braces
+---
+
+Every event has the same base fields, plus a field named after its type that holds the record.
+
+```typescript
+for await (const event of stream) {
+  event.type // 'created', 'updated', or 'deleted'
+  event.id // Unique, and stays the same if the event is delivered again.
+  event.transactionId // The Postgres transaction that made the change.
+  event.date // When Debezium processed the change.
+
+  if (event.type === 'created') {
+    event.created // The new record.
+  } else if (event.type === 'updated') {
+    event.updated.before // The record before the update.
+    event.updated.after // The record after the update.
+  } else {
+    event.deleted // The record as it was when it was deleted.
+  }
+}
+```
+
+If your stream only asks for one event type, the checks aren't needed, because the type of `event` already matches your [`when`](/docs/guides/filtering#choosing-event-types).
+
+## beforeAfter
+
+When you want to treat every event the same way, `beforeAfter` gives you one shape to work with.
+
+```typescript
+import { beforeAfter } from '@visualbravo/zenstack-live'
+
+for await (const event of stream) {
+  const { before, after } = beforeAfter(event)
+}
+```
+
+| Event     | `before`       | `after`        |
+| --------- | -------------- | -------------- |
+| `created` | `null`         | The new record |
+| `updated` | The old record | The new record |
+| `deleted` | The old record | `null`         |
+
+The result is fully typed, and follows the event. So once you've checked `before === null`, TypeScript knows that `after` is a record.
+
+## Field Values
+
+Records are converted to the same types that a ZenStack query returns.
+
+| Field type        | Value                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| `String`, enums   | `string`                                                                           |
+| `Int`, `Float`    | `number`                                                                           |
+| `Boolean`         | `boolean`                                                                          |
+| `BigInt`          | `bigint`                                                                           |
+| `Decimal`         | `Decimal`, from `decimal.js`                                                       |
+| `DateTime`        | `Date`                                                                             |
+| `Bytes`           | `Uint8Array`                                                                       |
+| `Json`            | The parsed value                                                                   |
+| Custom JSON types | The parsed value, with nested `BigInt`, `Decimal`, and `DateTime` fields converted |
+| Arrays            | An array of the above. `NULL` becomes `[]`.                                        |
+
+<Callout
+  type='warn'
+  title='Check your column types'
+>
+  `DateTime` and `Decimal` fields only convert correctly with `@db.Timestamp(6)` and `@db.Decimal`.
+  See [Column Types](/docs/reference/limitations#column-types).
+</Callout>
+
+## What Events Don't Contain
+
+- **Relations.** An event describes one row, so `post.author` isn't there. Use `post.authorId` to look it up.
+- **Computed fields.** They only exist in queries, so they're `null`, whatever their type says.
+
+If you need either of those, query for them in your handler. Keep in mind that the database may have moved on since the event, and the record might not even exist anymore. An event is a snapshot of one record at one moment.
+
+```typescript
+for await (const event of stream) {
+  const author = await client.user.findUnique({
+    where: { id: event.created.authorId },
+  })
+
+  if (!author) {
+    continue
+  }
+
+  // ...
+}
+```
+
+## Transactions
+
+Rows changed in the same transaction arrive as separate events with the same `transactionId`. LIVE doesn't group them, but you can use it to treat them as one change, like skipping work you've already done for that transaction.
+
+## Timing
+
+`event.date` is when Debezium processed the change, which is typically a fraction of a second after it was committed. It's the closest thing to when a change happened, and unlike the time your handler runs, it doesn't drift when your stream is catching up.

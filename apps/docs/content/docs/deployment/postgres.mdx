@@ -1,0 +1,33 @@
+---
+title: Postgres
+description: Version, WAL level, and the database users LIVE and Debezium need.
+icon: Database
+---
+
+- **Version:** 12 or later, with [logical replication](https://www.postgresql.org/docs/current/logical-replication.html).
+- **`wal_level`:** This must be `logical`. It's set at startup, so changing it needs a restart. Managed providers usually expose it as a setting, sometimes called "logical replication" or "logical decoding".
+
+LIVE and Debezium each connect with a database user, and they have different needs.
+
+| User     | Needs                                                                                                                                                                 |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| LIVE     | To own your tables, for `ALTER TABLE ... REPLICA IDENTITY FULL`, and to create and own the `zenstack_live` publication. This is the user of the `client` you pass in. |
+| Debezium | The `REPLICATION` attribute, plus `SELECT` on captured tables.                                                                                                        |
+
+With `no_tables`, Debezium may create the publication itself if it starts first, and then it belongs to Debezium's user. Using the same user for both is the simplest way to avoid that. Otherwise, create the publication ahead of time, as the user LIVE connects with:
+
+```sql
+CREATE PUBLICATION zenstack_live;
+```
+
+<Callout
+  type='warn'
+  title='Watch your disk'
+>
+  Debezium reads through a replication slot, and Postgres keeps WAL until the slot has read it. If
+  Debezium stays down, WAL builds up until the disk is full. Monitor slot lag with
+  `pg_replication_slots`, and consider `max_slot_wal_keep_size`, which is available from Postgres
+  13. It caps the WAL, at the cost of Debezium losing its place if the cap is hit.
+</Callout>
+
+Don't drop the `zenstack_live` publication while Debezium is using it. A replication slot looks up publications as of the WAL it's reading, so one that's been dropped stops the slot for good, even once it's recreated. To stop capturing a table, use [`prune`](/docs/deployment/pruning).

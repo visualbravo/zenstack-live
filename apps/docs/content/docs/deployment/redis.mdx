@@ -1,0 +1,11 @@
+---
+title: Redis
+description: Why Redis needs to be treated like a database.
+icon: HardDrive
+---
+
+Version 7.2 or later. Redis isn't a cache in this setup. It holds your events, each stream's position, and Debezium's offset, so treat it like a database:
+
+- **Turn on persistence.** Losing Redis means losing undelivered events and Debezium's place in the log.
+- **Use `noeviction`.** An eviction policy could quietly remove streams or metadata.
+- **Size it for `retention`.** Memory depends on how much your captured tables change, and how long you [keep events](/docs/deployment/retention).
