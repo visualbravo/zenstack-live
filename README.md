@@ -73,7 +73,7 @@ const live = new ZenStackLive({
 
 ### Database Schemas
 
-Models are read from wherever ZenStack puts them, so `@@schema`, `defaultSchema`, and `@@map` all work without any configuration.
+Models are read from wherever ZenStack puts them, so `@@schema`, `defaultSchema`, `@@map`, and `@map` all work without any configuration. Events and filters always use the names in your schema, including for enum values.
 
 ### Captured Tables
 

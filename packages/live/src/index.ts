@@ -1,6 +1,6 @@
 /* eslint-disable */
 
-import type { SchemaDef, GetModels, FieldDef } from '@zenstackhq/schema'
+import type { AttributeApplication, SchemaDef, GetModels, FieldDef } from '@zenstackhq/schema'
 import {
   AnyNullClass,
   DbNullClass,
@@ -255,6 +255,8 @@ export class LiveStream<
   private readonly discriminator: EventDiscriminator<Schema, ModelName>
   private readonly timeout: number
   private readonly retention: number
+  private readonly mappedFields: [fieldName: string, column: string][]
+  private readonly enumNames: Map<string, Map<string, string>>
   private trimmedAt = 0
 
   readonly id: string
@@ -277,6 +279,8 @@ export class LiveStream<
     this.streamName = `${STREAM_PREFIX}${this.databaseSchema}.${this.tableName}`
     this.consumerName = `zenstack.${options.clientId}`
     this.consumerGroupName = `${this.streamName}.${hashed}`
+    this.mappedFields = getMappedFields(options.client.$schema, options.model)
+    this.enumNames = getEnumNames(options.client.$schema)
     this.discriminator = new EventDiscriminator(options)
     this.id = hashed
 
@@ -452,10 +456,26 @@ export class LiveStream<
     }
   }
 
+  // Every column is read before any field is written, because a field can be mapped to a column with
+  // the name of another field, or of a column that isn't in the schema.
+  private renameColumns(payload: any) {
+    const values = this.mappedFields.map(([fieldName, column]) => {
+      const value = payload[column]
+
+      delete payload[column]
+
+      return [fieldName, value]
+    })
+
+    Object.assign(payload, Object.fromEntries(values))
+  }
+
   private hydratePayload(payload: any) {
     const sources: Record<string, unknown> = {}
 
     Object.defineProperty(payload, sourceValues, { value: sources })
+
+    this.renameColumns(payload)
 
     for (const [fieldName, field] of Object.entries(
       this.options.client.$schema.models[this.modelName]!.fields,
@@ -525,6 +545,15 @@ export class LiveStream<
               ? (payload[fieldName] as string[]).map(value => debeziumBytes(value))
               : debeziumBytes(payload[fieldName])
             break
+          default: {
+            const names = this.enumNames.get(field.type)
+
+            if (names) {
+              payload[fieldName] = field.array
+                ? (payload[fieldName] as string[]).map(value => names.get(value) ?? value)
+                : (names.get(payload[fieldName]) ?? payload[fieldName])
+            }
+          }
         }
       }
     }
@@ -1093,10 +1122,14 @@ function quoteLiteral(value: string) {
   return `'${value.replaceAll("'", "''")}'`
 }
 
-function getModelAttribute(schema: SchemaDef, model: string, attribute: string, arg: string) {
-  const value = schema.models[model]!.attributes?.find(
-    ({ name }) => name === attribute,
-  )?.args?.find(({ name }) => name === arg)?.value
+function getAttribute(
+  definition: { attributes?: readonly AttributeApplication[] },
+  attribute: string,
+  arg: string,
+) {
+  const value = definition.attributes
+    ?.find(({ name }) => name === attribute)
+    ?.args?.find(({ name }) => name === arg)?.value
 
   return value?.kind === 'literal' ? String(value.value) : undefined
 }
@@ -1104,12 +1137,49 @@ function getModelAttribute(schema: SchemaDef, model: string, attribute: string, 
 // These follow how ZenStack resolves a model, because Debezium names streams after the real table.
 function getDatabaseSchema(schema: SchemaDef, model: string) {
   return (
-    getModelAttribute(schema, model, '@@schema', 'map') ?? schema.provider.defaultSchema ?? 'public'
+    getAttribute(schema.models[model]!, '@@schema', 'map') ??
+    schema.provider.defaultSchema ??
+    'public'
   )
 }
 
 function getTableName(schema: SchemaDef, model: string) {
-  return getModelAttribute(schema, model, '@@map', 'name') ?? model
+  return getAttribute(schema.models[model]!, '@@map', 'name') ?? model
+}
+
+// Debezium keys events by column, and sends enums as they're stored, where ZenStack's `@map` applies.
+function getMappedFields(schema: SchemaDef, model: string) {
+  const mappedFields: [fieldName: string, column: string][] = []
+
+  for (const [fieldName, field] of Object.entries(schema.models[model]!.fields)) {
+    const column = getAttribute(field, '@map', 'name')
+
+    if (column !== undefined && column !== fieldName && !field.relation) {
+      mappedFields.push([fieldName, column])
+    }
+  }
+
+  return mappedFields
+}
+
+function getEnumNames(schema: SchemaDef) {
+  const enumNames = new Map<string, Map<string, string>>()
+
+  for (const [enumName, { fields = {} }] of Object.entries(schema.enums ?? {})) {
+    const names = new Map<string, string>()
+
+    for (const [name, field] of Object.entries(fields)) {
+      const value = getAttribute(field, '@map', 'name')
+
+      if (value !== undefined) {
+        names.set(value, name)
+      }
+    }
+
+    enumNames.set(enumName, names)
+  }
+
+  return enumNames
 }
 
 // `stable-hash` tells objects apart with a counter unless they're plain, and that differs between

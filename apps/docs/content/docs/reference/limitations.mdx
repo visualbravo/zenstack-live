@@ -15,19 +15,6 @@ There are still some things missing or broken. Please [open an issue](https://gi
 - `Decimal[] @db.Money` is always `[]`, because Debezium doesn't capture `MONEY[]` columns.
 - A `DateTime` that's `infinity` or `-infinity` in Postgres is an `Invalid Date`, because a `Date` can't represent it.
 
-## Field Mapping
-
-`@@map` and `@@schema` on a model work without any configuration. `@map` on a field doesn't. Events are keyed by column name, and LIVE reads them by field name, so a mapped field comes through as `null`, and its value ends up under the column's name, which isn't in the type:
-
-```prisma
-model User {
-  id        String @id
-  firstName String @map("first_name") // Always `null` in events, and in filters.
-}
-```
-
-Enum values that use `@map` likewise arrive as their database value, and not their name in your schema.
-
 ## Postgres Only
 
 Actually, that might not be totally true. Debezium has MySQL support, but this project has not been tested with it. Want to help? Give it a try and tell us how it goes.
