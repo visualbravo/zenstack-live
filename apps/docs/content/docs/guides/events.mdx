@@ -63,14 +63,6 @@ Records are converted to the same types that a ZenStack query returns.
 | Custom JSON types | The parsed value, with nested `BigInt`, `Decimal`, and `DateTime` fields converted |
 | Arrays            | An array of the above. `NULL` becomes `[]`.                                        |
 
-<Callout
-  type='warn'
-  title='Check your column types'
->
-  `DateTime` and `Decimal` fields only convert correctly with `@db.Timestamp(6)` and `@db.Decimal`.
-  See [Column Types](/docs/reference/limitations#column-types).
-</Callout>
-
 ## What Events Don't Contain
 
 - **Relations.** An event describes one row, so `post.author` isn't there. Use `post.authorId` to look it up.

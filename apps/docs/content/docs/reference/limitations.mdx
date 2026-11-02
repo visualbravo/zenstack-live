@@ -10,38 +10,10 @@ There are still some things missing or broken. Please [open an issue](https://gi
 
 ## Column Types
 
-Debezium encodes a column based on its exact type, and LIVE currently only understands some of those encodings. The column types that `zen db push` and `zen migrate` create by default for `DateTime` and `Decimal` aren't among them, so these fields need a native type attribute:
+`DateTime` and `Decimal` work with every column type that ZenStack can map them to, with or without a native type attribute, but there are two exceptions:
 
-```prisma
-model Invoice {
-  id        String     @id @default(cuid())
-  total     Decimal    @db.Decimal
-  createdAt DateTime   @default(now()) @db.Timestamp(6)
-  reminders DateTime[] @db.Timestamp(6)
-}
-```
-
-| Field                         | Column           | Result                                                                                        |
-| ----------------------------- | ---------------- | --------------------------------------------------------------------------------------------- |
-| `DateTime @db.Timestamp(6)`   | `TIMESTAMP(6)`   | ✅ Correct.                                                                                   |
-| `DateTime`                    | `TIMESTAMP(3)`   | ❌ No error, but the date is wrong, somewhere in January 1970. Date filters are affected too. |
-| `DateTime @db.Timestamptz(3)` | `TIMESTAMPTZ(3)` | ❌ `Invalid Date`.                                                                            |
-| `Decimal @db.Decimal`         | `DECIMAL`        | ✅ Correct, with full precision.                                                              |
-| `Decimal`                     | `DECIMAL(65,30)` | ❌ Any non-null value throws while reading the event, which ends your loop.                   |
-| `Decimal @db.Decimal(10, 2)`  | `DECIMAL(10,2)`  | ❌ Same as above.                                                                             |
-
-The same applies to arrays of these types. `DateTime` and `Decimal` inside of JSON are fine.
-
-<Callout
-  type='error'
-  title="A Decimal error doesn't go away on its own"
->
-  The failing event stays unacknowledged, so it's read again after a restart, and throws again.
-  Fixing the column doesn't help events that are already in Redis, so they keep failing until they
-  pass [`retention`](/docs/deployment/retention).
-</Callout>
-
-If your columns already exist, changing the attributes and running a migration converts them. Changing a column's type rewrites the table, so plan for that on large ones.
+- `Decimal[] @db.Money` is always `[]`, because Debezium doesn't capture `MONEY[]` columns.
+- A `DateTime` that's `infinity` or `-infinity` in Postgres is an `Invalid Date`, because a `Date` can't represent it.
 
 ## Field Mapping
 

@@ -20,7 +20,6 @@ import type {
   StreamEntry,
   DebeziumShortEventType,
   StrictOmit,
-  DebeziumDecimal,
   RecordedStream,
 } from './internal'
 import { sourceValues } from './internal'
@@ -498,13 +497,13 @@ export class LiveStream<
             break
           case 'Decimal':
             payload[fieldName] = field.array
-              ? (payload[fieldName] as DebeziumDecimal[]).map(value => debeziumDecimal(value))
+              ? (payload[fieldName] as string[]).map(value => debeziumDecimal(value))
               : debeziumDecimal(payload[fieldName])
             break
           case 'DateTime':
             payload[fieldName] = field.array
-              ? (payload[fieldName] as string[]).map(value => new Date(Number(value) / 1000))
-              : new Date(Number(payload[fieldName]) / 1000)
+              ? (payload[fieldName] as string[]).map(value => debeziumDate(value))
+              : debeziumDate(payload[fieldName])
             break
           case 'Float':
             payload[fieldName] = field.array
@@ -1145,22 +1144,22 @@ function hashableFilter(value: unknown): unknown {
   return value
 }
 
-function debeziumDecimal({ scale, value }: DebeziumDecimal) {
-  const buf = Buffer.from(value, 'base64')
-
-  let int = BigInt(0)
-
-  for (const byte of buf) {
-    int = (int << 8n) | BigInt(byte)
+function debeziumDecimal(value: string) {
+  switch (value) {
+    case 'NAN':
+      return new Decimal(NaN)
+    case 'POSITIVE_INFINITY':
+      return new Decimal(Infinity)
+    case 'NEGATIVE_INFINITY':
+      return new Decimal(-Infinity)
+    default:
+      return new Decimal(value)
   }
+}
 
-  if (buf.length && buf[0]! & 0x80) {
-    const bits = BigInt(buf.length * 8)
-    int -= 1n << bits
-  }
-
-  // Dividing would round to `Decimal.precision`, so the scale is applied to the exponent instead.
-  return new Decimal(`${int}e-${scale}`)
+// `TIME` columns have no date, and ZenStack places them on the epoch.
+function debeziumDate(value: string) {
+  return new Date(/^\d{2}:/.test(value) ? `1970-01-01T${value}` : value)
 }
 
 function debeziumBytes(value: string) {

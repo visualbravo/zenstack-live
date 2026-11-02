@@ -75,10 +75,12 @@ services:
       DEBEZIUM_SOURCE_DATABASE_PORT: 5432
       DEBEZIUM_SOURCE_DATABASE_SERVER_NAME: zenstack
       DEBEZIUM_SOURCE_DATABASE_USER: postgres
+      DEBEZIUM_SOURCE_DECIMAL_HANDLING_MODE: string
       DEBEZIUM_SOURCE_PLUGIN_NAME: pgoutput
       DEBEZIUM_SOURCE_PUBLICATION_AUTOCREATE_MODE: no_tables
       DEBEZIUM_SOURCE_PUBLICATION_NAME: zenstack_live
       DEBEZIUM_SOURCE_SNAPSHOT_MODE: no_data
+      DEBEZIUM_SOURCE_TIME_PRECISION_MODE: isostring
       DEBEZIUM_SOURCE_TOPIC_PREFIX: zenstack.table
       DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL: io.debezium.storage.redis.history.RedisSchemaHistory
       DEBEZIUM_SOURCE_OFFSET_STORAGE: io.debezium.storage.redis.offset.RedisOffsetBackingStore
@@ -122,18 +124,9 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String
-  createdAt DateTime @default(now()) @db.Timestamp(6)
+  createdAt DateTime @default(now())
 }
 ```
-
-<Callout
-  type='warn'
-  title='Keep the @db.Timestamp(6)'
->
-  Without it, ZenStack creates a `TIMESTAMP(3)` column, which LIVE turns into a date in January
-  1970. `Decimal` fields need `@db.Decimal` for a similar reason. See [Column
-  Types](/docs/reference/limitations#column-types).
-</Callout>
 
 Generate the schema and create the table:
 

@@ -46,11 +46,6 @@ export type StreamMessage = [id: string, fields: [key: string, value: string][]]
 
 export type StrictOmit<T, K> = { [P in keyof T as Exclude<P, K>]: T[P] }
 
-export type DebeziumDecimal = {
-  scale: string
-  value: string
-}
-
 // What's kept about each stream in Redis, because consumer groups don't hold any of this.
 export type RecordedStream = {
   slug: string
