@@ -6,9 +6,9 @@
     "start": "bun run --parallel ./src/index.ts ./src/index.ts",
     "build": "tsdown",
     "watch": "tsdown --watch",
-    "zen:generate": "bunx zen generate --schema ./src/schema.zmodel --output ./src",
-    "zen:db:push": "bunx zen db push --schema ./src/schema.zmodel",
-    "zen:studio": "bun  zen studio --schema ./src/schema.zmodel",
+    "zen:generate": "zen generate",
+    "zen:db:push": "zen db push",
+    "zen:studio": "zen studio",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix --fix-suggestions",
     "format": "oxfmt --check",
@@ -28,6 +28,10 @@
     "@zenstack-live/config": "workspace:*",
     "@zenstackhq/cli": "catalog:",
     "@zenstackhq/schema": "catalog:"
+  },
+  "zenstack": {
+    "schema": "./src/schema.zmodel",
+    "output": "./src"
   },
   "packageManager": "bun@1.4.4"
 }

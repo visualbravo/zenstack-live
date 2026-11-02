@@ -5,20 +5,20 @@
 
 /* eslint-disable */
 
-import { schema as $schema, type SchemaType as $Schema } from './schema'
-import type { ModelResult as $ModelResult, TypeDefResult as $TypeDefResult } from '@zenstackhq/orm'
-export type User = $ModelResult<$Schema, 'User'>
-export type Post = $ModelResult<$Schema, 'Post'>
-export type Contact = $ModelResult<$Schema, 'Contact'>
-export type Timestamped = $TypeDefResult<$Schema, 'Timestamped'>
-export type Email = $TypeDefResult<$Schema, 'Email'>
-export type Age = $TypeDefResult<$Schema, 'Age'>
-export type Balance = $TypeDefResult<$Schema, 'Balance'>
-export type Visits = $TypeDefResult<$Schema, 'Visits'>
-export type LastSeen = $TypeDefResult<$Schema, 'LastSeen'>
-export type Geo = $TypeDefResult<$Schema, 'Geo'>
-export type Address = $TypeDefResult<$Schema, 'Address'>
-export type Profile = $TypeDefResult<$Schema, 'Profile'>
-export type Meta = $TypeDefResult<$Schema, 'Meta'>
-export const Role = $schema.enums.Role.values
-export type Role = (typeof Role)[keyof typeof Role]
+import { schema as $schema, type SchemaType as $Schema } from "./schema";
+import type { ModelResult as $ModelResult, TypeDefResult as $TypeDefResult } from "@zenstackhq/orm";
+export type User = $ModelResult<$Schema, "User">;
+export type Post = $ModelResult<$Schema, "Post">;
+export type Contact = $ModelResult<$Schema, "Contact">;
+export type Timestamped = $TypeDefResult<$Schema, "Timestamped">;
+export type Email = $TypeDefResult<$Schema, "Email">;
+export type Age = $TypeDefResult<$Schema, "Age">;
+export type Balance = $TypeDefResult<$Schema, "Balance">;
+export type Visits = $TypeDefResult<$Schema, "Visits">;
+export type LastSeen = $TypeDefResult<$Schema, "LastSeen">;
+export type Geo = $TypeDefResult<$Schema, "Geo">;
+export type Address = $TypeDefResult<$Schema, "Address">;
+export type Profile = $TypeDefResult<$Schema, "Profile">;
+export type Meta = $TypeDefResult<$Schema, "Meta">;
+export const Role = $schema.enums.Role.values;
+export type Role = (typeof Role)[keyof typeof Role];
