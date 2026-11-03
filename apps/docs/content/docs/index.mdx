@@ -1,63 +1,21 @@
 ---
 title: Introduction
-description: Realtime streaming for your ZenStack backend.
+description: What ZenStack LIVE is.
 icon: Book
 ---
 
 import { Rocket, Workflow, ChefHat, Code } from 'lucide-react'
 
-Supercharge your ZenStack backend with realtime streaming capabilities. Instantly react to any insert, update, or delete, and declaratively filter records using the same Prisma API you've come to love.
-
-```typescript
-const deliveredOrdersStream = live.stream({
-  model: 'Order',
-  slug: 'send-delivered-email',
-
-  when: {
-    updated: {
-      after: {
-        status: 'DELIVERED',
-      },
-    },
-  },
-})
-
-for await (const event of deliveredOrdersStream) {
-  const order = event.updated.after
-  //    ^ properly typed as the `Order` model
-
-  await sendEmail({
-    to: order.contactEmail,
-    subject: `Delivered at ${event.date.toLocaleString()}`,
-  })
-}
-```
-
-Changes are read from the database's own log, so you see all of them, even those made outside of ZenStack.
-
-## Features
-
-- **Type-safe:** Queries have full intellisense based on your ZenStack models.
-- **Durable:** Server went down? Your app picks up right where it left off, and even detects all the changes that happened while it was offline.
-- **Scalable:** Just add more instances.
-- **Simple:** Build event-driven apps with fewer headaches.
+ZenStack LIVE is a library to manage [change data capture](https://en.wikipedia.org/wiki/Change_data_capture) (CDC) events for ZenStack backends.<br />
+If you're familiar with the now discontinued Prisma Pulse, this is basically an open-source and self-hosted version of that.
 
 ## Requirements
 
 - ZenStack (version >= `3.10.0`)
 - Node.js (version >= `22.0.0`)
-- Postgres that supports [logical replication](https://www.postgresql.org/docs/current/logical-replication.html) (version >= `12`)
+- Postgres that supports [logical replication](https://www.postgresql.org/docs/current/logical-replication.html) (version >= `15`)
 - Redis (version >= `7.2.0`)
 - A non-serverless server that will process events. You can forward events to serverless if you so desire.
-
-<Callout
-  type='info'
-  title='This project is in beta'
->
-  There are still some things missing or broken, so read the
-  [Limitations](/docs/reference/limitations) before you commit to it. This project is not affiliated
-  with or endorsed by the ZenStack team.
-</Callout>
 
 ## Where to Next
 

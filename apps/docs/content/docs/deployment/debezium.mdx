@@ -22,16 +22,6 @@ The offset and schema history settings in the [Quick Start](/docs/quick-start#st
 
 Leave `table.include.list` and `schema.include.list` unset. Anything they exclude never reaches your streams, and nothing reports it. LIVE decides what's captured through the publication.
 
-<Callout
-  type='warn'
-  title='Changing the Decimal and DateTime settings on a running deployment'
->
-  Events already in Redis keep the encoding they were written with, and LIVE can't read the old one.
-  A `DateTime` becomes an `Invalid Date`, and a `Decimal` throws while reading the event, which ends
-  your loop until the event passes [`retention`](/docs/deployment/retention). Let your streams catch
-  up and stop writes to captured tables before you switch.
-</Callout>
-
 ### Existing Publications
 
 A publication that's `FOR ALL TABLES` keeps working, and every table stays captured. This includes `dbz_publication`, if you set up Debezium before LIVE managed the publication itself. Note that `prune` can't drop tables from one of these.

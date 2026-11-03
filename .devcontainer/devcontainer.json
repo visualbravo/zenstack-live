@@ -11,6 +11,7 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        "bradlc.vscode-tailwindcss",
         "TypeScriptTeam.native-preview",
         "ms-azuretools.vscode-containers",
         "tamasfe.even-better-toml",

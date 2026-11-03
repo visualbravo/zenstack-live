@@ -44,24 +44,7 @@ for await (const event of stream) {
 | `updated` | The old record | The new record |
 | `deleted` | The old record | `null`         |
 
-The result is fully typed, and follows the event. So once you've checked `before === null`, TypeScript knows that `after` is a record.
-
-## Field Values
-
-Records are converted to the same types that a ZenStack query returns.
-
-| Field type        | Value                                                                              |
-| ----------------- | ---------------------------------------------------------------------------------- |
-| `String`, enums   | `string`                                                                           |
-| `Int`, `Float`    | `number`                                                                           |
-| `Boolean`         | `boolean`                                                                          |
-| `BigInt`          | `bigint`                                                                           |
-| `Decimal`         | `Decimal`, from `decimal.js`                                                       |
-| `DateTime`        | `Date`                                                                             |
-| `Bytes`           | `Uint8Array`                                                                       |
-| `Json`            | The parsed value                                                                   |
-| Custom JSON types | The parsed value, with nested `BigInt`, `Decimal`, and `DateTime` fields converted |
-| Arrays            | An array of the above. `NULL` becomes `[]`.                                        |
+The result is fully typed, and follows the event. So once you've checked `before === null`, TypeScript knows that `after` is a record.                                    |
 
 ## What Events Don't Contain
 

@@ -173,7 +173,7 @@ const live = new ZenStackLive({
   },
 })
 
-const newUserStream = live.stream({
+const stream = live.stream({
   model: 'User',
   slug: 'log-new-users',
 
@@ -182,9 +182,8 @@ const newUserStream = live.stream({
   },
 })
 
-for await (const event of newUserStream) {
+for await (const event of stream) {
   const user = event.created
-  //    ^ typed as your `User` model
 
   console.log(`${user.name} signed up at ${user.createdAt.toISOString()}`)
 }

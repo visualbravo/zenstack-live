@@ -5,7 +5,7 @@ icon: ShieldAlert
 ---
 
 ```typescript
-const potentiallyHarmfulPostsStream = live.stream({
+const stream = live.stream({
   model: 'Post',
   slug: 'sentiment-moderation',
 
@@ -20,7 +20,7 @@ const potentiallyHarmfulPostsStream = live.stream({
   },
 })
 
-for await (const event of potentiallyHarmfulPostsStream) {
+for await (const event of stream) {
   const post = event.created
   const sentiment = await analyzeSentiment(post)
 

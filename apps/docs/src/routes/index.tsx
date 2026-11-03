@@ -38,7 +38,17 @@ const useCases = [
   {
     title: 'Welcome Emails',
     description: 'Send an email the moment a user signs up.',
-    code: `const newUserStream = live.stream({
+    code: `import { ZenStackLive } from '@visualbravo/zenstack-live'
+
+const live = new ZenStackLive({
+  client: new ZenStackClient(...),
+
+  redis: {
+    url: process.env.REDIS_URL,
+  },
+})
+
+const stream = live.stream({
   model: 'User',
   slug: 'send-welcome-email',
 
@@ -47,9 +57,8 @@ const useCases = [
   },
 })
 
-for await (const event of newUserStream) {
+for await (const event of stream) {
   const user = event.created
-  //  ^ properly typed as the \`User\` model
 
   await sendEmail({
     to: user.email,
@@ -62,20 +71,25 @@ for await (const event of newUserStream) {
     description: 'Leave out `when` to listen for every event, and record what changed.',
     code: `import { beforeAfter } from '@visualbravo/zenstack-live'
 
-const patientStream = live.stream({
+const stream = live.stream({
   model: 'Patient',
   slug: 'audit-log',
 })
 
-for await (const event of patientStream) {
+for await (const event of stream) {
   const { before, after } = beforeAfter(event)
 
-  await client.auditLog.create({
-    data: {
+  await client.auditLog.upsert({
+    where: { eventId: event.id },
+    update: {},
+
+    create: {
       before,
       after,
+      eventId: event.id,
       model: 'Patient',
       operation: event.type,
+      occurredAt: event.date,
     },
   })
 }`,
@@ -83,12 +97,12 @@ for await (const event of patientStream) {
   {
     title: 'Caching',
     description: 'Keep Redis in sync with your database without touching your write paths.',
-    code: `const postStream = live.stream({
+    code: `const stream = live.stream({
   model: 'Post',
   slug: 'cache',
 })
 
-for await (const event of postStream) {
+for await (const event of stream) {
   if (event.type === 'deleted') {
     await redis.del(\`posts:\${event.deleted.id}\`)
     continue
@@ -102,7 +116,7 @@ for await (const event of postStream) {
   {
     title: 'Moderation',
     description: 'Filter declaratively with the same type-safe API you use for queries.',
-    code: `const potentiallyHarmfulPostsStream = live.stream({
+    code: `const stream = live.stream({
   model: 'Post',
   slug: 'sentiment-moderation',
 
@@ -116,7 +130,7 @@ for await (const event of postStream) {
   },
 })
 
-for await (const event of potentiallyHarmfulPostsStream) {
+for await (const event of stream) {
   const post = event.created
   const sentiment = await analyzeSentiment(post)
 
@@ -128,14 +142,12 @@ for await (const event of potentiallyHarmfulPostsStream) {
   {
     title: 'Shipping Notifications',
     description: 'Transition queries only fire when a record starts matching.',
-    code: `const deliveredOrdersStream = live.stream({
+    code: `const stream = live.stream({
   model: 'Order',
   slug: 'send-delivered-email',
 
   when: {
     updated: {
-      // Only notified if the record transitions from
-      // *not* matching before, to *matching* afterwards.
       after: {
         status: 'DELIVERED',
       },
@@ -143,12 +155,12 @@ for await (const event of potentiallyHarmfulPostsStream) {
   },
 })
 
-for await (const event of deliveredOrdersStream) {
+for await (const event of stream) {
   const order = event.updated.after
 
   await sendEmail({
     to: order.contactEmail,
-    subject: \`✅ Delivered at \${toHumanReadable(event.date)}\`,
+    subject: \`Your package was delivered at \${toHumanReadable(event.date)}\`,
   })
 }`,
   },
@@ -165,7 +177,9 @@ function Home() {
           </span>
 
           <h1 className='text-4xl font-bold tracking-tight md:text-6xl flex items-center gap-6'>
-            ZenStack LIVE
+            <span>
+              ZenStack <span className='text-red-500'>LIVE</span>
+            </span>
             <span
               aria-hidden
               className='relative flex size-12'
@@ -176,7 +190,7 @@ function Home() {
           </h1>
 
           <p className='max-w-2xl text-lg text-fd-muted-foreground'>
-            Supercharge your ZenStack backend with realtime streaming capabilities. Instantly react
+            Give your ZenStack backend realtime streaming capabilities. Instantly react
             to any insert, update, or delete, and declaratively filter records using the same Prisma
             API you've come to love.
           </p>
@@ -192,6 +206,8 @@ function Home() {
             </Link>
 
             <a
+              target='_blank'
+              rel='noreferrer'
               href='https://github.com/visualbravo/zenstack-live'
               className='inline-flex items-center rounded-lg border px-5 py-2.5 text-sm font-medium transition-colors hover:bg-fd-accent'
             >
@@ -204,27 +220,7 @@ function Home() {
           </code>
         </section>
 
-        <section className='grid gap-4 sm:grid-cols-2'>
-          {features.map(({ icon: Icon, title, description }) => (
-            <div
-              key={title}
-              className='rounded-xl border bg-fd-card p-6'
-            >
-              <Icon className='mb-3 size-5 text-fd-primary' />
-              <h3 className='mb-1 font-semibold'>{title}</h3>
-              <p className='text-sm text-fd-muted-foreground'>{description}</p>
-            </div>
-          ))}
-        </section>
-
         <section className='flex flex-col gap-6'>
-          <div className='flex flex-col gap-2 text-center'>
-            <h2 className='text-2xl font-semibold'>React to changes as they happen</h2>
-            <p className='text-fd-muted-foreground'>
-              From simple triggers to complex, filtered workflows.
-            </p>
-          </div>
-
           <Tabs items={useCases.map(useCase => useCase.title)}>
             {useCases.map(useCase => (
               <Tab
@@ -239,6 +235,19 @@ function Home() {
               </Tab>
             ))}
           </Tabs>
+        </section>
+
+        <section className='grid gap-4 sm:grid-cols-2'>
+          {features.map(({ icon: Icon, title, description }) => (
+            <div
+              key={title}
+              className='rounded-xl border bg-fd-card p-6'
+            >
+              <Icon className='mb-3 size-5 text-fd-primary' />
+              <h3 className='mb-1 font-semibold'>{title}</h3>
+              <p className='text-sm text-fd-muted-foreground'>{description}</p>
+            </div>
+          ))}
         </section>
 
         <p className='text-center text-xs text-fd-muted-foreground'>

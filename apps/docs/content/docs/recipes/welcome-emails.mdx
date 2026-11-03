@@ -5,7 +5,7 @@ icon: Mail
 ---
 
 ```typescript
-const newUserStream = live.stream({
+const stream = live.stream({
   model: 'User',
   slug: 'send-welcome-email',
 
@@ -14,9 +14,8 @@ const newUserStream = live.stream({
   },
 })
 
-for await (const event of newUserStream) {
+for await (const event of stream) {
   const user = event.created
-  //    ^ properly typed as the `User` model
 
   await sendEmail({
     to: user.email,

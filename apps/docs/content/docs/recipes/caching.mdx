@@ -7,12 +7,12 @@ icon: Zap
 ```typescript
 import { beforeAfter } from '@visualbravo/zenstack-live'
 
-const postStream = live.stream({
+const stream = live.stream({
   model: 'Post',
   slug: 'cache',
 })
 
-for await (const event of postStream) {
+for await (const event of stream) {
   if (event.type === 'deleted') {
     await redis.del(`posts:${event.deleted.id}`)
     continue

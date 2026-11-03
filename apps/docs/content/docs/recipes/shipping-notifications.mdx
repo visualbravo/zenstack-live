@@ -5,14 +5,12 @@ icon: PackageCheck
 ---
 
 ```typescript
-const deliveredOrdersStream = live.stream({
+const stream = live.stream({
   model: 'Order',
   slug: 'send-delivered-email',
 
   when: {
     updated: {
-      // This is a transition. You're only notified if the record goes from *not* matching
-      // before, to *matching* afterwards.
       after: {
         status: 'DELIVERED',
       },
@@ -20,7 +18,7 @@ const deliveredOrdersStream = live.stream({
   },
 })
 
-for await (const event of deliveredOrdersStream) {
+for await (const event of stream) {
   const order = event.updated.after
 
   await sendEmail({

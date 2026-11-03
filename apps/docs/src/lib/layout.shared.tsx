@@ -5,7 +5,7 @@ export function baseOptions(): BaseLayoutProps {
     githubUrl: 'https://github.com/visualbravo/zenstack-live',
 
     nav: {
-      title: 'ZenStack LIVE',
+      title: <span>ZenStack <span className='text-red-500'>LIVE</span></span>,
     },
 
     links: [

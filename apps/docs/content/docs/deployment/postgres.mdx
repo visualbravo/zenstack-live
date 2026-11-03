@@ -4,7 +4,7 @@ description: Version, WAL level, and the database users LIVE and Debezium need.
 icon: Database
 ---
 
-- **Version:** 12 or later, with [logical replication](https://www.postgresql.org/docs/current/logical-replication.html).
+- **Version:** 15 or later, with [logical replication](https://www.postgresql.org/docs/current/logical-replication.html).
 - **`wal_level`:** This must be `logical`. It's set at startup, so changing it needs a restart. Managed providers usually expose it as a setting, sometimes called "logical replication" or "logical decoding".
 
 LIVE and Debezium each connect with a database user, and they have different needs.

@@ -9,12 +9,12 @@ Leaving out `when` listens for all events.
 ```typescript
 import { beforeAfter } from '@visualbravo/zenstack-live'
 
-const patientStream = live.stream({
+const stream = live.stream({
   model: 'Patient',
   slug: 'audit-log',
 })
 
-for await (const event of patientStream) {
+for await (const event of stream) {
   const { before, after } = beforeAfter(event)
 
   await client.auditLog.upsert({

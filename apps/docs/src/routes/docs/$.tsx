@@ -1,3 +1,4 @@
+// oxlint-disable react/no-multi-comp react/jsx-pascal-case no-underscore-dangle
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { createServerFn } from '@tanstack/react-start'
@@ -42,10 +43,12 @@ function Content({ path }: { path: string }) {
 
   const { toc } = use(page.load())
   const MDX = page.body
+  const titleString = `${page.title} - ZenStack LIVE`
 
   return (
     <DocsPage toc={toc}>
       <DocsTitle>{page.title}</DocsTitle>
+      <head><title>{titleString}</title></head>
       <DocsDescription>{page.description}</DocsDescription>
       <DocsBody>
         <MDX components={useMDXComponents()} />
@@ -61,6 +64,13 @@ function Page() {
     <DocsLayout
       {...baseOptions()}
       tree={data.pageTree}
+      sidebar={{
+        footer: (
+          <p className='py-4 text-fd-muted-foreground'>
+            This project is not affiliated with or endorsed by the ZenStack team.
+          </p>
+        ),
+      }}
     >
       <Suspense>
         <Content path={data.path} />
