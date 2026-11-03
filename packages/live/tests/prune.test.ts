@@ -320,11 +320,11 @@ describe('prune', () => {
     await prepareStream(live, 'racing')
     await sleep(RETENTION + 50)
 
-    const update = live['updatePublication'].bind(live)
-    const spy = vi.spyOn(live as any, 'updatePublication')
+    const database = live['database']
+    const release = database.releaseTable.bind(database)
 
-    spy.mockImplementationOnce(async (...args: any[]) => {
-      await (update as any)(...args)
+    vi.spyOn(database, 'releaseTable').mockImplementationOnce(async table => {
+      await release(table)
       await redis.xgroup('CREATE', USER_STREAM, 'returned', '$', 'MKSTREAM')
     })
 

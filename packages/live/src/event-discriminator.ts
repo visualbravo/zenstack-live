@@ -7,7 +7,7 @@ import { QueryCompiler } from './query-compiler'
 export type EventDiscriminatorOptions<
   Schema extends SchemaDef,
   ModelName extends GetModels<Schema>,
-> = Omit<LiveStreamOptions<Schema, ModelName>, 'redis' | 'slug' | 'clientId'>
+> = Omit<LiveStreamOptions<Schema, ModelName>, 'redis' | 'slug' | 'clientId' | 'database'>
 
 export class EventDiscriminator<Schema extends SchemaDef, ModelName extends GetModels<Schema>> {
   private readonly when: LiveStreamWhen<Schema, ModelName>

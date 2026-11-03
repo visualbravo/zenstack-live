@@ -1,3 +1,5 @@
+import type { AttributeApplication } from '@zenstackhq/schema'
+
 export type DebeziumSource = {
   version: string
   connector: string
@@ -58,3 +60,15 @@ export type RecordedStream = {
 // What Postgres holds for the columns that hydration changes, because filters run against that. It
 // keeps JSON nulls apart from NULLs, and NULL arrays apart from the empty arrays they hydrate to.
 export const sourceValues = Symbol('sourceValues')
+
+export function getAttribute(
+  definition: { attributes?: readonly AttributeApplication[] },
+  attribute: string,
+  arg: string,
+) {
+  const value = definition.attributes
+    ?.find(({ name }) => name === attribute)
+    ?.args?.find(({ name }) => name === arg)?.value
+
+  return value?.kind === 'literal' ? String(value.value) : undefined
+}

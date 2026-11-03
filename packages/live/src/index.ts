@@ -1,6 +1,6 @@
 /* eslint-disable */
 
-import type { AttributeApplication, SchemaDef, GetModels, FieldDef } from '@zenstackhq/schema'
+import type { SchemaDef, GetModels, FieldDef } from '@zenstackhq/schema'
 import {
   AnyNullClass,
   DbNullClass,
@@ -22,19 +22,17 @@ import type {
   StrictOmit,
   RecordedStream,
 } from './internal'
-import { sourceValues } from './internal'
+import { getAttribute, sourceValues } from './internal'
 import { EventDiscriminator } from './event-discriminator'
+import { createLiveDatabase, type CapturedTable, type LiveDatabase } from './databases/database'
 
-const DEFAULT_PUBLICATION = 'zenstack_live'
+export type { CapturedTable, LiveDatabase } from './databases/database'
+
 const DEFAULT_RETENTION = 24 * 60 * 60 * 1000
 const TRIM_INTERVAL = 60 * 1000
 const READ_TIMEOUT = 2000
 const STREAM_PREFIX = 'zenstack.table.'
 const RECORDED_STREAMS_KEY = 'zenstack.metadata.streams'
-
-// Blocks that change the publication check it first, so they have to run one at a time. Otherwise
-// two of them can both find the publication missing, and the second fails to create it.
-const LOCK_PUBLICATION = `PERFORM pg_advisory_xact_lock(hashtext(${quoteLiteral(DEFAULT_PUBLICATION)}));`
 
 // This has to be atomic, because a stream that comes back between a check and `DEL` would lose its
 // consumer group.
@@ -74,6 +72,11 @@ export type LiveStreamOptions<Schema extends SchemaDef, ModelName extends GetMod
   client: ClientContract<Schema>
   slug: string
   clientId: string
+
+  /**
+   * Shared by the streams of a `ZenStackLive` instance. Made from `client` if it's omitted.
+   */
+  database?: LiveDatabase
 
   /**
    * Which events to read. `new` reads events that haven't been delivered, `errored` retries events
@@ -228,13 +231,6 @@ export type LivePruneReport = {
   allTables: PrunedTable[]
 }
 
-type PublishedTable = {
-  schemaName: string
-  tableName: string
-  allTables: boolean
-  replicaIdentityFull: boolean
-}
-
 type ConsumerGroupInfo = {
   name: string
   consumers: { name: string; pending: number; idle: number }[]
@@ -246,6 +242,7 @@ export class LiveStream<
   EventType extends DatabaseEventType = DatabaseEventType,
 > implements AsyncIterable<RecordResultMap<Schema, ModelName>[EventType]> {
   private readonly options: LiveStreamOptions<Schema, ModelName>
+  private readonly database: LiveDatabase
   private readonly modelName: ModelName
   private readonly databaseSchema: string
   private readonly tableName: string
@@ -274,7 +271,8 @@ export class LiveStream<
     this.timeout = options.timeout ?? 30000
     this.retention = options.retention ?? DEFAULT_RETENTION
     this.modelName = options.model
-    this.databaseSchema = getDatabaseSchema(options.client.$schema, options.model)
+    this.database = options.database ?? createLiveDatabase(options.client)
+    this.databaseSchema = this.database.getSchemaName(options.model)
     this.tableName = getTableName(options.client.$schema, options.model)
     this.streamName = `${STREAM_PREFIX}${this.databaseSchema}.${this.tableName}`
     this.consumerName = `zenstack.${options.clientId}`
@@ -313,39 +311,8 @@ export class LiveStream<
     )
   }
 
-  // This is one block so that `ALTER TABLE` holds its lock until the table is published. Otherwise a
-  // write in between could be captured without its full previous row.
   private async captureTable() {
-    const table = `${quoteIdentifier(this.databaseSchema)}.${quoteIdentifier(this.tableName)}`
-    const publication = quoteIdentifier(DEFAULT_PUBLICATION)
-
-    await this.options.client.$queryRawUnsafe(`
-      DO $do$
-      DECLARE
-        all_tables boolean;
-      BEGIN
-        ${LOCK_PUBLICATION}
-
-        ALTER TABLE ${table} REPLICA IDENTITY FULL;
-
-        SELECT puballtables INTO all_tables
-        FROM pg_publication
-        WHERE pubname = ${quoteLiteral(DEFAULT_PUBLICATION)};
-
-        IF NOT FOUND THEN
-          CREATE PUBLICATION ${publication} FOR TABLE ${table};
-        ELSIF NOT all_tables AND NOT EXISTS (
-          SELECT 1
-          FROM pg_publication_tables
-          WHERE pubname = ${quoteLiteral(DEFAULT_PUBLICATION)}
-            AND schemaname = ${quoteLiteral(this.databaseSchema)}
-            AND tablename = ${quoteLiteral(this.tableName)}
-        ) THEN
-          ALTER PUBLICATION ${publication} ADD TABLE ${table};
-        END IF;
-      END
-      $do$
-    `)
+    await this.database.captureTable(this.databaseSchema, this.tableName)
   }
 
   private async makeConsumerGroup() {
@@ -716,6 +683,7 @@ export class LiveStream<
 
 export class ZenStackLive<Schema extends SchemaDef> {
   private readonly options: ZenStackLiveOptions<Schema>
+  private readonly database: LiveDatabase
   private readonly redis: Redis
 
   // Streams block on `redis`, which would hold up everything else sent over it.
@@ -725,6 +693,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
 
   constructor(options: ZenStackLiveOptions<Schema>) {
     this.options = options
+    this.database = createLiveDatabase(options.client)
     this.redis = new Redis(options.redis.url)
     this.maintenanceRedis = new Redis(options.redis.url, { lazyConnect: true })
     this.trimTimer = setInterval(() => void this.runTrim(), TRIM_INTERVAL)
@@ -762,6 +731,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
       clientId: this.options.id ?? 'zenstack',
       retention: this.options.retention,
       client: this.options.client,
+      database: this.database,
     })
   }
 
@@ -793,7 +763,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
     const recordedStreams = await this.getRecordedStreams()
     const orphanedRecords = new Set(recordedStreams.keys())
     const publishedTables = new Map(
-      (await this.getPublishedTables()).map(table => [getRedisStream(table), table]),
+      (await this.database.getCapturedTables()).map(table => [getRedisStream(table), table]),
     )
 
     for (const redisStream of new Set([...publishedTables.keys(), ...(await this.scanStreams())])) {
@@ -873,46 +843,25 @@ export class ZenStackLive<Schema extends SchemaDef> {
     return report
   }
 
-  // Dropping the table comes first, otherwise Debezium could recreate the Redis stream. A stream that
+  // Releasing the table comes first, otherwise Debezium could recreate the Redis stream. A stream that
   // comes back at any point here either finds its table unpublished and adds it again, or has a
   // consumer group by the time `DELETE_UNUSED_STREAM` runs, which is why the table is restored.
-  private async removeTable(redisStream: string, published: PublishedTable | undefined) {
+  private async removeTable(redisStream: string, published: CapturedTable | undefined) {
     if ((await this.getConsumerGroups(redisStream)).length > 0) {
       return false
     }
 
     if (published) {
-      await this.updatePublication(published, 'DROP')
+      await this.database.releaseTable(published)
     }
 
     const deleted = await this.maintenanceRedis.eval(DELETE_UNUSED_STREAM, 1, redisStream)
 
     if (deleted === 0 && published) {
-      await this.updatePublication(published, 'ADD')
+      await this.database.restoreTable(published)
     }
 
     return deleted !== 0
-  }
-
-  private async updatePublication(table: PublishedTable, action: 'ADD' | 'DROP') {
-    await this.options.client.$queryRawUnsafe(`
-      DO $do$
-      BEGIN
-        ${LOCK_PUBLICATION}
-
-        IF ${action === 'ADD' ? 'NOT' : ''} EXISTS (
-          SELECT 1
-          FROM pg_publication_tables
-          WHERE pubname = ${quoteLiteral(DEFAULT_PUBLICATION)}
-            AND schemaname = ${quoteLiteral(table.schemaName)}
-            AND tablename = ${quoteLiteral(table.tableName)}
-        ) THEN
-          ALTER PUBLICATION ${quoteIdentifier(DEFAULT_PUBLICATION)}
-          ${action} TABLE ${quoteIdentifier(table.schemaName)}.${quoteIdentifier(table.tableName)};
-        END IF;
-      END
-      $do$
-    `)
   }
 
   private async runTrim() {
@@ -937,7 +886,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
   // it doesn't matter whether a table's streams are running.
   private async trimTables() {
     const [tables, recordedStreams] = await Promise.all([
-      this.getPublishedTables(),
+      this.database.getCapturedTables(),
       this.getRecordedStreams(),
     ])
 
@@ -958,21 +907,6 @@ export class ZenStackLive<Schema extends SchemaDef> {
     }
 
     await pipeline.exec()
-  }
-
-  private async getPublishedTables() {
-    return await this.options.client.$queryRawUnsafe<PublishedTable[]>(`
-      SELECT
-        t.schemaname AS "schemaName",
-        t.tablename AS "tableName",
-        p.puballtables AS "allTables",
-        c.relreplident = 'f' AS "replicaIdentityFull"
-      FROM pg_publication_tables t
-      JOIN pg_publication p ON p.pubname = t.pubname
-      JOIN pg_namespace n ON n.nspname = t.schemaname
-      JOIN pg_class c ON c.relnamespace = n.oid AND c.relname = t.tablename
-      WHERE t.pubname = ${quoteLiteral(DEFAULT_PUBLICATION)}
-    `)
   }
 
   private async getRecordedStreams() {
@@ -1088,7 +1022,7 @@ export function beforeAfter(event: BeforeAfterEvent) {
   }
 }
 
-function getRedisStream({ schemaName, tableName }: PublishedTable) {
+function getRedisStream({ schemaName, tableName }: CapturedTable) {
   return `${STREAM_PREFIX}${schemaName}.${tableName}`
 }
 
@@ -1114,35 +1048,7 @@ function fromReplyPairs(reply: unknown[]) {
   return fields
 }
 
-function quoteIdentifier(value: string) {
-  return `"${value.replaceAll('"', '""')}"`
-}
-
-function quoteLiteral(value: string) {
-  return `'${value.replaceAll("'", "''")}'`
-}
-
-function getAttribute(
-  definition: { attributes?: readonly AttributeApplication[] },
-  attribute: string,
-  arg: string,
-) {
-  const value = definition.attributes
-    ?.find(({ name }) => name === attribute)
-    ?.args?.find(({ name }) => name === arg)?.value
-
-  return value?.kind === 'literal' ? String(value.value) : undefined
-}
-
-// These follow how ZenStack resolves a model, because Debezium names streams after the real table.
-function getDatabaseSchema(schema: SchemaDef, model: string) {
-  return (
-    getAttribute(schema.models[model]!, '@@schema', 'map') ??
-    schema.provider.defaultSchema ??
-    'public'
-  )
-}
-
+// This follows how ZenStack resolves a model, because Debezium names streams after the real table.
 function getTableName(schema: SchemaDef, model: string) {
   return getAttribute(schema.models[model]!, '@@map', 'name') ?? model
 }

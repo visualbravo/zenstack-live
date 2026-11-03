@@ -21,6 +21,16 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     },
+    "./databases/database": {
+      "@zenstack-live/source": "./src/databases/database.ts",
+      "import": "./dist/databases/database.mjs",
+      "require": "./dist/databases/database.cjs"
+    },
+    "./databases/postgres": {
+      "@zenstack-live/source": "./src/databases/postgres.ts",
+      "import": "./dist/databases/postgres.mjs",
+      "require": "./dist/databases/postgres.cjs"
+    },
     "./event-discriminator": {
       "@zenstack-live/source": "./src/event-discriminator.ts",
       "import": "./dist/event-discriminator.mjs",
@@ -43,6 +53,14 @@
       ".": {
         "import": "./dist/index.mjs",
         "require": "./dist/index.cjs"
+      },
+      "./databases/database": {
+        "import": "./dist/databases/database.mjs",
+        "require": "./dist/databases/database.cjs"
+      },
+      "./databases/postgres": {
+        "import": "./dist/databases/postgres.mjs",
+        "require": "./dist/databases/postgres.cjs"
       },
       "./event-discriminator": {
         "import": "./dist/event-discriminator.mjs",
