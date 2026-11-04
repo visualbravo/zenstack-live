@@ -4,10 +4,11 @@ import { schema } from './schemas/multi-schema'
 import { ZenStackClient, type ClientContract } from '@zenstackhq/orm'
 import { PostgresDialect } from 'kysely'
 import { Pool } from 'pg'
-import { ZenStackLive } from '../src'
+import { ZenStackLive } from '../../src'
 import { Redis } from 'ioredis'
+import { clearRedis } from '../helpers/clear-redis'
 import { randomUUID } from 'node:crypto'
-import { createIsolatedDatabase } from './isolated-database'
+import { postgres } from '../helpers/dialects'
 
 let client: ClientContract<typeof schema>
 let live: ZenStackLive<typeof schema>
@@ -71,7 +72,7 @@ beforeAll(async () => {
 
   redis = new Redis(process.env['REDIS_URL']!)
 
-  await redis.flushall()
+  await clearRedis(redis, 'postgres')
   await createTables(client)
 
   // A table is only captured from the moment that a stream publishes it.
@@ -204,7 +205,9 @@ describe('database schemas', () => {
       isolatedClient = new ZenStackClient(schema, {
         dialect: new PostgresDialect({
           pool: new Pool({
-            connectionString: await createIsolatedDatabase('zenstack_live_test_publication'),
+            connectionString: await postgres.createIsolatedDatabase(
+              'zenstack_live_test_publication',
+            ),
           }),
         }),
       })

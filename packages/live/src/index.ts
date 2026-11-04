@@ -24,15 +24,20 @@ import type {
 } from './internal'
 import { getAttribute, sourceValues } from './internal'
 import { EventDiscriminator } from './event-discriminator'
-import { createLiveDatabase, type CapturedTable, type LiveDatabase } from './databases/database'
+import {
+  createLiveDatabase,
+  getRedisKeys,
+  type CapturedTable,
+  type LiveDatabase,
+  type LiveRedisKeys,
+} from './databases/database'
 
-export type { CapturedTable, LiveDatabase } from './databases/database'
+export type { CapturedTable, LiveDatabase, LiveDialect, LiveRedisKeys } from './databases/database'
+export { getRedisKeys } from './databases/database'
 
 const DEFAULT_RETENTION = 24 * 60 * 60 * 1000
 const TRIM_INTERVAL = 60 * 1000
 const READ_TIMEOUT = 2000
-const STREAM_PREFIX = 'zenstack.table.'
-const RECORDED_STREAMS_KEY = 'zenstack.metadata.streams'
 
 // This has to be atomic, because a stream that comes back between a check and `DEL` would lose its
 // consumer group.
@@ -243,12 +248,16 @@ export class LiveStream<
 > implements AsyncIterable<RecordResultMap<Schema, ModelName>[EventType]> {
   private readonly options: LiveStreamOptions<Schema, ModelName>
   private readonly database: LiveDatabase
+  private readonly redisKeys: LiveRedisKeys
   private readonly modelName: ModelName
-  private readonly databaseSchema: string
   private readonly tableName: string
-  private readonly streamName: string
   private readonly consumerName: string
-  private readonly consumerGroupName: string
+
+  // These depend on the database's name on MySQL, so they're only known once `resolveNames` has run.
+  private databaseSchema!: string
+  private streamName!: string
+  private consumerGroupName!: string
+  private namesResolved?: Promise<void>
   private readonly discriminator: EventDiscriminator<Schema, ModelName>
   private readonly timeout: number
   private readonly retention: number
@@ -272,11 +281,9 @@ export class LiveStream<
     this.retention = options.retention ?? DEFAULT_RETENTION
     this.modelName = options.model
     this.database = options.database ?? createLiveDatabase(options.client)
-    this.databaseSchema = this.database.getSchemaName(options.model)
+    this.redisKeys = getRedisKeys(this.database.dialect)
     this.tableName = getTableName(options.client.$schema, options.model)
-    this.streamName = `${STREAM_PREFIX}${this.databaseSchema}.${this.tableName}`
     this.consumerName = `zenstack.${options.clientId}`
-    this.consumerGroupName = `${this.streamName}.${hashed}`
     this.mappedFields = getMappedFields(options.client.$schema, options.model)
     this.enumNames = getEnumNames(options.client.$schema)
     this.discriminator = new EventDiscriminator(options)
@@ -290,9 +297,26 @@ export class LiveStream<
   // The order matters to `prune`, which reads records before consumer groups, and drops tables with
   // no consumer groups. So a group has to exist before its record, and before the table is checked.
   private async prepare() {
+    await this.resolveNames()
     await this.makeConsumerGroup()
     await this.recordStream()
     await this.captureTable()
+  }
+
+  private async resolveNames() {
+    this.namesResolved ??= (async () => {
+      this.databaseSchema = await this.database.getSchemaName(this.modelName)
+      this.streamName = getRedisStream(this.redisKeys, {
+        schemaName: this.databaseSchema,
+        tableName: this.tableName,
+      })
+      this.consumerGroupName = `${this.streamName}.${this.id}`
+    })().catch(error => {
+      this.namesResolved = undefined
+      throw error
+    })
+
+    await this.namesResolved
   }
 
   private async recordStream() {
@@ -305,7 +329,7 @@ export class LiveStream<
     }
 
     await this.options.redis.hset(
-      RECORDED_STREAMS_KEY,
+      this.redisKeys.recordedStreams,
       this.consumerGroupName,
       JSON.stringify(recorded),
     )
@@ -492,6 +516,12 @@ export class LiveStream<
               ? (payload[fieldName] as string[]).map(value => debeziumDate(value))
               : debeziumDate(payload[fieldName])
             break
+          // MySQL stores booleans as `TINYINT(1)`, which Debezium sends as a number.
+          case 'Boolean':
+            payload[fieldName] = field.array
+              ? (payload[fieldName] as unknown[]).map(value => debeziumBoolean(value))
+              : debeziumBoolean(payload[fieldName])
+            break
           case 'Float':
             payload[fieldName] = field.array
               ? (payload[fieldName] as string[]).map(value => parseFloat(value))
@@ -598,7 +628,7 @@ export class LiveStream<
         events.push({
           type: 'created',
           id: eventId,
-          transactionId: String(event.source.txId),
+          transactionId: this.database.getTransactionId(event.source),
           date: new Date(Number(event.ts_ms)),
           created: event.after,
         })
@@ -609,7 +639,7 @@ export class LiveStream<
         events.push({
           type: 'updated',
           id: eventId,
-          transactionId: String(event.source.txId),
+          transactionId: this.database.getTransactionId(event.source),
           date: new Date(Number(event.ts_ms)),
           updated: {
             before: event.before,
@@ -622,7 +652,7 @@ export class LiveStream<
         events.push({
           type: 'deleted',
           id: eventId,
-          transactionId: String(event.source.txId),
+          transactionId: this.database.getTransactionId(event.source),
           date: new Date(Number(event.ts_ms)),
           deleted: event.before,
         })
@@ -684,6 +714,7 @@ export class LiveStream<
 export class ZenStackLive<Schema extends SchemaDef> {
   private readonly options: ZenStackLiveOptions<Schema>
   private readonly database: LiveDatabase
+  private readonly redisKeys: LiveRedisKeys
   private readonly redis: Redis
 
   // Streams block on `redis`, which would hold up everything else sent over it.
@@ -694,6 +725,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
   constructor(options: ZenStackLiveOptions<Schema>) {
     this.options = options
     this.database = createLiveDatabase(options.client)
+    this.redisKeys = getRedisKeys(this.database.dialect)
     this.redis = new Redis(options.redis.url)
     this.maintenanceRedis = new Redis(options.redis.url, { lazyConnect: true })
     this.trimTimer = setInterval(() => void this.runTrim(), TRIM_INTERVAL)
@@ -763,7 +795,10 @@ export class ZenStackLive<Schema extends SchemaDef> {
     const recordedStreams = await this.getRecordedStreams()
     const orphanedRecords = new Set(recordedStreams.keys())
     const publishedTables = new Map(
-      (await this.database.getCapturedTables()).map(table => [getRedisStream(table), table]),
+      (await this.database.getCapturedTables()).map(table => [
+        getRedisStream(this.redisKeys, table),
+        table,
+      ]),
     )
 
     for (const redisStream of new Set([...publishedTables.keys(), ...(await this.scanStreams())])) {
@@ -794,7 +829,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
 
           if (!dryRun) {
             await redis.xgroup('DESTROY', redisStream, group.name)
-            await redis.hdel(RECORDED_STREAMS_KEY, group.name)
+            await redis.hdel(this.redisKeys.recordedStreams, group.name)
           }
 
           continue
@@ -837,7 +872,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
     }
 
     if (!dryRun && orphanedRecords.size > 0) {
-      await redis.hdel(RECORDED_STREAMS_KEY, ...orphanedRecords)
+      await redis.hdel(this.redisKeys.recordedStreams, ...orphanedRecords)
     }
 
     return report
@@ -900,7 +935,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
     const pipeline = this.maintenanceRedis.pipeline()
 
     for (const table of tables) {
-      const redisStream = getRedisStream(table)
+      const redisStream = getRedisStream(this.redisKeys, table)
       const retention = retentions.get(redisStream) ?? this.options.retention ?? DEFAULT_RETENTION
 
       pipeline.xtrim(redisStream, 'MINID', `${now - retention}-0`)
@@ -910,7 +945,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
   }
 
   private async getRecordedStreams() {
-    const recorded = await this.maintenanceRedis.hgetall(RECORDED_STREAMS_KEY)
+    const recorded = await this.maintenanceRedis.hgetall(this.redisKeys.recordedStreams)
 
     return new Map(
       Object.entries(recorded).map(([consumerGroup, json]) => [
@@ -928,7 +963,7 @@ export class ZenStackLive<Schema extends SchemaDef> {
       const [nextCursor, keys] = await this.maintenanceRedis.scan(
         cursor,
         'MATCH',
-        `${STREAM_PREFIX}*`,
+        `${this.redisKeys.streamPrefix}*`,
         'COUNT',
         1000,
         'TYPE',
@@ -1022,8 +1057,11 @@ export function beforeAfter(event: BeforeAfterEvent) {
   }
 }
 
-function getRedisStream({ schemaName, tableName }: CapturedTable) {
-  return `${STREAM_PREFIX}${schemaName}.${tableName}`
+function getRedisStream(
+  { streamPrefix }: LiveRedisKeys,
+  { schemaName, tableName }: Pick<CapturedTable, 'schemaName' | 'tableName'>,
+) {
+  return `${streamPrefix}${schemaName}.${tableName}`
 }
 
 // `idle` covers empty reads and claims as well, so it stays low for a stream on a quiet table. A group
@@ -1136,6 +1174,10 @@ function debeziumDecimal(value: string) {
 // `TIME` columns have no date, and ZenStack places them on the epoch.
 function debeziumDate(value: string) {
   return new Date(/^\d{2}:/.test(value) ? `1970-01-01T${value}` : value)
+}
+
+function debeziumBoolean(value: unknown) {
+  return typeof value === 'boolean' ? value : Number(value) !== 0
 }
 
 function debeziumBytes(value: string) {

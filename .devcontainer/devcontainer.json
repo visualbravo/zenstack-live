@@ -7,7 +7,7 @@
   "shutdownAction": "stopCompose",
   "postCreateCommand": "npm install -g bun@1.4.4 && bun install --frozen-lockfile",
   "remoteUser": "node",
-  "forwardPorts": [2311, 3000, 5432, 5540, 6379, 8080, 8083],
+  "forwardPorts": [2311, 3000, 3306, 5432, 5540, 6379, 8080, 8081],
   "customizations": {
     "vscode": {
       "extensions": [
@@ -20,7 +20,8 @@
         "vitest.explorer",
         "zenstack.zenstack-v3",
         "unifiedjs.vscode-mdx",
-        "ms-azuretools.vscode-docker"
+        "ms-azuretools.vscode-docker",
+        "sumneko.lua"
       ]
     }
   },

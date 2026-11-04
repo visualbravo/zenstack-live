@@ -4,8 +4,9 @@ import { schema } from './schemas/column-types'
 import { ZenStackClient, type ClientContract } from '@zenstackhq/orm'
 import { PostgresDialect } from 'kysely'
 import { Pool } from 'pg'
-import { ZenStackLive } from '../src'
+import { ZenStackLive } from '../../src'
 import { Redis } from 'ioredis'
+import { clearRedis } from '../helpers/clear-redis'
 import Decimal from 'decimal.js'
 
 let client: ClientContract<typeof schema>
@@ -90,7 +91,7 @@ beforeAll(async () => {
 })
 
 beforeEach(async () => {
-  await redis.flushall()
+  await clearRedis(redis, 'postgres')
   await client.columnTypes.deleteMany()
 })
 

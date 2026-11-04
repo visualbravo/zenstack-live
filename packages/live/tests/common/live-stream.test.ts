@@ -1,58 +1,57 @@
 // oxlint-disable no-promise-executor-return
 import { describe, test, expect, beforeAll, afterAll, afterEach, beforeEach } from 'vitest'
-import { schema } from './schemas/basic'
-import { AnyNull, DbNull, JsonNull, ZenStackClient, type ClientContract } from '@zenstackhq/orm'
-import { PostgresDialect } from 'kysely'
-import { Pool } from 'pg'
-import { ZenStackLive, type DatabaseEventType } from '../src'
+import { schema } from './schema'
+import { AnyNull, DbNull, JsonNull, type ClientContract } from '@zenstackhq/orm'
+import { ZenStackLive, type DatabaseEventType } from '../../src'
 import { Redis } from 'ioredis'
+import { clearRedis } from '../helpers/clear-redis'
+import { createTestDatabase, dialects, getStreamName } from '../helpers/dialects'
 import { randomUUID } from 'node:crypto'
 import hash from 'stable-hash'
 import Decimal from 'decimal.js'
 
-let client: ClientContract<typeof schema>
-let live: ZenStackLive<typeof schema>
-let redis: Redis
+describe.each(dialects)('ZenStackLive on $name', dialect => {
+  let client: ClientContract<typeof schema>
+  let live: ZenStackLive<typeof schema>
+  let redis: Redis
+  const userStream = getStreamName(dialect, 'common_users')
 
-beforeAll(async () => {
-  client = new ZenStackClient(schema, {
-    dialect: new PostgresDialect({
-      pool: new Pool({
-        connectionString: process.env['POSTGRES_URL'],
-      }),
-    }),
+  beforeAll(async () => {
+    const database = await createTestDatabase(dialect, schema)
+
+    client = database.client
+
+    live = new ZenStackLive({
+      client,
+
+      redis: {
+        url: process.env['REDIS_URL']!,
+      },
+    })
+
+    redis = new Redis(process.env['REDIS_URL']!)
+
+    // A table is only captured from the moment that a stream publishes it.
+    await Promise.all(
+      (['User', 'Contact'] as const).map(model =>
+        live.stream({ model, slug: 'test-setup' })['prepare'](),
+      ),
+    )
+
+    // Let Debezium flush events from earlier test files so that they don't reach these streams.
+    await new Promise(resolve => setTimeout(resolve, 2000))
+  }, 15000)
+
+  beforeEach(async () => {
+    await clearRedis(redis, dialect.name)
   })
 
-  live = new ZenStackLive({
-    client,
-
-    redis: {
-      url: process.env['REDIS_URL']!,
-    },
+  afterAll(async () => {
+    live?.disconnect()
+    redis?.disconnect()
+    await client?.$disconnect()
   })
 
-  redis = new Redis(process.env['REDIS_URL']!)
-
-  // A table is only captured from the moment that a stream publishes it.
-  await Promise.all(
-    (['User', 'Contact'] as const).map(model =>
-      live.stream({ model, slug: 'test-setup' })['prepare'](),
-    ),
-  )
-
-  // Let Debezium flush events from earlier test files so that they don't reach these streams.
-  await new Promise(resolve => setTimeout(resolve, 2000))
-})
-
-beforeEach(async () => {
-  await redis.flushall()
-})
-
-afterAll(async () => {
-  await client.$disconnect()
-})
-
-describe('ZenStackLive', () => {
   describe('when', () => {
     test.each([
       ['omitted', undefined],
@@ -68,13 +67,13 @@ describe('ZenStackLive', () => {
 
         const user = await client.user.create({
           data: {
-            enum: 'USER',
+            enum: 'FREE',
           },
         })
 
         await client.user.update({
           data: {
-            enum: 'ADMIN',
+            enum: 'PRO',
           },
 
           where: {
@@ -128,13 +127,13 @@ describe('ZenStackLive', () => {
 
       const user = await client.user.create({
         data: {
-          enum: 'USER',
+          enum: 'FREE',
         },
       })
 
       await client.user.update({
         data: {
-          enum: 'ADMIN',
+          enum: 'PRO',
         },
 
         where: {
@@ -198,13 +197,13 @@ describe('ZenStackLive', () => {
 
       const user = await client.user.create({
         data: {
-          enum: 'USER',
+          enum: 'FREE',
         },
       })
 
       await client.user.update({
         data: {
-          enum: 'ADMIN',
+          enum: 'PRO',
         },
 
         where: {
@@ -231,13 +230,13 @@ describe('ZenStackLive', () => {
       if (!result || result.timeout) {
         const user = await client.user.create({
           data: {
-            enum: 'USER',
+            enum: 'FREE',
           },
         })
 
         await client.user.update({
           data: {
-            enum: 'ADMIN',
+            enum: 'PRO',
           },
 
           where: {
@@ -306,13 +305,13 @@ describe('ZenStackLive', () => {
 
       const user = await client.user.create({
         data: {
-          enum: 'USER',
+          enum: 'FREE',
         },
       })
 
       await client.user.update({
         data: {
-          enum: 'ADMIN',
+          enum: 'PRO',
         },
 
         where: {
@@ -322,7 +321,7 @@ describe('ZenStackLive', () => {
 
       await client.user.update({
         data: {
-          enum: 'USER',
+          enum: 'FREE',
         },
 
         where: {
@@ -372,7 +371,7 @@ describe('ZenStackLive', () => {
       when: { created: { id } },
     })
 
-    await client.user.create({ data: { id, enum: 'USER' } })
+    await client.user.create({ data: { id, enum: 'FREE' } })
 
     const delivered: string[] = []
 
@@ -399,7 +398,7 @@ describe('ZenStackLive', () => {
   }, 10000)
 
   describe('skipped events', () => {
-    const streamName = 'zenstack.table.public.User'
+    const streamName = userStream
 
     // These leave reads blocking, which would stall other streams sharing the connection.
     const lives: ZenStackLive<typeof schema>[] = []
@@ -446,8 +445,8 @@ describe('ZenStackLive', () => {
           when: { created: { id: matchedId } },
         })
 
-        await client.user.create({ data: { enum: 'USER' } })
-        await client.user.create({ data: { id: matchedId, enum: 'USER' } })
+        await client.user.create({ data: { enum: 'FREE' } })
+        await client.user.create({ data: { id: matchedId, enum: 'FREE' } })
 
         const { value: event } = await stream[Symbol.asyncIterator]().next()
 
@@ -473,8 +472,8 @@ describe('ZenStackLive', () => {
         when: { created: { id: wantingId } },
       })
 
-      await client.user.create({ data: { id: wantingId, enum: 'USER' } })
-      await client.user.create({ data: { id: skippingId, enum: 'USER' } })
+      await client.user.create({ data: { id: wantingId, enum: 'FREE' } })
+      await client.user.create({ data: { id: skippingId, enum: 'FREE' } })
 
       await skipping[Symbol.asyncIterator]().next()
 
@@ -492,7 +491,7 @@ describe('ZenStackLive', () => {
         when: { deleted: { id } },
       })
 
-      await client.user.create({ data: { id, enum: 'USER' } })
+      await client.user.create({ data: { id, enum: 'FREE' } })
       await client.user.delete({ where: { id } })
 
       // The event and its tombstone have to arrive in the same read.
@@ -505,7 +504,7 @@ describe('ZenStackLive', () => {
   })
 
   describe('shared streams', () => {
-    const streamName = 'zenstack.table.public.User'
+    const streamName = userStream
 
     const makeLive = (retention?: number) =>
       new ZenStackLive({ client, retention, redis: { url: process.env['REDIS_URL']! } })
@@ -524,7 +523,7 @@ describe('ZenStackLive', () => {
         }),
       )
 
-      await client.user.create({ data: { id, enum: 'USER' } })
+      await client.user.create({ data: { id, enum: 'FREE' } })
 
       const firstIterator = first![Symbol.asyncIterator]()
       const { value: event } = await firstIterator.next()
@@ -561,7 +560,7 @@ describe('ZenStackLive', () => {
       const oldId = (await redis.xadd(streamName, '*', 'key', 'default'))!
 
       await new Promise(resolve => setTimeout(resolve, 1200))
-      await client.user.create({ data: { id, enum: 'USER' } })
+      await client.user.create({ data: { id, enum: 'FREE' } })
 
       const { value: event } = await stream[Symbol.asyncIterator]().next()
       const ids = (await redis.xrange(streamName, '-', '+')).map(([entryId]) => entryId)
@@ -584,7 +583,7 @@ describe('ZenStackLive', () => {
 
       const recentId = (await redis.xadd(streamName, '*', 'key', 'default'))!
 
-      await client.user.create({ data: { id, enum: 'USER' } })
+      await client.user.create({ data: { id, enum: 'FREE' } })
       await stream[Symbol.asyncIterator]().next()
 
       expect((await redis.xrange(streamName, '-', '+')).map(([entryId]) => entryId)).toContain(
@@ -613,7 +612,7 @@ describe('ZenStackLive', () => {
 
       await redis.xreadgroup('GROUP', group, 'other', 'STREAMS', streamName, '>')
       await new Promise(resolve => setTimeout(resolve, 1200))
-      await client.user.create({ data: { id, enum: 'USER' } })
+      await client.user.create({ data: { id, enum: 'FREE' } })
 
       const { value: event } = await stream[Symbol.asyncIterator]().next()
       const pending = (await redis.xpending(streamName, group, '-', '+', 10)) as [string][]
@@ -646,7 +645,7 @@ describe('ZenStackLive', () => {
 
         await redis.xreadgroup('GROUP', group, 'other', 'STREAMS', streamName, '>')
         await redis.xdel(streamName, missingId)
-        await client.user.create({ data: { id, enum: 'USER' } })
+        await client.user.create({ data: { id, enum: 'FREE' } })
 
         // Debezium has to deliver the event before it can be left pending.
         await new Promise(resolve => setTimeout(resolve, 1500))
@@ -692,7 +691,7 @@ describe('ZenStackLive', () => {
         })
 
         for (const id of ids) {
-          await client.user.create({ data: { id, enum: 'USER' } })
+          await client.user.create({ data: { id, enum: 'FREE' } })
         }
 
         await new Promise(resolve => setTimeout(resolve, 4000))
@@ -768,299 +767,33 @@ describe('ZenStackLive', () => {
     ).toThrow('Invalid exists args')
   })
 
-  describe('custom types', () => {
-    const joinedAt = new Date('2024-01-01T00:00:00.000Z')
+  test('shares a transaction ID between the events of a transaction', async () => {
+    const ids = [randomUUID(), randomUUID(), randomUUID()]
 
-    const address = {
-      city: 'Hanoi',
-      geo: { lat: 21.5, lng: 105 },
-      tags: ['home'],
-      role: 'ADMIN' as const,
-      movedAt: joinedAt,
-    }
-
-    beforeEach(async () => {
-      await client.contact.deleteMany()
+    const stream = live.stream({
+      model: 'User',
+      slug: 'test-transaction-id',
+      when: { created: { id: { in: ids } } },
     })
 
-    test('hydrates events', async () => {
-      const stream = live.stream({
-        model: 'Contact',
-        slug: 'test-custom-types-hydrate',
-        when: {
-          created: {
-            profile: { name: 'Ada', address: { geo: { lat: { gt: 21 } } } },
-          },
-        },
-      })
+    await client.$transaction(async tx => {
+      await tx.user.create({ data: { id: ids[0], enum: 'FREE' } })
+      await tx.user.create({ data: { id: ids[1], enum: 'PRO' } })
+    })
 
-      await client.contact.create({
-        data: { email: 'b@example.com', profile: { name: 'Bob', addresses: [] }, addresses: [] },
-      })
+    await client.user.create({ data: { id: ids[2], enum: 'FREE' } })
 
-      await client.contact.create({
-        data: {
-          email: 'a@example.com',
-          emails: ['a@example.com', 'b@example.com'],
-          age: 30,
-          balance: new Decimal('10.5'),
-          visits: 9007199254740993n,
-          lastSeen: joinedAt,
-          profile: {
-            name: 'Ada',
-            age: 30,
-            joinedAt,
-            balance: new Decimal('10.5'),
-            address,
-            addresses: [address],
-          },
-          addresses: [address],
-        },
-      })
+    const transactionIds: string[] = []
 
-      for await (const event of stream) {
-        const contact = event.created
+    for await (const event of stream) {
+      transactionIds.push(event.transactionId)
 
-        expect(contact.email).toBe('a@example.com')
-        expect(contact.emails).toEqual(['a@example.com', 'b@example.com'])
-        expect(contact.age).toBe(30)
-        expect(contact.balance).toEqual(new Decimal('10.5'))
-        expect(contact.visits).toBe(9007199254740993n)
-        expect(contact.lastSeen).toEqual(joinedAt)
-        expect(contact.createdAt).toBeInstanceOf(Date)
-        expect(contact.profile).toEqual({
-          name: 'Ada',
-          age: 30,
-          joinedAt,
-          balance: new Decimal('10.5'),
-          address,
-          addresses: [address],
-        })
-        expect(contact.addresses).toEqual([address])
-
+      if (transactionIds.length === 3) {
         break
       }
-    }, 10000)
+    }
 
-    test('hydrates plain json', async () => {
-      const stream = live.stream({
-        model: 'Contact',
-        slug: 'test-custom-types-plain-json',
-        when: { created: {} },
-      })
-
-      const metadata = { plan: 'pro', limits: [1, 2], nested: { ok: true } }
-      const history = [{ event: 'joined' }, 'text', 1]
-
-      await client.contact.create({
-        data: { email: 'a@example.com', addresses: [], metadata, history },
-      })
-
-      for await (const event of stream) {
-        expect(event.created.metadata).toEqual(metadata)
-        expect(event.created.history).toEqual(history)
-
-        break
-      }
-    }, 10000)
-
-    test.each<[string, string]>([
-      ['string', '"text"'],
-      ['number', '0'],
-      ['boolean', 'false'],
-    ])(
-      'hydrates plain json holding a %s',
-      async (type, json) => {
-        const stream = live.stream({
-          model: 'Contact',
-          slug: `test-custom-types-plain-json-${type}`,
-          when: { created: {} },
-        })
-
-        await client.$queryRawUnsafe(
-          `INSERT INTO "Contact" (id, email, emails, addresses, history, metadata)
-         VALUES ('scalar', 'a@example.com', '{}', '[]', '{}', '${json}')`,
-        )
-
-        for await (const event of stream) {
-          expect(event.created.metadata).toBe(JSON.parse(json))
-
-          break
-        }
-      },
-      10000,
-    )
-
-    test('hydrates null plain json', async () => {
-      const stream = live.stream({
-        model: 'Contact',
-        slug: 'test-custom-types-plain-json-null',
-        when: { created: {} },
-      })
-
-      await client.contact.create({ data: { email: 'a@example.com', addresses: [] } })
-
-      for await (const event of stream) {
-        expect(event.created.metadata).toBeNull()
-        expect(event.created.history).toEqual([])
-
-        break
-      }
-    }, 10000)
-
-    test('hydrates bytes and date arrays', async () => {
-      const avatar = new Uint8Array([1, 2, 255])
-
-      const stream = live.stream({
-        model: 'Contact',
-        slug: 'test-custom-types-bytes',
-        when: { created: { avatar: { equals: avatar }, seenAt: { has: joinedAt } } },
-      })
-
-      await client.contact.create({
-        data: { email: 'b@example.com', addresses: [], avatar: new Uint8Array([1]) },
-      })
-
-      await client.contact.create({
-        data: { email: 'a@example.com', addresses: [], avatar, seenAt: [joinedAt] },
-      })
-
-      for await (const event of stream) {
-        expect(event.created.avatar).toEqual(avatar)
-        expect(event.created.seenAt).toEqual([joinedAt])
-
-        break
-      }
-    }, 10000)
-
-    test('keeps the precision of decimals', async () => {
-      const balance = new Decimal('1234567890.12345678901234567890123456')
-
-      const stream = live.stream({
-        model: 'Contact',
-        slug: 'test-custom-types-decimal',
-        when: { created: { balance: { equals: balance.toString() as any } } },
-      })
-
-      await client.contact.create({ data: { email: 'a@example.com', addresses: [], balance } })
-
-      for await (const event of stream) {
-        expect(event.created.balance?.toString()).toBe(balance.toString())
-
-        break
-      }
-    }, 10000)
-
-    test.each<[string, unknown, string]>([
-      ['JsonNull', JsonNull, 'json'],
-      ['DbNull', DbNull, 'db'],
-    ])(
-      'tells %s apart',
-      async (_, equals, expected) => {
-        const stream = live.stream({
-          model: 'Contact',
-          slug: `test-custom-types-${expected}-null`,
-          when: { created: { metadata: { equals } as any } },
-        })
-
-        await client.$queryRawUnsafe(
-          `INSERT INTO "Contact" (id, email, addresses, metadata)
-         VALUES ('json', 'a@example.com', '[]', 'null'), ('db', 'b@example.com', '[]', NULL)`,
-        )
-
-        for await (const event of stream) {
-          expect(event.created.id).toBe(expected)
-          expect(event.created.metadata).toBeNull()
-
-          break
-        }
-      },
-      10000,
-    )
-
-    test('matches a NULL array like the database', async () => {
-      const stream = live.stream({
-        model: 'Contact',
-        slug: 'test-custom-types-null-array',
-        when: { created: { emails: { isEmpty: true } } },
-      })
-
-      await client.$queryRawUnsafe(
-        `INSERT INTO "Contact" (id, email, addresses, emails)
-         VALUES ('null', 'a@example.com', '[]', NULL), ('empty', 'b@example.com', '[]', '{}')`,
-      )
-
-      for await (const event of stream) {
-        expect(event.created.id).toBe('empty')
-
-        break
-      }
-    }, 10000)
-
-    test('hydrates null json', async () => {
-      const stream = live.stream({
-        model: 'Contact',
-        slug: 'test-custom-types-null',
-        when: { created: { profile: null } },
-      })
-
-      await client.contact.create({ data: { email: 'a@example.com', addresses: [] } })
-
-      for await (const event of stream) {
-        expect(event.created.profile).toBeNull()
-
-        break
-      }
-    }, 10000)
-
-    test('survives json that does not match its type', async () => {
-      const stream = live.stream({
-        model: 'Contact',
-        slug: 'test-custom-types-malformed',
-        when: { created: {} },
-      })
-
-      const profile = {
-        name: 'Ada',
-        balance: 'not a decimal',
-        address: 'not an object',
-        addresses: 'not an array',
-      }
-
-      await client.$queryRawUnsafe(
-        `INSERT INTO "Contact" (id, email, emails, addresses, history, profile)
-         VALUES ('malformed', 'a@example.com', '{}', '[]', '{}', '${JSON.stringify(profile)}')`,
-      )
-
-      for await (const event of stream) {
-        expect(event.created.profile).toEqual(profile)
-
-        break
-      }
-    }, 10000)
-
-    test('keeps large json that is unchanged by an update', async () => {
-      const stream = live.stream({
-        model: 'Contact',
-        slug: 'test-custom-types-toast',
-        when: { updated: {} },
-      })
-
-      // Random text can't be compressed, so Postgres has to store this out of line.
-      const name = Array.from({ length: 2000 }, () => Math.random().toString(36)).join('')
-
-      const contact = await client.contact.create({
-        data: { email: 'a@example.com', profile: { name, addresses: [] }, addresses: [] },
-      })
-
-      await client.contact.update({ where: { id: contact.id }, data: { age: 30 } })
-
-      for await (const event of stream) {
-        expect(event.updated.before.profile?.name).toBe(name)
-        expect(event.updated.after.profile?.name).toBe(name)
-
-        break
-      }
-    }, 10000)
-  })
+    expect(transactionIds[0]).toBe(transactionIds[1])
+    expect(transactionIds[2]).not.toBe(transactionIds[0])
+  }, 10000)
 })

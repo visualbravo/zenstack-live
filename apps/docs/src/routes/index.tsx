@@ -190,9 +190,9 @@ function Home() {
           </h1>
 
           <p className='max-w-2xl text-lg text-fd-muted-foreground'>
-            Give your ZenStack backend realtime streaming capabilities. Instantly react
-            to any insert, update, or delete, and declaratively filter records using the same Prisma
-            API you've come to love.
+            Give your ZenStack backend realtime streaming capabilities. Instantly react to any
+            insert, update, or delete, and declaratively filter records using the same Prisma API
+            you've come to love.
           </p>
 
           <div className='flex flex-wrap items-center justify-center gap-3'>

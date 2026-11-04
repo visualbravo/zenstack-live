@@ -118,7 +118,7 @@ All events share these fields.
 | --------------- | ------------------------------------- | ---------------------------------------------------- |
 | `type`          | `'created' \| 'updated' \| 'deleted'` | What happened. Use this to narrow the type.          |
 | `id`            | `string`                              | The event's unique ID. Stays the same on redelivery. |
-| `transactionId` | `string`                              | The Postgres transaction that made the change.       |
+| `transactionId` | `string`                              | The transaction that made the change.                |
 | `date`          | `Date`                                | When Debezium processed the change.                  |
 
 Each event type adds one field, holding the record. See [Reading Events](/docs/guides/events).

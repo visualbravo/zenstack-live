@@ -3,6 +3,7 @@
   "icon": "Server",
   "pages": [
     "postgres",
+    "mysql",
     "debezium",
     "redis",
     "workers",

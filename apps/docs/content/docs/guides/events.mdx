@@ -10,7 +10,7 @@ Every event has the same base fields, plus a field named after its type that hol
 for await (const event of stream) {
   event.type // 'created', 'updated', or 'deleted'
   event.id // Unique, and stays the same if the event is delivered again.
-  event.transactionId // The Postgres transaction that made the change.
+  event.transactionId // The transaction that made the change.
   event.date // When Debezium processed the change.
 
   if (event.type === 'created') {
@@ -44,7 +44,7 @@ for await (const event of stream) {
 | `updated` | The old record | The new record |
 | `deleted` | The old record | `null`         |
 
-The result is fully typed, and follows the event. So once you've checked `before === null`, TypeScript knows that `after` is a record.                                    |
+The result is fully typed, and follows the event. So once you've checked `before === null`, TypeScript knows that `after` is a record.
 
 ## What Events Don't Contain
 
@@ -69,7 +69,7 @@ for await (const event of stream) {
 
 ## Transactions
 
-Rows changed in the same transaction arrive as separate events with the same `transactionId`. LIVE doesn't group them, but you can use it to treat them as one change, like skipping work you've already done for that transaction.
+Rows changed in the same transaction arrive as separate events with the same `transactionId`. On MySQL, this is the transaction's GTID. LIVE doesn't group them, but you can use it to treat them as one change, like skipping work you've already done for that transaction.
 
 ## Timing
 

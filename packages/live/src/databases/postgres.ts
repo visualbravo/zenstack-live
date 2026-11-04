@@ -1,7 +1,7 @@
 import type { SchemaDef } from '@zenstackhq/schema'
 import type { ClientContract } from '@zenstackhq/orm'
 import type { CapturedTable, LiveDatabase } from './database'
-import { getAttribute } from '../internal'
+import { getAttribute, type DebeziumSource } from '../internal'
 
 const PUBLICATION = 'zenstack_live'
 
@@ -12,14 +12,15 @@ const LOCK_PUBLICATION = `PERFORM pg_advisory_xact_lock(hashtext(${quoteLiteral(
 // Debezium reads changes through a logical replication slot, which only sees the tables in its
 // publication. `REPLICA IDENTITY FULL` is what puts the whole previous row into updates and deletes.
 export class PostgresDatabase<Schema extends SchemaDef> implements LiveDatabase {
+  public readonly dialect = 'postgres'
   private readonly client: ClientContract<Schema>
 
-  constructor(client: ClientContract<Schema>) {
+  public constructor(client: ClientContract<Schema>) {
     this.client = client
   }
 
   // This follows how ZenStack resolves a model, because Debezium names streams after the real table.
-  getSchemaName(model: string) {
+  public async getSchemaName(model: string) {
     return (
       getAttribute(this.client.$schema.models[model]!, '@@schema', 'map') ??
       this.client.$schema.provider.defaultSchema ??
@@ -29,7 +30,7 @@ export class PostgresDatabase<Schema extends SchemaDef> implements LiveDatabase 
 
   // This is one block so that `ALTER TABLE` holds its lock until the table is published. Otherwise a
   // write in between could be captured without its full previous row.
-  async captureTable(schemaName: string, tableName: string) {
+  public async captureTable(schemaName: string, tableName: string) {
     const table = `${quoteIdentifier(schemaName)}.${quoteIdentifier(tableName)}`
     const publication = quoteIdentifier(PUBLICATION)
 
@@ -62,15 +63,15 @@ export class PostgresDatabase<Schema extends SchemaDef> implements LiveDatabase 
     `)
   }
 
-  async releaseTable(table: CapturedTable) {
+  public async releaseTable(table: CapturedTable) {
     await this.updatePublication(table, 'DROP')
   }
 
-  async restoreTable(table: CapturedTable) {
+  public async restoreTable(table: CapturedTable) {
     await this.updatePublication(table, 'ADD')
   }
 
-  async getCapturedTables() {
+  public async getCapturedTables() {
     return await this.client.$queryRawUnsafe<CapturedTable[]>(`
       SELECT
         t.schemaname AS "schemaName",
@@ -83,6 +84,10 @@ export class PostgresDatabase<Schema extends SchemaDef> implements LiveDatabase 
       JOIN pg_class c ON c.relnamespace = n.oid AND c.relname = t.tablename
       WHERE t.pubname = ${quoteLiteral(PUBLICATION)}
     `)
+  }
+
+  public getTransactionId(source: DebeziumSource) {
+    return String(source.txId)
   }
 
   private async updatePublication(table: CapturedTable, action: 'ADD' | 'DROP') {

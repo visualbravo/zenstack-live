@@ -57,12 +57,67 @@ jobs:
           DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS_ADDRESS: redis:6379
 
           DEBEZIUM_SOURCE_OFFSET_STORAGE: io.debezium.storage.redis.offset.RedisOffsetBackingStore
-          DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY: zenstack.metadata.offsets
+          DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY: zenstack.postgres.metadata.offsets
           DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_ADDRESS: redis:6379
 
           DEBEZIUM_SOURCE_SNAPSHOT_MODE: no_data
           DEBEZIUM_SOURCE_TIME_PRECISION_MODE: isostring
-          DEBEZIUM_SOURCE_TOPIC_PREFIX: zenstack.table
+          DEBEZIUM_SOURCE_TOPIC_PREFIX: zenstack.postgres.table
+
+      # Binlog is on, row-based and full by default from 8.0. Services can't take server flags, so
+      # GTIDs are turned on by a step instead.
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: mysql
+          MYSQL_DATABASE: zenstack
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -pmysql"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+      debezium-mysql:
+        image: quay.io/debezium/server:3.7.0.Final
+        options: >-
+          --restart on-failure
+          --health-cmd "curl -f http://localhost:8080/q/health"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+        env:
+          JAVA_OPTS: '-Dnetworkaddress.cache.negative.ttl=0'
+
+          DATABASE_USER: default
+          DEBEZIUM_FORMAT_SCHEMAS_ENABLE: false
+          DEBEZIUM_SINK_REDIS_ADDRESS: redis:6379
+          DEBEZIUM_SINK_REDIS_PASSWORD:
+          DEBEZIUM_SINK_REDIS_SSL_ENABLED: false
+          DEBEZIUM_SINK_REDIS_WAIT_RETRY_ENABLED: true
+          DEBEZIUM_SINK_TYPE: redis
+
+          DEBEZIUM_SOURCE_CONNECTOR_CLASS: io.debezium.connector.mysql.MySqlConnector
+          DEBEZIUM_SOURCE_DATABASE_HOSTNAME: mysql
+          DEBEZIUM_SOURCE_DATABASE_PORT: 3306
+          DEBEZIUM_SOURCE_DATABASE_USER: root
+          DEBEZIUM_SOURCE_DATABASE_PASSWORD: mysql
+          DEBEZIUM_SOURCE_DATABASE_SERVER_ID: 1
+          DEBEZIUM_SOURCE_DATABASE_INCLUDE_LIST: zenstack
+          DEBEZIUM_SOURCE_DATABASE_SERVER_NAME: zenstack
+          DEBEZIUM_SOURCE_DECIMAL_HANDLING_MODE: string
+          DEBEZIUM_SOURCE_INCLUDE_SCHEMA_CHANGES: false
+
+          DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL: io.debezium.storage.redis.history.RedisSchemaHistory
+          DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS_ADDRESS: redis:6379
+          DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS_KEY: zenstack.mysql.metadata.schema_history
+
+          DEBEZIUM_SOURCE_OFFSET_STORAGE: io.debezium.storage.redis.offset.RedisOffsetBackingStore
+          DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY: zenstack.mysql.metadata.offsets
+          DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_ADDRESS: redis:6379
+
+          DEBEZIUM_SOURCE_SNAPSHOT_MODE: no_data
+          DEBEZIUM_SOURCE_TIME_PRECISION_MODE: isostring
+          DEBEZIUM_SOURCE_TOPIC_PREFIX: zenstack.mysql.table
 
       redis:
         image: redis:7.2
@@ -90,6 +145,20 @@ jobs:
       - name: Build
         run: bun run build
 
+      # GTID mode can only be changed one step at a time.
+      - name: Enable MySQL GTIDs
+        working-directory: packages/live
+        run: |
+          bun -e "
+            import mysql from 'mysql2/promise'
+            const connection = await mysql.createConnection('mysql://root:mysql@mysql:3306/zenstack')
+            for (const value of ['OFF_PERMISSIVE', 'ON_PERMISSIVE', 'ON']) {
+              if (value === 'OFF_PERMISSIVE') await connection.query('SET GLOBAL enforce_gtid_consistency = ON')
+              await connection.query('SET GLOBAL gtid_mode = ' + value)
+            }
+            await connection.end()
+          "
+
       - name: Test
         env:
           POSTGRES_USER: postgres
@@ -98,5 +167,6 @@ jobs:
           POSTGRES_HOST: postgres
           POSTGRES_PORT: 5432
           POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/postgres
+          MYSQL_URL: mysql://root:mysql@mysql:3306/zenstack
           REDIS_URL: redis://redis:6379
         run: bun run test

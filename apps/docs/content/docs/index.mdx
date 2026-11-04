@@ -13,35 +13,8 @@ If you're familiar with the now discontinued Prisma Pulse, this is basically an 
 
 - ZenStack (version >= `3.10.0`)
 - Node.js (version >= `22.0.0`)
-- Postgres that supports [logical replication](https://www.postgresql.org/docs/current/logical-replication.html) (version >= `15`)
 - Redis (version >= `7.2.0`)
+- Database (pick one)
+  - Postgres that supports [logical replication](https://www.postgresql.org/docs/current/logical-replication.html) (version >= `15`)
+  - MySQL that supports GTIDs
 - A non-serverless server that will process events. You can forward events to serverless if you so desire.
-
-## Where to Next
-
-<Cards>
-  <Card
-    icon={<Rocket />}
-    title='Quick Start'
-    href='/docs/quick-start'
-    description='See your first event in a few minutes.'
-  />
-  <Card
-    icon={<Workflow />}
-    title='How it Works'
-    href='/docs/how-it-works'
-    description="What's happening between Postgres and your loop."
-  />
-  <Card
-    icon={<ChefHat />}
-    title='Recipes'
-    href='/docs/recipes'
-    description='Welcome emails, audit logs, caching, and more.'
-  />
-  <Card
-    icon={<Code />}
-    title='API Reference'
-    href='/docs/reference/api'
-    description='Every option, event field, and type.'
-  />
-</Cards>

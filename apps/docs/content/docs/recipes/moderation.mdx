@@ -11,7 +11,6 @@ const stream = live.stream({
 
   when: {
     created: {
-      // All of this is type-safe, with autocomplete based on your model.
       OR: [
         { title: { contains: 'ugly', mode: 'insensitive' } },
         { title: { contains: 'stupid', mode: 'insensitive' } },

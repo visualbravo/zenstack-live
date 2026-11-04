@@ -12,9 +12,17 @@ export type DebeziumSource = {
   ts_ns?: number
   schema: string
   table: string
+  // Postgres
   txId?: number
   lsn?: number
   xmin?: number | null
+
+  // MySQL
+  gtid?: string
+  file?: string
+  pos?: number
+  row?: number
+  server_id?: number
 }
 
 export type DebeziumChangeEvent<T extends Record<string, unknown> = {}> = {
@@ -57,7 +65,7 @@ export type RecordedStream = {
   preparedAt: number
 }
 
-// What Postgres holds for the columns that hydration changes, because filters run against that. It
+// What the database holds for the columns that hydration changes, because filters run against that. It
 // keeps JSON nulls apart from NULLs, and NULL arrays apart from the empty arrays they hydrate to.
 export const sourceValues = Symbol('sourceValues')
 

@@ -7,8 +7,8 @@ import {
   type RecordDeletedEvent,
   type RecordEvent,
   type RecordUpdatedEvent,
-} from '../src'
-import type { schema } from './schemas/basic'
+} from '../../src'
+import type { schema } from './schema'
 
 type Schema = typeof schema
 type Created = RecordCreatedEvent<Schema, 'User'>

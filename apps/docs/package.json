@@ -6,12 +6,11 @@
   "scripts": {
     "dev": "vite dev --host --port 3000",
     "build": "vite build",
-    "start": "vite preview",
+    "start": "vite preview --host --port 3000",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix --fix-suggestions",
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
-    "preview": "vite preview --host --port 3000",
     "types:check": "tsc --noEmit"
   },
   "dependencies": {

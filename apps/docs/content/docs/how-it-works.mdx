@@ -20,21 +20,23 @@ Postgres ──▶ Debezium ──▶ Redis ──▶ LIVE ──▶ your for aw
 
 "Stream" means two things here. A **LIVE stream** is what `live.stream()` returns. A **Redis stream** is the log that events are stored in. There's one Redis stream per table, and any number of LIVE streams can read from it.
 
-| Name                                     | What it is                                                                      |
-| ---------------------------------------- | ------------------------------------------------------------------------------- |
-| `zenstack_live`                          | The Postgres publication that lists captured tables.                            |
-| `zenstack.table.<schema>.<table>`        | The Redis stream that holds a table's events.                                   |
-| `zenstack.table.<schema>.<table>.<hash>` | The consumer group of one LIVE stream. It tracks what that stream has read.     |
-| `zenstack.<id>`                          | The consumer that a `ZenStackLive` instance reads as.                           |
-| `zenstack.metadata.streams`              | A Redis hash that records each stream, for [`prune`](/docs/deployment/pruning). |
-| `zenstack.metadata.offsets`              | Debezium's position in the database's log.                                      |
+`<dialect>` is `postgres` or `mysql`, so that a single Redis can serve databases of both kinds without their keys overlapping.
+
+| Name                                               | What it is                                                                      |
+| -------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `zenstack_live`                                    | The Postgres publication that lists captured tables.                            |
+| `zenstack.<dialect>.table.<schema>.<table>`        | The Redis stream that holds a table's events.                                   |
+| `zenstack.<dialect>.table.<schema>.<table>.<hash>` | The consumer group of one LIVE stream. It tracks what that stream has read.     |
+| `zenstack.<id>`                                    | The consumer that a `ZenStackLive` instance reads as.                           |
+| `zenstack.<dialect>.metadata.streams`              | A Redis hash that records each stream, for [`prune`](/docs/deployment/pruning). |
+| `zenstack.<dialect>.metadata.offsets`              | Debezium's position in the database's log.                                      |
 
 ## What Creating a Stream Does
 
 Creating a stream changes both Redis and your database, and it starts as soon as you call `live.stream()`, before you begin iterating:
 
 1. It creates a consumer group, positioned at the end of the Redis stream.
-2. It records the stream in `zenstack.metadata.streams`.
+2. It records the stream in `zenstack.<dialect>.metadata.streams`.
 3. It sets the table to `REPLICA IDENTITY FULL`, so that Postgres logs the full previous row. That's what makes `before` available on updates and deletes.
 4. It adds the table to `zenstack_live`, creating the publication if it doesn't exist.
 

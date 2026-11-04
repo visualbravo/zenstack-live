@@ -29,9 +29,9 @@
     "@zenstackhq/cli": "catalog:",
     "@zenstackhq/schema": "catalog:"
   },
+  "packageManager": "bun@1.4.4",
   "zenstack": {
-    "schema": "./src/schema.zmodel",
-    "output": "./src"
-  },
-  "packageManager": "bun@1.4.4"
+    "schema": "./src/zenstack/schema.zmodel",
+    "output": "./src/zenstack"
+  }
 }

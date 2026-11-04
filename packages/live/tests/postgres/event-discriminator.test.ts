@@ -1,11 +1,11 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { schema } from './schemas/basic'
-import { EventDiscriminator, type EventDiscriminatorOptions } from '../src/event-discriminator'
-import { sourceValues } from '../src/internal'
+import { EventDiscriminator, type EventDiscriminatorOptions } from '../../src/event-discriminator'
+import { sourceValues } from '../../src/internal'
 import { AnyNull, DbNull, JsonNull, ZenStackClient, type ClientContract } from '@zenstackhq/orm'
 import { PostgresDialect } from 'kysely'
 import { Pool } from 'pg'
-import type { RecordCreatedEvent, RecordEvent } from '../'
+import type { RecordCreatedEvent, RecordEvent } from '../../'
 import Decimal from 'decimal.js'
 
 const baseDate = new Date('2024-01-01T00:00:00.000Z')

@@ -23,7 +23,9 @@ for await (const event of stream) {
 }
 ```
 
-Better yet, make the operation safe to repeat by nature, like an upsert keyed on `event.id`, or a unique constraint on a record it creates. Then two instances can't both get past the check.
+Better yet, make the operation safe to repeat by nature, like an upsert keyed on `event.id`, or a unique constraint on a record it creates.
+
+Many third-party services such as [Stripe](https://docs.stripe.com/api/idempotent_requests?lang=node) and [Resend](https://resend.com/docs/dashboard/emails/idempotency-keys) accept an idempotency key when submitting requests.
 
 ## Handlers Need to Catch Their Own Errors
 

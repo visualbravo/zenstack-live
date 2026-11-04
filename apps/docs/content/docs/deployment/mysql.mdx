@@ -1,0 +1,50 @@
+---
+title: MySQL
+description: Binlog settings, GTIDs, and the database users LIVE and Debezium need.
+icon: Database
+---
+
+- **Version:** 8.0 or later.
+- **Binlog:** `log_bin` enabled, `binlog_format=ROW`, and `binlog_row_image=FULL`. These are the defaults from MySQL 8.0. `FULL` is what puts the whole previous row into updates and deletes, so a stream refuses to start without it.
+- **GTIDs:** `gtid_mode=ON` and `enforce_gtid_consistency=ON`. Each event's `transactionId` is its transaction's GTID.
+
+```bash
+mysqld --server-id=1 --log-bin=mysql-bin --binlog-format=ROW --binlog-row-image=FULL \
+  --gtid-mode=ON --enforce-gtid-consistency=ON
+```
+
+LIVE and Debezium each connect with a database user, and they have different needs.
+
+| User     | Needs                                                                                                  |
+| -------- | ------------------------------------------------------------------------------------------------------ |
+| LIVE     | `SELECT` on `information_schema`, which every user has. This is the user of the `client` you pass in.  |
+| Debezium | `SELECT`, `RELOAD`, `SHOW DATABASES`, `REPLICATION SLAVE`, and `REPLICATION CLIENT`, granted `ON *.*`. |
+
+## How It Differs From Postgres
+
+MySQL has no publication. The binlog holds every table's changes, and Debezium captures every table in the database named in its `DATABASE_URL`. So:
+
+- `DATABASE_URL` has to include the database, and it has to be the one your `client` connects to.
+- A stream doesn't change your database. It only checks the binlog settings above.
+- Streams are named `zenstack.mysql.table.<database>.<table>`.
+- Every table counts as captured, the way it does for a publication that's `FOR ALL TABLES`. `prune` removes streams and consumers, but never stops capturing a table, and reports tables without streams under `allTables`.
+
+Keep your tables out of the `mysql` database. Debezium skips it, so nothing in it ever reaches a stream.
+
+## Debezium
+
+`zebezium` configures itself for MySQL when `DATABASE_URL` starts with `mysql://`. Otherwise, use the settings in [Debezium](/docs/deployment/debezium), minus the publication and plugin, with these changes:
+
+| Setting                                             | Value                                        | Why                                                                    |
+| --------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------- |
+| `DEBEZIUM_SOURCE_CONNECTOR_CLASS`                   | `io.debezium.connector.mysql.MySqlConnector` |                                                                        |
+| `DEBEZIUM_SOURCE_TOPIC_PREFIX`                      | `zenstack.mysql.table`                       | LIVE looks for events in `zenstack.mysql.table.<database>.<table>`.    |
+| `DEBEZIUM_SOURCE_DATABASE_INCLUDE_LIST`             | Your database                                | Only the database your `client` uses is captured.                      |
+| `DEBEZIUM_SOURCE_DATABASE_SERVER_ID`                | A number no other replica uses               | Debezium joins as a replica.                                           |
+| `DEBEZIUM_SOURCE_INCLUDE_SCHEMA_CHANGES`            | `false`                                      | Schema changes would fill a stream that nothing reads or trims.        |
+| `DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY`          | `zenstack.mysql.metadata.offsets`            | Keeps it apart from a Postgres Debezium sharing the Redis.             |
+| `DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS_KEY` | `zenstack.mysql.metadata.schema_history`     | Debezium can't restart without its schema history, so don't remove it. |
+
+## Filters
+
+Filters are evaluated by LIVE, not by MySQL, and they compare strings the way Postgres does. With MySQL's default collations, `equals: 'ada'` matches `'Ada'` in a query, but not in a stream filter. Use `mode: 'insensitive'` to match it.

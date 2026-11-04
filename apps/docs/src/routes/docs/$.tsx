@@ -48,7 +48,9 @@ function Content({ path }: { path: string }) {
   return (
     <DocsPage toc={toc}>
       <DocsTitle>{page.title}</DocsTitle>
-      <head><title>{titleString}</title></head>
+      <head>
+        <title>{titleString}</title>
+      </head>
       <DocsDescription>{page.description}</DocsDescription>
       <DocsBody>
         <MDX components={useMDXComponents()} />
