@@ -165,16 +165,19 @@ jobs:
 
       # Debezium only reads GTIDs if they were on when it connected, which they weren't, since
       # services start before any step. Without a restart, every event's `source.gtid` is null.
+      # Its health check passes before the connector reaches the binlog, and events written in
+      # between are skipped, so wait for the connector to log that it's streaming instead.
       - name: Restart MySQL Debezium
         run: |
           container=${{ job.services.debezium-mysql.id }}
+          since=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           docker restart "$container"
           for i in $(seq 1 60); do
-            status=$(docker inspect --format '{{.State.Health.Status}}' "$container")
-            [ "$status" = healthy ] && exit 0
+            docker logs --since "$since" "$container" 2>&1 | grep -q 'Connected to .*binlog at' && exit 0
             sleep 2
           done
-          echo "Debezium MySQL did not become healthy (status: $status)"
+          echo "Debezium MySQL did not connect to the binlog"
+          docker logs --since "$since" "$container" 2>&1 | tail -100
           exit 1
 
       - name: Test
