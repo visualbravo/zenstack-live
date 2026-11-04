@@ -160,6 +160,9 @@ jobs:
               if (value === 'OFF_PERMISSIVE') await connection.query('SET GLOBAL enforce_gtid_consistency = ON')
               await connection.query('SET GLOBAL gtid_mode = ' + value)
             }
+            // Debezium can't stream from an empty GTID set, so give the server one.
+            await connection.query('CREATE DATABASE gtid_seed')
+            await connection.query('DROP DATABASE gtid_seed')
             await connection.end()
           "
 
