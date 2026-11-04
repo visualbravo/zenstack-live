@@ -191,6 +191,7 @@ describe('publication', () => {
     await prepareStream(live, 'racing')
     await sleep(RETENTION + 50)
 
+    // @ts-expect-error
     const {database} = live
     const release = database.releaseTable.bind(database)
 
