@@ -4,7 +4,11 @@ on: [pull_request, workflow_dispatch]
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    container: node:22
+    container:
+      image: node:22
+      # Lets a step restart the MySQL Debezium service once GTIDs are on.
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
     services:
       postgres:
         image: postgres:15
@@ -134,7 +138,7 @@ jobs:
       - name: Install system dependencies
         run: |
           apt-get update
-          apt-get install -y unzip
+          apt-get install -y unzip docker.io
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
@@ -158,6 +162,20 @@ jobs:
             }
             await connection.end()
           "
+
+      # Debezium only reads GTIDs if they were on when it connected, which they weren't, since
+      # services start before any step. Without a restart, every event's `source.gtid` is null.
+      - name: Restart MySQL Debezium
+        run: |
+          container=${{ job.services.debezium-mysql.id }}
+          docker restart "$container"
+          for i in $(seq 1 60); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' "$container")
+            [ "$status" = healthy ] && exit 0
+            sleep 2
+          done
+          echo "Debezium MySQL did not become healthy (status: $status)"
+          exit 1
 
       - name: Test
         env:
