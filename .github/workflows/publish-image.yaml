@@ -3,10 +3,12 @@ on: [pull_request]
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    container:
+      image: node:22
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
     permissions:
       packages: write
-    # container:
-    #   image: node:22
 
     steps:
       - name: Check out repository code
