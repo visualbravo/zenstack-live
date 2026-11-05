@@ -1,5 +1,0 @@
-{
-  "title": "Guides",
-  "icon": "BookOpen",
-  "pages": ["streams", "filtering", "events", "error-handling"]
-}

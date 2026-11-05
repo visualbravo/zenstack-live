@@ -1,4 +1,19 @@
 {
   "title": "ZenStack LIVE",
-  "pages": ["index", "quick-start", "how-it-works", "guides", "deployment", "recipes", "reference"]
+  "pages": [
+    "---Introduction---",
+    "index",
+    "quick-start",
+    "---Basic Usage---",
+    "filtering",
+    "events",
+    "error-handling",
+    "---Production Usage---",
+    "postgres",
+    "retention",
+    "pruning",
+    "--- ---",
+    "recipes",
+    "api"
+  ]
 }

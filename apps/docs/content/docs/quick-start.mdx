@@ -12,7 +12,9 @@ We're assuming you have a `docker-compose` file with a database service named `p
 <Steps>
 <Step>
 
-### Install LIVE
+## Install LIVE
+
+This must be on a long-running, non-serverless server that will listen for incoming events.
 
 ```package-install
 @visualbravo/zenstack-live
@@ -21,13 +23,16 @@ We're assuming you have a `docker-compose` file with a database service named `p
 </Step>
 <Step>
 
-### Edit `docker-compose`
+## Add Zebezium and Redis
 
-You need Redis and Debezium. LIVE uses Redis as a database, not a cache, so you'll want to create a new Redis container even if your app already has one.
+We have a pre-configured Debezium image called **Zebezium** that simplifies usage down to two environment variables: `DATABASE_URL` and `REDIS_URL`.
 
-We have a pre-configured Debezium image called Zebezium that simplifies usage down to two environment variables: `DATABASE_URL` and `REDIS_URL`
+`DATABASE_URL` should be the same one used in your ZenStack client and schema.
 
-```yaml title="docker-compose"
+Zebezium uses Redis as a database, not a cache, so you'll want to create a new Redis container even if your project already has one. You don't need to
+change `REDIS_URL`.
+
+```yaml title="docker-compose.yaml"
 volumes:
   zenstack-live-redis-data:
 
@@ -71,14 +76,17 @@ services:
       retries: 5
 ```
 
-Now we'll setup your actual database.
+</Step>
+
+<Step>
+
+## Configure Database Container
+
+Only a handful of lines need to be added.
 
 <Tabs items={['Postgres', 'MySQL']}>
-  <Tab value='postgres' class='px-2'>
-    <div class='px-2 -my-2'>
-      Postgres needs `wal_level` set to `logical`.
-    </div>
-    ```yaml title="docker-compose"
+  <Tab value='postgres'>
+    ```yaml title="docker-compose.yaml"
     services:
       postgres:
         # ...
@@ -91,11 +99,8 @@ Now we'll setup your actual database.
     ```
   </Tab>
 
-  <Tab value='MySQL' class='px-2'>
-    <div class='px-2 -my-2'>
-      MySQL needs GTIDs enabled.
-    </div>
-    ```yaml title="docker-compose"
+  <Tab value='MySQL'>
+    ```yaml title="docker-compose.yaml"
     services:
       mysql:
         # ...
@@ -111,13 +116,18 @@ Now we'll setup your actual database.
   </Tab>
 </Tabs>
 
-Restart your containers.
-
 </Step>
 
 <Step>
 
-### Open a stream
+## Configure Backend Container
+
+Add your backend container to the `zenstack-live` network, then restart all containers.
+</Step>
+
+<Step>
+
+## Open a Stream
 
 ```typescript title="live.ts"
 import { ZenStackClient } from '@zenstackhq/orm'
@@ -146,9 +156,9 @@ for await (const event of stream) {
 </Step>
 <Step>
 
-### Perform any action with a `User`
+## Act on a `User`
 
-In your app, ZenStack Studio, or any other client: do something with a user. It'll be logged in the program.
+In your app, ZenStack Studio, or any other client, perform an insert/update/delete. It'll be logged in your backend.
 
 </Step>
 </Steps>

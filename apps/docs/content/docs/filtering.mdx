@@ -68,3 +68,5 @@ Filters run in JavaScript against a single event, so anything that needs the dat
 - JSON paths with filter expressions or `.**`
 
 Two comparisons also differ slightly from Postgres. Strings are ordered by code unit and not by your database's collation, which affects `lt` and `gt`, and timestamps are compared to the millisecond.
+
+Basically, filtering behavior matches that of the SQL dialect you are using as closely as possible.
