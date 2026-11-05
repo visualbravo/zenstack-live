@@ -3,8 +3,8 @@ on: [pull_request]
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    container:
-      image: node:22
+    # container:
+    #   image: node:22
 
     steps:
       - name: Check out repository code
