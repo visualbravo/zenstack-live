@@ -1,0 +1,227 @@
+name: Publish
+on:
+  release:
+    types: [published]
+jobs:
+  build-test-and-publish-packages:
+    runs-on: ubuntu-latest
+    container:
+      image: node:22
+      # Lets a step restart the MySQL Debezium service once GTIDs are on.
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+    services:
+      postgres:
+        image: postgres:15
+        command: postgres -c wal_level=logical
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_HOST: postgres
+          POSTGRES_PORT: 5432
+          POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      debezium:
+        image: quay.io/debezium/server:3.7.0.Final
+        options: >-
+          --restart on-failure
+          --health-cmd "curl -f http://localhost:8080/q/health"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+        env:
+          JAVA_OPTS: '-Dnetworkaddress.cache.negative.ttl=0'
+
+          DATABASE_USER: default
+          DEBEZIUM_FORMAT_SCHEMAS_ENABLE: false
+          DEBEZIUM_SINK_REDIS_ADDRESS: redis:6379
+          DEBEZIUM_SINK_REDIS_PASSWORD:
+          DEBEZIUM_SINK_REDIS_SSL_ENABLED: false
+          DEBEZIUM_SINK_REDIS_WAIT_RETRY_ENABLED: true
+          DEBEZIUM_SINK_TYPE: redis
+
+          DEBEZIUM_SOURCE_CONNECTOR_CLASS: io.debezium.connector.postgresql.PostgresConnector
+          DEBEZIUM_SOURCE_DATABASE_DBNAME: postgres
+          DEBEZIUM_SOURCE_DATABASE_HOSTNAME: postgres
+          DEBEZIUM_SOURCE_DATABASE_PASSWORD: postgres
+          DEBEZIUM_SOURCE_DATABASE_PORT: 5432
+          DEBEZIUM_SOURCE_DATABASE_SERVER_NAME: zenstack
+          DEBEZIUM_SOURCE_DATABASE_USER: postgres
+          DEBEZIUM_SOURCE_DECIMAL_HANDLING_MODE: string
+          DEBEZIUM_SOURCE_PLUGIN_NAME: pgoutput
+          DEBEZIUM_SOURCE_PUBLICATION_AUTOCREATE_MODE: no_tables
+          DEBEZIUM_SOURCE_PUBLICATION_NAME: zenstack_live
+
+          DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL: io.debezium.storage.redis.history.RedisSchemaHistory
+          DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS_ADDRESS: redis:6379
+
+          DEBEZIUM_SOURCE_OFFSET_STORAGE: io.debezium.storage.redis.offset.RedisOffsetBackingStore
+          DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY: zenstack.postgres.metadata.offsets
+          DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_ADDRESS: redis:6379
+
+          DEBEZIUM_SOURCE_SNAPSHOT_MODE: no_data
+          DEBEZIUM_SOURCE_TIME_PRECISION_MODE: isostring
+          DEBEZIUM_SOURCE_TOPIC_PREFIX: zenstack.postgres.table
+
+      # Binlog is on, row-based and full by default from 8.0. Services can't take server flags, so
+      # GTIDs are turned on by a step instead.
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: mysql
+          MYSQL_DATABASE: zenstack
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -pmysql"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+      debezium-mysql:
+        image: quay.io/debezium/server:3.7.0.Final
+        options: >-
+          --restart on-failure
+          --health-cmd "curl -f http://localhost:8080/q/health"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+        env:
+          JAVA_OPTS: '-Dnetworkaddress.cache.negative.ttl=0'
+
+          DATABASE_USER: default
+          DEBEZIUM_FORMAT_SCHEMAS_ENABLE: false
+          DEBEZIUM_SINK_REDIS_ADDRESS: redis:6379
+          DEBEZIUM_SINK_REDIS_PASSWORD:
+          DEBEZIUM_SINK_REDIS_SSL_ENABLED: false
+          DEBEZIUM_SINK_REDIS_WAIT_RETRY_ENABLED: true
+          DEBEZIUM_SINK_TYPE: redis
+
+          DEBEZIUM_SOURCE_CONNECTOR_CLASS: io.debezium.connector.mysql.MySqlConnector
+          DEBEZIUM_SOURCE_DATABASE_HOSTNAME: mysql
+          DEBEZIUM_SOURCE_DATABASE_PORT: 3306
+          DEBEZIUM_SOURCE_DATABASE_USER: root
+          DEBEZIUM_SOURCE_DATABASE_PASSWORD: mysql
+          DEBEZIUM_SOURCE_DATABASE_SERVER_ID: 1
+          DEBEZIUM_SOURCE_DATABASE_INCLUDE_LIST: zenstack
+          DEBEZIUM_SOURCE_DATABASE_SERVER_NAME: zenstack
+          DEBEZIUM_SOURCE_DECIMAL_HANDLING_MODE: string
+          DEBEZIUM_SOURCE_INCLUDE_SCHEMA_CHANGES: false
+
+          DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL: io.debezium.storage.redis.history.RedisSchemaHistory
+          DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS_ADDRESS: redis:6379
+          DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS_KEY: zenstack.mysql.metadata.schema_history
+
+          DEBEZIUM_SOURCE_OFFSET_STORAGE: io.debezium.storage.redis.offset.RedisOffsetBackingStore
+          DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY: zenstack.mysql.metadata.offsets
+          DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_ADDRESS: redis:6379
+
+          DEBEZIUM_SOURCE_SNAPSHOT_MODE: no_data
+          DEBEZIUM_SOURCE_TIME_PRECISION_MODE: isostring
+          DEBEZIUM_SOURCE_TOPIC_PREFIX: zenstack.mysql.table
+
+      redis:
+        image: redis:7.2
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v5
+
+      - name: Install system dependencies
+        run: |
+          apt-get update
+          apt-get install -y unzip docker.io
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install project dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      # GTID mode can only be changed one step at a time.
+      - name: Enable MySQL GTIDs
+        working-directory: packages/live
+        run: |
+          bun -e "
+            import mysql from 'mysql2/promise'
+            const connection = await mysql.createConnection('mysql://root:mysql@mysql:3306/zenstack')
+            for (const value of ['OFF_PERMISSIVE', 'ON_PERMISSIVE', 'ON']) {
+              if (value === 'OFF_PERMISSIVE') await connection.query('SET GLOBAL enforce_gtid_consistency = ON')
+              await connection.query('SET GLOBAL gtid_mode = ' + value)
+            }
+            // Debezium can't stream from an empty GTID set, so give the server one.
+            await connection.query('CREATE DATABASE gtid_seed')
+            await connection.query('DROP DATABASE gtid_seed')
+            await connection.end()
+          "
+
+      # Debezium only reads GTIDs if they were on when it connected, which they weren't, since
+      # services start before any step. Without a restart, every event's `source.gtid` is null.
+      # Its health check passes before the connector reaches the binlog, and events written in
+      # between are skipped, so wait for the connector to log that it's streaming instead.
+      - name: Restart MySQL Debezium
+        run: |
+          container=${{ job.services.debezium-mysql.id }}
+          since=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          docker restart "$container"
+          for i in $(seq 1 60); do
+            docker logs --since "$since" "$container" 2>&1 | grep -q 'Connected to .*binlog at' && exit 0
+            sleep 2
+          done
+          echo "Debezium MySQL did not connect to the binlog"
+          docker logs --since "$since" "$container" 2>&1 | tail -100
+          exit 1
+
+      - name: Test
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_HOST: postgres
+          POSTGRES_PORT: 5432
+          POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/postgres
+          MYSQL_URL: mysql://root:mysql@mysql:3306/zenstack
+          REDIS_URL: redis://redis:6379
+        run: bun run test
+
+      - name: Copy extra files
+        run: cp ./README.md ./LICENSE ./packages/live
+
+      - name: Publish package to NPM
+        env:
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_CONFIG_TOKEN }}
+        run: cd ./packages/live && bun publish --tolerate-republish --access public
+
+      - name: Publish package to GitHub
+        env:
+          NPM_CONFIG_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: cd ./packages/live && bun publish --tolerate-republish --access public --registry https://npm.pkg.github.com
+
+  publish-image:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v5
+
+      - name: Log in to registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Publish image to GitHub
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: cd ./zebezium && docker build -t zebezium . && docker tag zebezium ghcr.io/visualbravo/zebezium:latest && docker push ghcr.io/visualbravo/zebezium:latest
