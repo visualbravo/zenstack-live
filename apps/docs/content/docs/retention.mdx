@@ -32,4 +32,4 @@ Old events are removed once a minute in two places:
 
 So you never need to do anything to keep Redis from growing. What a deleted stream leaves behind can't outgrow `retention`.
 
-The exception is when you remove LIVE altogether. With no instance running, nothing trims, and Debezium keeps writing. Run [`prune`](/docs/deployment/pruning) first.
+The exception is when you remove LIVE altogether. With no instance running, nothing trims, and Debezium keeps writing. Run [`prune`](/docs/pruning) first.

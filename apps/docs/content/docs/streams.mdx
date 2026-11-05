@@ -23,7 +23,7 @@ for await (const event of stream) {
 }
 ```
 
-Only `model` and `slug` are required. All of the options are listed in the [API Reference](/docs/reference/api#livestream).
+Only `model` and `slug` are required. All of the options are listed in the [API Reference](/docs/api-reference#livestream).
 
 ## Stream Identity
 
@@ -32,9 +32,9 @@ A stream is identified by its `slug`, `model`, and `when`. Together, they decide
 | If you...                                 | Then...                                                                                                                      |
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | Restart with the same options             | The stream picks up where it left off.                                                                                       |
-| Run the same options in several processes | They share the work, and each event goes to [one of them](/docs/deployment/scaling).                                         |
+| Run the same options in several processes | They share the work, and each event goes to [one of them](/docs/scaling).                                         |
 | Use a different slug                      | It's a separate stream that gets its own copy of every event.                                                                |
-| Change `when`                             | It's a new stream. It starts from new events, and the old one is left behind until you [prune it](/docs/deployment/pruning). |
+| Change `when`                             | It's a new stream. It starts from new events, and the old one is left behind until you [prune it](/docs/pruning). |
 | Change `consume` or `timeout`             | Nothing changes. They aren't part of a stream's identity.                                                                    |
 
 <Callout type="warn" title="Keep filters stable">

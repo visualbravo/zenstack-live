@@ -34,7 +34,7 @@ const live = new ZenStackLive({
     },
     id: {
       description: (
-        <>This instance's unique ID. See <a href="/docs/deployment/scaling#instance-ids">Scaling</a>.</>
+        <>This instance's unique ID. See <a href="/docs/scaling#instance-ids">Scaling</a>.</>
       ),
       type: 'string',
       default: 'zenstack',
@@ -99,7 +99,7 @@ const stream = live.stream({
 
 ### live.prune()
 
-Removes what's left behind by streams that are gone. See [Pruning](/docs/deployment/pruning).
+Removes what's left behind by streams that are gone. See [Pruning](/docs/pruning).
 
 ```typescript
 const report = await live.prune({
@@ -210,7 +210,7 @@ All events share these fields.
   }}
 />
 
-Each event type adds one field, holding the record. See [Reading Events](/docs/events).
+Each event type adds one field, holding the record. See [Reading Events](/docs/reading-events).
 
 | Type                 | `type`    | Field                                |
 | -------------------- | --------- | ------------------------------------ |
@@ -220,7 +220,7 @@ Each event type adds one field, holding the record. See [Reading Events](/docs/e
 
 ## beforeAfter()
 
-Gives every event the same `{ before, after }` shape. See [beforeAfter](/docs/events#beforeafter).
+Gives every event the same `{ before, after }` shape. See [beforeAfter](/docs/reading-events#beforeafter).
 
 ```typescript
 function beforeAfter<Event extends BeforeAfterEvent>(event: Event): BeforeAfterResult<Event>

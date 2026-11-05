@@ -30,11 +30,11 @@ Start this in as many processes as you like, with no coordination between them. 
 
 Give each instance an `id` that's unique, and ideally stable between deployments. It defaults to `zenstack`, so without one, all of your instances read as the same consumer, and you can't tell them apart when you look at Redis.
 
-If your IDs do change on every deployment, which is common with containers, the old consumers pile up in Redis. They're harmless, and [`prune`](/docs/deployment/pruning) removes them.
+If your IDs do change on every deployment, which is common with containers, the old consumers pile up in Redis. They're harmless, and [`prune`](/docs/pruning) removes them.
 
 ## Sharing vs Fanning Out
 
-What decides whether instances share events is [stream identity](/docs/guides/streams#stream-identity).
+What decides whether instances share events is [stream identity](/docs/streams#stream-identity).
 
 | Options                          | Behavior                                                      |
 | -------------------------------- | ------------------------------------------------------------- |

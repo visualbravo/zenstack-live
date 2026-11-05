@@ -4,7 +4,7 @@ description: Pass events from a long-running worker to serverless functions.
 icon: Cloud
 ---
 
-Streams need a long-running process, but your handlers don't. A small worker can pass events along to anything. Here, a failed request is saved so that it can be replayed later, like any other [handler error](/docs/guides/error-handling).
+Streams need a long-running process, but your handlers don't. A small worker can pass events along to anything. Here, a failed request is saved so that it can be replayed later, like any other [handler error](/docs/error-handling).
 
 ```typescript
 for await (const event of stream) {
@@ -31,4 +31,4 @@ for await (const event of stream) {
 }
 ```
 
-`bigint` values can't be serialized by `JSON.stringify` on its own, which is what the replacer is for. Pass `event.id` along, so that the receiver can [detect duplicates](/docs/guides/error-handling#handlers-need-to-be-idempotent).
+`bigint` values can't be serialized by `JSON.stringify` on its own, which is what the replacer is for. Pass `event.id` along, so that the receiver can [detect duplicates](/docs/error-handling#handlers-need-to-be-idempotent).

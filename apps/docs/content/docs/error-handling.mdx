@@ -85,4 +85,4 @@ const stream = live.stream({
 
 Set `consume` to `new` if you'd rather lose events than process them twice. Events are never retried, so anything in progress when a process dies is skipped for good. This suits things like cache invalidation or analytics, where a duplicate is worse than a gap.
 
-Events are also dropped if they've waited longer than [`retention`](/docs/deployment/retention), no matter what `consume` is set to.
+Events are also dropped if they've waited longer than [`retention`](/docs/retention), no matter what `consume` is set to.
