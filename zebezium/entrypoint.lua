@@ -203,10 +203,6 @@ if databaseUrl ~= '' then
         'DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY',
         'zenstack.' .. dialect .. '.metadata.offsets'
     )
-    defaultEnv(
-        'DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS_KEY',
-        'zenstack.' .. dialect .. '.metadata.schema_history'
-    )
 end
 
 local redisUrl = getEnv('REDIS_URL')
@@ -220,7 +216,6 @@ if redisUrl ~= '' then
     local prefixes = {
         'DEBEZIUM_SINK_REDIS',
         'DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS',
-        'DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS',
     }
 
     for _, prefix in ipairs(prefixes) do
