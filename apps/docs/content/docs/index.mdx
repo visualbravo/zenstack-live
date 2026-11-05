@@ -1,0 +1,22 @@
+---
+title: Overview
+description: What ZenStack LIVE is.
+icon: Book
+---
+
+import { Rocket, Workflow, ChefHat, Code } from 'lucide-react'
+
+ZenStack LIVE is a library to manage [change data capture](https://en.wikipedia.org/wiki/Change_data_capture) (CDC) events for ZenStack backends.
+
+If you're familiar with the now discontinued Prisma Pulse, this is basically an open-source and self-hosted version of that.
+
+## Requirements
+
+- ZenStack (version >= `3.10.0`)
+- Node.js (version >= `22.0.0`)
+- Redis (version >= `7.2.0`)
+- Debezium (version >= `3.7.0.Final`). We have a pre-configured image for you to use.
+- Database (pick one)
+  - Postgres that supports [logical replication](https://www.postgresql.org/docs/current/logical-replication.html) (version >= `15`)
+  - MySQL that supports GTIDs (version >= `8`)
+- A non-serverless server to wait for events

@@ -1,0 +1,13 @@
+---
+title: Postgres
+description: Things to keep in mind when using Postgres.
+icon: Database
+---
+
+## Replication Management
+
+Zebezium reads through a replication slot, and Postgres keeps WAL until the slot has read it. If Zebezium stays down, WAL builds up until the disk is full.
+
+Monitor slot lag with `pg_replication_slots`, and consider `max_slot_wal_keep_size`, which is available from Postgres 13.
+
+It caps the WAL, at the cost of Zebezium losing its place if the cap is hit.

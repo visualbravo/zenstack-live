@@ -1,0 +1,25 @@
+---
+title: Caching
+description: Keep Redis in sync with your database.
+icon: Zap
+---
+
+```typescript
+import { beforeAfter } from '@visualbravo/zenstack-live'
+
+const stream = live.stream({
+  model: 'Post',
+  slug: 'cache',
+})
+
+for await (const event of stream) {
+  if (event.type === 'deleted') {
+    await redis.del(`posts:${event.deleted.id}`)
+    continue
+  }
+
+  const { after } = beforeAfter(event)
+
+  await redis.set(`posts:${after.id}`, JSON.stringify(after))
+}
+```

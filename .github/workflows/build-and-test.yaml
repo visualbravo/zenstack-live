@@ -1,13 +1,18 @@
 name: Build and Test
-on: [push, pull_request, workflow_dispatch]
+on: [pull_request, workflow_dispatch]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    container: node:22
+    container:
+      image: node:22
+      # Lets steps build and run the Zebezium image.
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
     services:
       postgres:
-        image: postgres:10
+        image: postgres:15
+        command: postgres -c wal_level=logical
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -21,8 +26,21 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      # Binlog is on, row-based and full by default from 8.0. Services can't take server flags, so
+      # GTIDs are turned on by a step instead.
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: mysql
+          MYSQL_DATABASE: zenstack
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -pmysql"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
       redis:
-        image: redis:5.0
+        image: redis:7.2
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -33,10 +51,10 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v5
 
-      - name: Install system dependencies  
+      - name: Install system dependencies
         run: |
           apt-get update
-          apt-get install -y unzip
+          apt-get install -y unzip docker.io
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
@@ -47,6 +65,62 @@ jobs:
       - name: Build
         run: bun run build
 
+      # GTID mode can only be changed one step at a time.
+      - name: Enable MySQL GTIDs
+        working-directory: packages/live
+        run: |
+          bun -e "
+            import mysql from 'mysql2/promise'
+            const connection = await mysql.createConnection('mysql://root:mysql@mysql:3306/zenstack')
+            for (const value of ['OFF_PERMISSIVE', 'ON_PERMISSIVE', 'ON']) {
+              if (value === 'OFF_PERMISSIVE') await connection.query('SET GLOBAL enforce_gtid_consistency = ON')
+              await connection.query('SET GLOBAL gtid_mode = ' + value)
+            }
+            // Debezium can't stream from an empty GTID set, so give the server one.
+            await connection.query('CREATE DATABASE gtid_seed')
+            await connection.query('DROP DATABASE gtid_seed')
+            await connection.end()
+          "
+
+      - name: Build Zebezium
+        run: docker build -t zebezium ./zebezium
+
+      # Started here instead of as services, since services can only use prebuilt images.
+      - name: Start Postgres Zebezium
+        run: |
+          docker run -d --name zebezium-postgres --network ${{ job.container.network }} \
+            --restart on-failure \
+            --health-cmd "curl -f http://localhost:8080/q/health" \
+            --health-interval 5s --health-timeout 5s --health-retries 12 \
+            -e DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres \
+            -e REDIS_URL=redis://redis:6379 \
+            zebezium
+          for i in $(seq 1 60); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' zebezium-postgres)" = healthy ] && exit 0
+            sleep 2
+          done
+          echo "Zebezium Postgres did not become healthy"
+          docker logs zebezium-postgres 2>&1 | tail -100
+          exit 1
+
+      # Debezium only reads GTIDs if they were on when it connected, so this starts after they're
+      # enabled. Its health check passes before the connector reaches the binlog, and events
+      # written in between are skipped, so wait for the connector to log that it's streaming.
+      - name: Start MySQL Zebezium
+        run: |
+          docker run -d --name zebezium-mysql --network ${{ job.container.network }} \
+            --restart on-failure \
+            -e DATABASE_URL=mysql://root:mysql@mysql:3306/zenstack \
+            -e REDIS_URL=redis://redis:6379 \
+            zebezium
+          for i in $(seq 1 60); do
+            docker logs zebezium-mysql 2>&1 | grep -q 'Connected to .*binlog at' && exit 0
+            sleep 2
+          done
+          echo "Zebezium MySQL did not connect to the binlog"
+          docker logs zebezium-mysql 2>&1 | tail -100
+          exit 1
+
       - name: Test
         env:
           POSTGRES_USER: postgres
@@ -55,5 +129,11 @@ jobs:
           POSTGRES_HOST: postgres
           POSTGRES_PORT: 5432
           POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/postgres
+          MYSQL_URL: mysql://root:mysql@mysql:3306/zenstack
           REDIS_URL: redis://redis:6379
         run: bun run test
+
+      # Detach from the job network so the runner can remove it.
+      - name: Stop Zebezium
+        if: always()
+        run: docker rm -f zebezium-postgres zebezium-mysql || true

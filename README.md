@@ -5,7 +5,7 @@
   </h1>
 </div>
 
-Supercharge your ZenStack backend with realtime streaming capabilities. Instantly react to any insert, update, or delete, and declaratively filter records using the same Prisma API you've come to love.
+Give your ZenStack backend realtime streaming capabilities. Instantly react to any insert, update, or delete, and declaratively filter records using the same Prisma API you've come to love.
 
 <div align="center">
     <a href="https://www.npmjs.com/package/@visualbravo/zenstack-live?activeTab=versions">
@@ -27,18 +27,19 @@ Supercharge your ZenStack backend with realtime streaming capabilities. Instantl
 </div>
 
 ## Features
-* 🛟 **Type-safe:** Queries have full intellisense based on your ZenStack models.
-* 🛡️ **Durable:** Server went down? Your app picks up right where it left off, and even detects all the changes that happened while it was offline.
-* 📈 **Scalable:** Just add more instances.
-* 🗿 **Simple:** Build event-driven apps with fewer headaches.
+
+- 🛟 **Type-safe:** Queries have full intellisense based on your ZenStack models.
+- 🛡️ **Durable:** Server went down? Your app picks up right where it left off, and even detects all the changes that happened while it was offline.
+- 📈 **Scalable:** Just add more instances.
+- 🗿 **Simple:** Build event-driven apps with fewer headaches.
 
 ## Requirements
 
-* ZenStack (version >= `3.0.0`)
-* Node.js (version >= `22.0.0`)
-* Postgres that supports [logical replication](https://www.postgresql.org/docs/current/logical-replication.html) (version >= `10`)
-* Redis that supports [streams](https://redis.io/docs/latest/develop/data-types/streams/) (version >= `5.0.0`)
-* A non-serverless server that will process events. You can forward events to serverless if you so desire.
+- ZenStack (version >= `3.10.0`)
+- Node.js (version >= `22.0.0`)
+- Postgres that supports [logical replication](https://www.postgresql.org/docs/current/logical-replication.html) (version >= `15`)
+- Redis (version >= `7.2.0`)
+- A non-serverless server that will process events. You can forward events to serverless if you so desire.
 
 ## Installation
 
@@ -75,15 +76,17 @@ const live = new ZenStackLive({
 ### Welcome Emails
 
 ```typescript
-const newUserStream = live.stream({
+const stream = live.stream({
   model: 'User',
-  id: 'send-welcome-email',
-  created: {},
+  slug: 'send-welcome-email',
+
+  when: {
+    created: {},
+  },
 })
 
-for await (let event of newUserStream) {
+for await (const event of stream) {
   const user = event.created
-    //  ^ properly typed as the `User` model
 
   await sendEmail({
     to: user.email,
@@ -94,18 +97,17 @@ for await (let event of newUserStream) {
 
 ### Audit Logging
 
+Leaving out `when`, or leaving it empty, listens for all events.
+
 ```typescript
 import { beforeAfter } from '@visualbravo/zenstack-live'
 
-const patientStream = live.stream({
+const stream = live.stream({
   model: 'Patient',
-  id: 'audit-log',
-  created: {},
-  updated: {},
-  deleted: {},
+  slug: 'audit-log',
 })
 
-for await (let event of patientStream) {
+for await (const event of stream) {
   const { before, after } = beforeAfter(event)
 
   await client.auditLog.create({
@@ -122,15 +124,12 @@ for await (let event of patientStream) {
 ### Caching
 
 ```typescript
-const postStream = live.stream({
+const stream = live.stream({
   model: 'Post',
-  id: 'cache',
-  created: {},
-  updated: {},
-  deleted: {},
+  slug: 'cache',
 })
 
-for await (let event of postStream) {
+for await (const event of stream) {
   if (event.type === 'deleted') {
     await redis.del(`posts:${event.deleted.id}`)
     continue
@@ -138,7 +137,7 @@ for await (let event of postStream) {
 
   const { after } = beforeAfter(event)
 
-  await redis.set(`posts:${after!.id}`, after)
+  await redis.set(`posts:${after.id}`, after)
 }
 ```
 
@@ -147,31 +146,32 @@ You've seen the simple stuff, now let's look at more complex examples.
 ### Moderation
 
 ```typescript
-const potentiallyHarmfulPostsStream = live.stream({
+const stream = live.stream({
   model: 'Post',
-  id: 'sentiment-moderation',
+  slug: 'sentiment-moderation',
 
-  created: {
-    // All of this is type-safe, with autocomplete based on your model.
-    OR: [
-      {
-        title: {
-          contains: 'ugly',
-          mode: 'insensitive',
+  when: {
+    created: {
+      OR: [
+        {
+          title: {
+            contains: 'ugly',
+            mode: 'insensitive',
+          },
         },
-      },
 
-      {
-        title: {
-          contains: 'stupid',
-          mode: 'insensitive',
+        {
+          title: {
+            contains: 'stupid',
+            mode: 'insensitive',
+          },
         },
-      },
-    ],
+      ],
+    },
   },
 })
 
-for await (let event of potentiallyHarmfulPostsStream) {
+for await (const event of stream) {
   const post = event.created
   const sentiment = await analyzeSentiment(post)
 
@@ -184,20 +184,20 @@ for await (let event of potentiallyHarmfulPostsStream) {
 ### Shipping Notifications
 
 ```typescript
-const deliveredOrdersStream = live.stream({
+const stream = live.stream({
   model: 'Order',
-  id: 'send-delivered-email',
+  slug: 'send-delivered-email',
 
-  updated: {
-    // This is a "transition" query. You are only notified if the record transitions
-    // from *not* matching before, to *matching* afterwards.
-    after: {
-      status: 'DELIVERED',
+  when: {
+    updated: {
+      after: {
+        status: 'DELIVERED',
+      },
     },
   },
 })
 
-for await (let event of deliveredOrdersStream) {
+for await (const event of stream) {
   const order = event.updated.after
 
   await sendEmail({
@@ -209,22 +209,10 @@ for await (let event of deliveredOrdersStream) {
 
 ## How it Works
 
-Hint: not with polling.
-
-1. Debezium connects to your database.
-2. Debezium stores inserts, updates, and deletes in a Redis stream, *even those which are done outside of ZenStack.*
+1. LIVE adds the table of each stream to a publication, and Debezium connects to your database.
+2. Debezium stores inserts, updates, and deletes in a Redis stream, _even those which are done outside of ZenStack._
 3. LIVE connects to Redis and reads the events in the stream.
 4. LIVE compares each event against your query, and if it matches, serves it to you.
-
-## Limitations
-
-1. **This project is in beta.** There are still some things missing or broken.
-2. **Postgres only.** Actually, that might not be totally true. Debezium has MySQL support, but this project has not been tested with it. Want to help? Give it a try and tell us how it goes.
-3. **Events represent snapshots in time of a single record.** They are not bound by the transaction they were in. If you're listening to `created` events, the record might not exist in the database anymore if it was deleted before your handler processed it. You can determine when an event occurred via `event.date`
-4. **You can't query by relations.** Although that would be very cool, this is not possible because of limitation #2.
-5. **Json filtering, date arrays, custom types, and replaying errored messages are not yet implemented.**
-6. **Live stream handlers can't be hosted on a serverless platform.** They need to be constantly waiting for new events to come in. Your main backend can still be serverless, and you just communicate between the two like any other service.
-7. **Only the `public` schema is supported at this time.**
 
 ## License
 

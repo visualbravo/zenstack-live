@@ -10,4 +10,7 @@
   },
   "vscode-postgres.defaultConnection": "postgres",
   "vscode-postgres.defaultDatabase": "postgres",
+  "files.associations": {
+    "*.zmodel": "zmodel-v3"
+  }
 }

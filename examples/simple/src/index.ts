@@ -1,92 +1,43 @@
-import { schema } from './schema'
+// oxlint-disable no-unused-vars
+import { schema } from './zenstack/schema'
 import { ZenStackLive, beforeAfter } from '@visualbravo/zenstack-live'
 import { ZenStackClient } from '@zenstackhq/orm'
-import { PostgresDialect } from 'kysely'
+import { PostgresDialect, MysqlDialect } from 'kysely'
+import { createPool } from 'mysql2'
 import { Pool } from 'pg'
 
 const client = new ZenStackClient(schema, {
   dialect: new PostgresDialect({
     pool: new Pool({
-      connectionString: process.env['POSTGRES_URL'],
+      connectionString: process.env['POSTGRES_URL']!,
     }),
   }),
+
+  // dialect: new MysqlDialect({
+  //   pool: createPool(process.env['MYSQL_URL']!)
+  // }),
 })
 
 const live = new ZenStackLive({
+  id: process.pid.toString(),
   client,
 
   redis: {
-    url: process.env['REDIS_URL'] as string,
+    url: process.env['REDIS_URL']!,
   },
 })
 
+function log(message: any, ...rest: any[]) {
+  console.log(`[PID ${process.pid}] ${message}`, ...rest)
+}
+
 const userStream = live.stream({
   model: 'User',
-  id: 'all-user-changes',
-  created: {},
-  updated: {},
-  deleted: {},
+  slug: 'all-user-changes',
 })
 
-const postStream = live.stream({
-  model: 'Post',
-  id: 'all-post-changes',
-  created: {},
-  updated: {},
-  deleted: {},
-})
+log(`Waiting for "User" changes`)
 
-setInterval(async () => {
-  const user = await client.user.create({
-    data: {
-      string: 'hello',
-
-      posts: {
-        create: {
-          title: 'Cool title',
-          content: 'Hello world',
-        },
-      },
-    },
-  })
-
-  await client.user.update({
-    data: {
-      string: 'newhello',
-    },
-
-    where: {
-      id: user.id,
-    },
-  })
-
-  await client.user.delete({
-    where: {
-      id: user.id,
-    },
-  })
-}, 5000)
-
-;(async () => {
-  for await (const event of userStream) {
-    const { before, after } = beforeAfter(event)
-
-    console.log({
-      event,
-      before,
-      after,
-    })
-  }
-})()
-
-;(async () => {
-  for await (const event of postStream) {
-    const { before, after } = beforeAfter(event)
-
-    console.log({
-      event,
-      before,
-      after,
-    })
-  }
-})()
+for await (const event of userStream) {
+  log(event.type, event.id, JSON.stringify(beforeAfter(event), null, 2))
+}

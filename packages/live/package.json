@@ -1,6 +1,16 @@
 {
   "name": "@visualbravo/zenstack-live",
   "version": "0.0.0",
+  "keywords": [
+    "live",
+    "orm",
+    "prisma",
+    "pulse",
+    "realtime",
+    "streaming",
+    "websocket",
+    "zenstack"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
@@ -8,43 +18,70 @@
   "exports": {
     ".": {
       "@zenstack-live/source": "./src/index.ts",
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
     },
-    "./discriminator": {
-      "@zenstack-live/source": "./src/discriminator.ts",
-      "require": "./dist/discriminator.cjs",
-      "import": "./dist/discriminator.mjs"
+    "./databases/database": {
+      "@zenstack-live/source": "./src/databases/database.ts",
+      "import": "./dist/databases/database.mjs",
+      "require": "./dist/databases/database.cjs"
+    },
+    "./databases/mysql": {
+      "@zenstack-live/source": "./src/databases/mysql.ts",
+      "import": "./dist/databases/mysql.mjs",
+      "require": "./dist/databases/mysql.cjs"
+    },
+    "./databases/postgres": {
+      "@zenstack-live/source": "./src/databases/postgres.ts",
+      "import": "./dist/databases/postgres.mjs",
+      "require": "./dist/databases/postgres.cjs"
+    },
+    "./event-discriminator": {
+      "@zenstack-live/source": "./src/event-discriminator.ts",
+      "import": "./dist/event-discriminator.mjs",
+      "require": "./dist/event-discriminator.cjs"
     },
     "./internal": {
       "@zenstack-live/source": "./src/internal.ts",
-      "require": "./dist/internal.cjs",
-      "import": "./dist/internal.mjs"
+      "import": "./dist/internal.mjs",
+      "require": "./dist/internal.cjs"
     },
     "./query-compiler": {
       "@zenstack-live/source": "./src/query-compiler.ts",
-      "require": "./dist/query-compiler.cjs",
-      "import": "./dist/query-compiler.mjs"
+      "import": "./dist/query-compiler.mjs",
+      "require": "./dist/query-compiler.cjs"
     },
     "./package.json": "./package.json"
   },
   "publishConfig": {
     "exports": {
       ".": {
-        "require": "./dist/index.cjs",
-        "import": "./dist/index.mjs"
+        "import": "./dist/index.mjs",
+        "require": "./dist/index.cjs"
       },
-      "./discriminator": {
-        "require": "./dist/discriminator.cjs",
-        "import": "./dist/discriminator.mjs"
+      "./databases/database": {
+        "import": "./dist/databases/database.mjs",
+        "require": "./dist/databases/database.cjs"
+      },
+      "./databases/mysql": {
+        "import": "./dist/databases/mysql.mjs",
+        "require": "./dist/databases/mysql.cjs"
+      },
+      "./databases/postgres": {
+        "import": "./dist/databases/postgres.mjs",
+        "require": "./dist/databases/postgres.cjs"
+      },
+      "./event-discriminator": {
+        "import": "./dist/event-discriminator.mjs",
+        "require": "./dist/event-discriminator.cjs"
       },
       "./internal": {
-        "require": "./dist/internal.cjs",
-        "import": "./dist/internal.mjs"
+        "import": "./dist/internal.mjs",
+        "require": "./dist/internal.cjs"
       },
       "./query-compiler": {
-        "require": "./dist/query-compiler.cjs",
-        "import": "./dist/query-compiler.mjs"
+        "import": "./dist/query-compiler.mjs",
+        "require": "./dist/query-compiler.cjs"
       },
       "./package.json": "./package.json"
     }
@@ -54,6 +91,7 @@
     "watch": "tsdown --watch",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix --fix-suggestions",
+    "format": "oxfmt --check",
     "format:fix": "oxfmt",
     "test": "vitest run",
     "test:watch": "vitest --watch"
@@ -66,14 +104,15 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "pg": "catalog:",
     "@types/pg": "catalog:",
+    "@zenstack-live/config": "workspace:*",
     "kysely": "catalog:",
-    "@zenstack-live/config": "workspace:*"
+    "mysql2": "catalog:",
+    "pg": "catalog:"
   },
   "peerDependencies": {
     "@zenstackhq/orm": "catalog:",
     "@zenstackhq/schema": "catalog:"
   },
-  "packageManager": "bun@1.3.6"
+  "packageManager": "bun@1.4.4"
 }

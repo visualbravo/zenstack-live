@@ -1,0 +1,88 @@
+---
+title: Error Handling
+description: Retries, duplicates, and the two rules every handler needs to follow.
+icon: Bug
+---
+
+An event is acknowledged when your loop moves on to the next one. If your process dies before that, or the event takes longer than `timeout` (30 seconds by default), it's delivered again. That means your handlers need to follow two rules.
+
+## Handlers Need to be Idempotent
+
+An event can be delivered more than once, and `event.id` stays the same when it is, so you can use it to detect duplicates.
+
+```typescript
+for await (const event of stream) {
+  const key = `processed:${event.id}`
+
+  if (await redis.exists(key)) {
+    continue
+  }
+
+  await sendEmail(event.created)
+  await redis.set(key, '1', 'EX', 86400)
+}
+```
+
+Better yet, make the operation safe to repeat by nature, like an upsert keyed on `event.id`, or a unique constraint on a record it creates.
+
+Many third-party services such as [Stripe](https://docs.stripe.com/api/idempotent_requests?lang=node) and [Resend](https://resend.com/docs/dashboard/emails/idempotency-keys) accept an idempotency key when submitting requests.
+
+## Handlers Need to Catch Their Own Errors
+
+An uncaught error ends the `for await` loop, which stops that instance from consuming the stream. The event stays unacknowledged, along with the rest of its batch, so it's picked up again once something is reading, unless the stream uses `consume: 'new'`.
+
+```typescript
+for await (const event of stream) {
+  try {
+    await handle(event)
+  } catch (error) {
+    await saveFailedEvent(event, error)
+  }
+}
+```
+
+## Retrying
+
+Retrying is up to you, so that you can decide how many attempts make sense and what happens after the last one. For example, with [Bottleneck](https://github.com/SGrondin/bottleneck):
+
+```typescript
+import Bottleneck from 'bottleneck'
+
+const limiter = new Bottleneck({ maxConcurrent: 1 })
+
+limiter.on('failed', (error, job) => {
+  if (job.retryCount < 3) {
+    return 1000
+  }
+})
+
+for await (const event of stream) {
+  try {
+    await limiter.schedule(() => handle(event))
+  } catch (error) {
+    await saveFailedEvent(event, error)
+  }
+}
+```
+
+Keep your attempts within `timeout`, otherwise another instance will pick up the event while you're still retrying it.
+
+## Choosing a Timeout
+
+`timeout` is how long an event can go unacknowledged before it's retried, in milliseconds. It should be longer than your slowest handler, including its retries. Too short, and two instances end up working on the same event. Too long, and a crashed instance's events take that much longer to come back.
+
+Events are read in batches of up to 5, and the clock starts when the batch is read. So the last event in a batch waits for the four before it, and `timeout` needs to allow for that when you have several instances.
+
+```typescript
+const stream = live.stream({
+  model: 'Video',
+  slug: 'transcode',
+  timeout: 10 * 60 * 1000,
+})
+```
+
+## Trading Duplicates for Lost Events
+
+Set `consume` to `new` if you'd rather lose events than process them twice. Events are never retried, so anything in progress when a process dies is skipped for good. This suits things like cache invalidation or analytics, where a duplicate is worse than a gap.
+
+Events are also dropped if they've waited longer than [`retention`](/docs/retention), no matter what `consume` is set to.

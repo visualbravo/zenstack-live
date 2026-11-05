@@ -1,0 +1,272 @@
+---
+title: API Reference
+description: The public API of @visualbravo/zenstack-live.
+icon: Code
+---
+
+## ZenStackLive
+
+The entry point. It connects to Redis as soon as it's created.
+
+```typescript
+import { ZenStackLive } from '@visualbravo/zenstack-live'
+
+const live = new ZenStackLive({
+  client,
+
+  redis: {
+    url: process.env.REDIS_URL!,
+  },
+})
+```
+
+<TypeTable
+  type={{
+    client: {
+      description:
+        'Your ZenStack client. Its schema provides the types, and its database connection is used to publish tables.',
+      type: 'ClientContract',
+      required: true,
+    },
+    'redis.url': {
+      description: 'The Redis that Debezium writes to.',
+      type: 'string',
+      required: true,
+    },
+    id: {
+      description: (
+        <>
+          This instance's unique ID. See <a href='/docs/scaling#instance-ids'>Scaling</a>.
+        </>
+      ),
+      type: 'string',
+      default: 'zenstack',
+    },
+    retention: {
+      description: (
+        <>
+          How long events are kept in Redis, in milliseconds. See{' '}
+          <a href='/docs/retention'>Retention</a>.
+        </>
+      ),
+      type: 'number',
+      default: '24 hours',
+    },
+  }}
+/>
+
+### live.stream()
+
+Creates a [`LiveStream`](#livestream). It throws if a filter is invalid or [unsupported](/docs/filtering-events#what-you-cant-filter-on).
+
+```typescript
+const stream = live.stream({
+  model: 'User',
+  slug: 'send-welcome-email',
+  when: { created: {} },
+})
+```
+
+<TypeTable
+  type={{
+    model: {
+      description: 'The model to listen to. Autocompleted from your schema.',
+      type: 'string',
+      required: true,
+    },
+    slug: {
+      description: (
+        <>
+          The name of this stream. Part of its <a href='/docs/streams#stream-identity'>identity</a>.
+        </>
+      ),
+      type: 'string',
+      required: true,
+    },
+    when: {
+      description: (
+        <>
+          The events to listen for. See <a href='/docs/filtering-events'>Filtering Events</a>. Part
+          of the stream's identity.
+        </>
+      ),
+      type: 'LiveStreamWhen',
+      default: 'All events',
+    },
+    consume: {
+      description: (
+        <>
+          Which events to read. See{' '}
+          <a href='/docs/streams#choosing-what-to-consume'>Choosing What to Consume</a>.
+        </>
+      ),
+      type: "'all' | 'new' | 'errored'",
+      default: 'all',
+    },
+    timeout: {
+      description: "How long an event can go unacknowledged before it's retried, in milliseconds.",
+      type: 'number',
+      default: 30000,
+    },
+  }}
+/>
+
+### live.prune()
+
+Removes what's left behind by streams that are gone. See [Pruning](/docs/pruning).
+
+```typescript
+const report = await live.prune({
+  olderThan: 7 * 24 * 60 * 60 * 1000,
+  dryRun: true,
+})
+```
+
+<TypeTable
+  type={{
+    olderThan: {
+      description:
+        "How long a stream has to be gone before it's removed, in milliseconds. Can't be shorter than `retention`.",
+      type: 'number',
+      required: true,
+    },
+    dryRun: {
+      description: 'Reports what would be removed without changing anything.',
+      type: 'boolean',
+      default: false,
+    },
+  }}
+/>
+
+It returns a `LivePruneReport`:
+
+<TypeTable
+  type={{
+    dryRun: { description: 'Whether this was a dry run.', type: 'boolean' },
+    streams: { description: 'Streams that were removed.', type: 'PrunedStream[]' },
+    consumers: {
+      description: 'Consumers that were removed from streams that are still in use.',
+      type: 'PrunedConsumer[]',
+    },
+    tables: {
+      description: 'Tables dropped from the publication, along with their events.',
+      type: 'PrunedTable[]',
+    },
+    unknownStreams: {
+      description: 'Streams that were kept, because nothing shows when they were last used.',
+      type: 'PrunedStream[]',
+    },
+    allTables: {
+      description: 'Tables with no streams left, kept because the publication is `FOR ALL TABLES`.',
+      type: 'PrunedTable[]',
+    },
+  }}
+/>
+
+```typescript
+type PrunedStream = {
+  slug?: string // Missing for streams last run by a version that didn't record them.
+  model?: string
+  redisStream: string
+  consumerGroup: string
+  lastSeenAt: Date | null
+}
+
+type PrunedConsumer = {
+  name: string
+  redisStream: string
+  consumerGroup: string
+  lastSeenAt: Date
+}
+
+type PrunedTable = {
+  table?: { schema: string; name: string } // Missing if the table is no longer published.
+  redisStream: string
+  replicaIdentityFull: boolean
+}
+```
+
+### live.disconnect()
+
+Stops background trimming and closes the Redis connections. Streams from this instance stop reading, and may reject rather than end cleanly. Your ZenStack client is left open.
+
+## LiveStream
+
+Returned by `live.stream()`. It's an `AsyncIterable` of events, typed according to `when`.
+
+<TypeTable
+  type={{
+    id: {
+      description:
+        "A stable hash of the stream's identity. The same across every instance of the same stream.",
+      type: 'string',
+    },
+    '[Symbol.asyncIterator]': {
+      description: (
+        <>
+          Lets you use <code>for await</code>. See{' '}
+          <a href='/docs/streams#stopping-a-stream'>Stopping a Stream</a>.
+        </>
+      ),
+      type: 'AsyncIterator',
+    },
+  }}
+/>
+
+## Events
+
+All events share these fields.
+
+<TypeTable
+  type={{
+    type: {
+      description: 'What happened. Use this to narrow the type.',
+      type: "'created' | 'updated' | 'deleted'",
+    },
+    id: { description: "The event's unique ID. Stays the same on redelivery.", type: 'string' },
+    transactionId: { description: 'The transaction that made the change.', type: 'string' },
+    date: { description: 'When Debezium processed the change.', type: 'Date' },
+  }}
+/>
+
+Each event type adds one field, holding the record. See [Reading Events](/docs/reading-events).
+
+| Type                 | `type`    | Field                                |
+| -------------------- | --------- | ------------------------------------ |
+| `RecordCreatedEvent` | `created` | `created`                            |
+| `RecordUpdatedEvent` | `updated` | `updated.before` and `updated.after` |
+| `RecordDeletedEvent` | `deleted` | `deleted`                            |
+
+## beforeAfter()
+
+Gives every event the same `{ before, after }` shape. See [beforeAfter](/docs/reading-events#beforeafter).
+
+```typescript
+function beforeAfter<Event extends BeforeAfterEvent>(event: Event): BeforeAfterResult<Event>
+```
+
+## Types
+
+<TypeTable
+  type={{
+    DatabaseEventType: { type: "'created' | 'updated' | 'deleted'" },
+    LiveStreamConsumeOption: { type: "'new' | 'errored' | 'all'" },
+    'LiveStreamWhen<Schema, Model>': { description: 'The shape of `when`.', type: 'object' },
+    'RecordEvent<Schema, Model>': {
+      description: 'The union of all three event types.',
+      type: 'union',
+    },
+    'RecordResultMap<Schema, Model>': {
+      description: 'Maps each event type name to its event.',
+      type: 'object',
+    },
+    'ZenStackLiveOptions<Schema>': {
+      description: 'The options of `ZenStackLive`.',
+      type: 'object',
+    },
+    'LivePruneOptions, LivePruneReport': {
+      description: 'The input and output of `prune`.',
+      type: 'object',
+    },
+  }}
+/>

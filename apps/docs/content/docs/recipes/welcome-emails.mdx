@@ -1,0 +1,25 @@
+---
+title: Welcome Emails
+description: Greet new users the moment they sign up.
+icon: Mail
+---
+
+```typescript
+const stream = live.stream({
+  model: 'User',
+  slug: 'send-welcome-email',
+
+  when: {
+    created: {},
+  },
+})
+
+for await (const event of stream) {
+  const user = event.created
+
+  await sendEmail({
+    to: user.email,
+    subject: `Welcome, ${user.name}!`,
+  })
+}
+```
