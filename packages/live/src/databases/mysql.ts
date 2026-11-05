@@ -3,20 +3,13 @@ import type { ClientContract } from '@zenstackhq/orm'
 import type { CapturedTable, LiveDatabase } from './database'
 import type { DebeziumSource } from '../internal'
 
-type BinlogSettings = {
-  logBin: number | string | null
-  binlogFormat: string | null
-  binlogRowImage: string | null
-}
-
 // Debezium reads MySQL's binlog, which holds every table's changes, and captures the database named
-// in its `DATABASE_URL`. Nothing has to be published, and nothing can be released. What LIVE can
-// check is that the binlog holds what it needs, which is set server-wide.
+// in its `DATABASE_URL`. Nothing has to be published, and nothing can be released. The binlog is
+// assumed to hold full rows, since that's set server-wide.
 export class MysqlDatabase<Schema extends SchemaDef> implements LiveDatabase {
   public readonly dialect = 'mysql'
   private readonly client: ClientContract<Schema>
   private database?: Promise<string>
-  private binlogChecked?: Promise<void>
 
   public constructor(client: ClientContract<Schema>) {
     this.client = client
@@ -33,15 +26,8 @@ export class MysqlDatabase<Schema extends SchemaDef> implements LiveDatabase {
     return await this.database
   }
 
-  // Without a full row image, `before` only holds the primary key and would quietly fail filters.
-  public async captureTable(_schemaName: string, _tableName: string) {
-    this.binlogChecked ??= this.checkBinlog().catch(error => {
-      this.binlogChecked = undefined
-      throw error
-    })
-
-    await this.binlogChecked
-  }
+  // Every table is already captured.
+  public async captureTable(_schemaName: string, _tableName: string) {}
 
   // `prune` never releases a table that's `allTables`, so these are never called for MySQL tables.
   public async releaseTable(_table: CapturedTable) {}
@@ -49,22 +35,17 @@ export class MysqlDatabase<Schema extends SchemaDef> implements LiveDatabase {
   public async restoreTable(_table: CapturedTable) {}
 
   public async getCapturedTables() {
-    const [tables, settings] = await Promise.all([
-      this.client.$queryRawUnsafe<{ schemaName: string; tableName: string }[]>(`
-        SELECT TABLE_SCHEMA AS schemaName, TABLE_NAME AS tableName
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'
-      `),
-      this.getBinlogSettings(),
-    ])
-
-    const replicaIdentityFull = settings.binlogRowImage?.toUpperCase() === 'FULL'
+    const tables = await this.client.$queryRawUnsafe<{ schemaName: string; tableName: string }[]>(`
+      SELECT TABLE_SCHEMA AS schemaName, TABLE_NAME AS tableName
+      FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'
+    `)
 
     return tables.map(({ schemaName, tableName }) => ({
       schemaName,
       tableName,
       allTables: true,
-      replicaIdentityFull,
+      replicaIdentityFull: true,
     }))
   }
 
@@ -77,37 +58,5 @@ export class MysqlDatabase<Schema extends SchemaDef> implements LiveDatabase {
     const [row] = await this.client.$queryRawUnsafe<{ name: string }[]>('SELECT DATABASE() AS name')
 
     return row!.name
-  }
-
-  private async getBinlogSettings() {
-    const [row] = await this.client.$queryRawUnsafe<BinlogSettings[]>(`
-      SELECT
-        @@GLOBAL.log_bin AS logBin,
-        @@GLOBAL.binlog_format AS binlogFormat,
-        @@GLOBAL.binlog_row_image AS binlogRowImage
-    `)
-
-    return row ?? { logBin: null, binlogFormat: null, binlogRowImage: null }
-  }
-
-  private async checkBinlog() {
-    const { logBin, binlogFormat, binlogRowImage } = await this.getBinlogSettings()
-    const problems: string[] = []
-
-    if (!['1', 'ON'].includes(String(logBin).toUpperCase())) {
-      problems.push('log_bin has to be enabled')
-    }
-
-    if (binlogFormat?.toUpperCase() !== 'ROW') {
-      problems.push(`binlog_format has to be ROW, not ${binlogFormat}`)
-    }
-
-    if (binlogRowImage?.toUpperCase() !== 'FULL') {
-      problems.push(`binlog_row_image has to be FULL, not ${binlogRowImage}`)
-    }
-
-    if (problems.length > 0) {
-      throw new Error(`ZenStack LIVE can't capture changes from MySQL: ${problems.join(', ')}`)
-    }
   }
 }

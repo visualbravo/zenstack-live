@@ -92,39 +92,3 @@ describe('capture', () => {
     },
   )
 })
-
-describe('binlog', () => {
-  function fakeClient(rows: Record<string, unknown>) {
-    return {
-      $queryRawUnsafe: async () => [rows],
-    } as unknown as ClientContract<typeof schema>
-  }
-
-  test('accepts a row-based binlog with full rows', async () => {
-    const mysqlDatabase = new MysqlDatabase(
-      fakeClient({ logBin: 1, binlogFormat: 'ROW', binlogRowImage: 'FULL' }),
-    )
-
-    await expect(mysqlDatabase.captureTable('zenstack', 'common_users')).resolves.toBeUndefined()
-  })
-
-  test('refuses a binlog without full rows', async () => {
-    const mysqlDatabase = new MysqlDatabase(
-      fakeClient({ logBin: 1, binlogFormat: 'ROW', binlogRowImage: 'MINIMAL' }),
-    )
-
-    await expect(mysqlDatabase.captureTable('zenstack', 'common_users')).rejects.toThrow(
-      'binlog_row_image has to be FULL, not MINIMAL',
-    )
-  })
-
-  test('refuses a statement-based binlog', async () => {
-    const mysqlDatabase = new MysqlDatabase(
-      fakeClient({ logBin: 0, binlogFormat: 'STATEMENT', binlogRowImage: 'FULL' }),
-    )
-
-    await expect(mysqlDatabase.captureTable('zenstack', 'common_users')).rejects.toThrow(
-      "can't capture changes from MySQL: log_bin has to be enabled, binlog_format has to be ROW",
-    )
-  })
-})

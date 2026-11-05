@@ -5,7 +5,7 @@ icon: Database
 ---
 
 - **Version:** 8.0 or later.
-- **Binlog:** `log_bin` enabled, `binlog_format=ROW`, and `binlog_row_image=FULL`. These are the defaults from MySQL 8.0. `FULL` is what puts the whole previous row into updates and deletes, so a stream refuses to start without it.
+- **Binlog:** `log_bin` enabled, `binlog_format=ROW`, and `binlog_row_image=FULL`. These are the defaults from MySQL 8.0. `FULL` is what puts the whole previous row into updates and deletes. LIVE doesn't check these, so without them filters on `before` quietly fail.
 - **GTIDs:** `gtid_mode=ON` and `enforce_gtid_consistency=ON`. Each event's `transactionId` is its transaction's GTID.
 
 ```bash
@@ -25,7 +25,7 @@ LIVE and Debezium each connect with a database user, and they have different nee
 MySQL has no publication. The binlog holds every table's changes, and Debezium captures every table in the database named in its `DATABASE_URL`. So:
 
 - `DATABASE_URL` has to include the database, and it has to be the one your `client` connects to.
-- A stream doesn't change your database. It only checks the binlog settings above.
+- A stream doesn't change your database.
 - Streams are named `zenstack.mysql.table.<database>.<table>`.
 - Every table counts as captured, the way it does for a publication that's `FOR ALL TABLES`. `prune` removes streams and consumers, but never stops capturing a table, and reports tables without streams under `allTables`.
 

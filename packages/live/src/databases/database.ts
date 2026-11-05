@@ -13,7 +13,7 @@ export type CapturedTable = {
   allTables: boolean
 
   // Whether updates and deletes carry the full previous row. On Postgres this is the table's
-  // `REPLICA IDENTITY`, and on MySQL it's the server's `binlog_row_image`.
+  // `REPLICA IDENTITY`. On MySQL it's always true, since `binlog_row_image=FULL` is assumed.
   replicaIdentityFull: boolean
 }
 
