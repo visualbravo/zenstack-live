@@ -1,9 +1,31 @@
 {
   "name": "workspace",
-  "type": "module",
   "version": "0.0.0",
   "private": "true",
   "license": "MIT",
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*",
+      "examples/*"
+    ],
+    "catalog": {
+      "@zenstackhq/orm": "^3.10.0",
+      "@zenstackhq/schema": "^3.10.0",
+      "@zenstackhq/cli": "^3.10.0",
+      "zod": "^4.1.0",
+      "kysely": "~0.29.0",
+      "ioredis": "^5.0.0",
+      "typescript": "^7.0.2",
+      "decimal.js": "^10.4.3",
+      "pg": "8.16.0",
+      "mysql2": "3.24.6",
+      "@types/pg": "8.16.0",
+      "@types/bun": "1.4.4",
+      "@types/node": "22.12.0"
+    }
+  },
+  "type": "module",
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
@@ -11,6 +33,7 @@
     "start": "turbo run start",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix --fix-suggestions",
+    "format": "oxfmt --check",
     "format:fix": "oxfmt",
     "test": "vitest run",
     "test:watch": "vitest --watch"
@@ -24,26 +47,6 @@
     "turbo": "2.11.10",
     "typescript": "catalog:",
     "vitest": "5.0.5"
-  },
-  "workspaces": {
-    "packages": [
-      "packages/*",
-      "examples/*"
-    ],
-    "catalog": {
-      "@zenstackhq/orm": "^3.4.1",
-      "@zenstackhq/schema": "^3.4.1",
-      "@zenstackhq/cli": "^3.4.1",
-      "zod": "^4.1.0",
-      "kysely": "~0.29.0",
-      "ioredis": "^5.0.0",
-      "typescript": "^7.0.2",
-      "decimal.js": "^10.4.3",
-      "pg": "8.16.0",
-      "@types/pg": "8.16.0",
-      "@types/bun": "1.4.4",
-      "@types/node": "22.12.0"
-    }
   },
   "packageManager": "bun@1.4.4"
 }

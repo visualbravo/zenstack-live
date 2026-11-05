@@ -1,0 +1,48 @@
+---
+title: Recipes
+description: Common patterns you may be interested in.
+icon: ChefHat
+---
+
+import { Mail, ScrollText, Zap, ShieldAlert, PackageCheck, Cloud } from 'lucide-react'
+
+Each recipe is a complete stream you can adapt. They all assume you've followed the [Quick Start](/docs/quick-start).
+
+<Cards>
+  <Card
+    icon={<Mail />}
+    title='Welcome Emails'
+    href='/docs/recipes/welcome-emails'
+    description='Greet new users the moment they sign up.'
+  />
+  <Card
+    icon={<ScrollText />}
+    title='Audit Logging'
+    href='/docs/recipes/audit-logging'
+    description='Record every change to a model, including ones made outside your app.'
+  />
+  <Card
+    icon={<Zap />}
+    title='Caching'
+    href='/docs/recipes/caching'
+    description='Keep Redis in sync with your database.'
+  />
+  <Card
+    icon={<ShieldAlert />}
+    title='Moderation'
+    href='/docs/recipes/moderation'
+    description='React to new content that matches a filter.'
+  />
+  <Card
+    icon={<PackageCheck />}
+    title='Shipping Notifications'
+    href='/docs/recipes/shipping-notifications'
+    description='Notify customers when an order transitions to delivered.'
+  />
+  <Card
+    icon={<Cloud />}
+    title='Forwarding to Serverless'
+    href='/docs/recipes/forwarding-to-serverless'
+    description='Pass events from a long-running worker to serverless functions.'
+  />
+</Cards>

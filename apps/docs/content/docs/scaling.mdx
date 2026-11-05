@@ -1,0 +1,54 @@
+---
+title: Scaling
+description: Share the work of a stream across several instances.
+icon: Layers
+---
+
+To handle more events, run more instances. Instances with the same stream options share a consumer group, and each event goes to one of them.
+
+```typescript
+import { hostname } from 'node:os'
+
+const live = new ZenStackLive({
+  client,
+  id: hostname(),
+
+  redis: {
+    url: process.env.REDIS_URL!,
+  },
+})
+
+const stream = live.stream({
+  model: 'Order',
+  slug: 'fulfillment',
+})
+```
+
+Start this in as many processes as you like, with no coordination between them. If one dies, the others pick up its unfinished events after `timeout`.
+
+## Instance IDs
+
+Give each instance an `id` that's unique, and ideally stable between deployments. It defaults to `zenstack`, so without one, all of your instances read as the same consumer, and you can't tell them apart when you look at Redis.
+
+If your IDs do change on every deployment, which is common with containers, the old consumers pile up in Redis. They're harmless, and [`prune`](/docs/pruning) removes them.
+
+## Sharing vs Fanning Out
+
+What decides whether instances share events is [stream identity](/docs/streams#stream-identity).
+
+| Options                          | Behavior                                                      |
+| -------------------------------- | ------------------------------------------------------------- |
+| Same `slug`, `model`, and `when` | Each event goes to **one** instance. Use this to share work.  |
+| Different `slug`                 | Each stream gets **every** event. Use this for separate jobs. |
+
+Your instances also have to agree on `when`. If one deployment is rolled out with a different filter, those instances form a new stream instead of joining the old one, and both receive matching events until the old instances are gone.
+
+## Ordering
+
+With several instances, events from one table are handled at the same time, so a later event can finish before an earlier one. If your handlers depend on order, either run one instance of that stream, or compare `event.date` with what you've already stored.
+
+## Throughput
+
+A single instance handles one event at a time per stream, so slow handlers are usually the bottleneck. If yours do a lot of work, you can forward events to a queue or a [serverless function](/docs/recipes/forwarding-to-serverless) and return quickly, instead of adding instances.
+
+Debezium is the one part that doesn't scale this way. There's one connector per database, and running more of them doesn't make it faster.

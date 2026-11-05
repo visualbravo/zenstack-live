@@ -1,0 +1,30 @@
+datasource db {
+  provider = 'postgresql'
+  url = env('POSTGRES_URL')
+
+  // provider = 'mysql'
+  // url = env('MYSQL_URL')
+}
+
+model User {
+  id         String    @id @default(cuid())
+  name       String
+  role       Role
+  isVerified Boolean   @default(false)
+  age        Int?
+  avatar     Bytes?
+  metadata   Metadata? @json
+  balance    Decimal?
+  hobbies    String[] // Comment this out when using MySQL
+  createdAt  DateTime  @default(now())
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+type Metadata {
+  employer String
+  domains  String[]
+}

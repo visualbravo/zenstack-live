@@ -1,3 +1,5 @@
+import type { AttributeApplication } from '@zenstackhq/schema'
+
 export type DebeziumSource = {
   version: string
   connector: string
@@ -10,9 +12,17 @@ export type DebeziumSource = {
   ts_ns?: number
   schema: string
   table: string
+  // Postgres
   txId?: number
   lsn?: number
   xmin?: number | null
+
+  // MySQL
+  gtid?: string
+  file?: string
+  pos?: number
+  row?: number
+  server_id?: number
 }
 
 export type DebeziumChangeEvent<T extends Record<string, unknown> = {}> = {
@@ -44,9 +54,29 @@ export type XAutoClaimResult = [nextStartId: string, messages: StreamMessage[]]
 
 export type StreamMessage = [id: string, fields: [key: string, value: string][]]
 
-export type StrictOmit<T, K> = {[P in keyof T as Exclude<P, K>]: T[P]}
+export type StrictOmit<T, K> = { [P in keyof T as Exclude<P, K>]: T[P] }
 
-export type DebeziumDecimal = {
-  scale: string
-  value: string
+// What's kept about each stream in Redis, because consumer groups don't hold any of this.
+export type RecordedStream = {
+  slug: string
+  model: string
+  redisStream: string
+  retention: number
+  preparedAt: number
+}
+
+// What the database holds for the columns that hydration changes, because filters run against that. It
+// keeps JSON nulls apart from NULLs, and NULL arrays apart from the empty arrays they hydrate to.
+export const sourceValues = Symbol('sourceValues')
+
+export function getAttribute(
+  definition: { attributes?: readonly AttributeApplication[] },
+  attribute: string,
+  arg: string,
+) {
+  const value = definition.attributes
+    ?.find(({ name }) => name === attribute)
+    ?.args?.find(({ name }) => name === arg)?.value
+
+  return value?.kind === 'literal' ? String(value.value) : undefined
 }

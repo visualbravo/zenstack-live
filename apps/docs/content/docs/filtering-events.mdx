@@ -1,0 +1,72 @@
+---
+title: Filtering Events
+description: Choose which changes reach your loop with the query syntax you already know.
+icon: ListFilter
+---
+
+The `when` option says which events you want, and each one takes the same `where` syntax as a ZenStack query, with autocomplete from your model.
+
+```typescript
+const stream = live.stream({
+  model: 'Post',
+  slug: 'moderate-posts',
+
+  when: {
+    created: {
+      OR: [
+        { title: { contains: 'ugly', mode: 'insensitive' } },
+        { title: { contains: 'stupid', mode: 'insensitive' } },
+      ],
+    },
+  },
+})
+```
+
+## Choosing Event Types
+
+The keys of `when` decide which event types you receive, and the type of `event` follows along.
+
+| `when`                           | Receives                   | `event` type                 |
+| -------------------------------- | -------------------------- | ---------------------------- |
+| Omitted, or `{}`                 | Everything                 | Created, updated, or deleted |
+| `{ created: {} }`                | Every new record           | Created                      |
+| `{ updated: {} }`                | Every update               | Updated                      |
+| `{ deleted: { role: 'ADMIN' } }` | Deleted records that match | Deleted                      |
+| `{ created: {}, deleted: {} }`   | New and deleted records    | Created or deleted           |
+
+## Watching for Transitions
+
+`updated` takes `before` and `after`, which are matched against the record on each side of the update. Using only one of them gives you a transition, which is usually what you're after:
+
+```typescript
+when: {
+  updated: {
+    after: { status: 'DELIVERED' },
+  },
+}
+```
+
+This fires once, when an order becomes `DELIVERED`, and not every time something else about a delivered order changes.
+
+| `updated`                 | Matches when                                          |
+| ------------------------- | ----------------------------------------------------- |
+| `{}`                      | Always.                                               |
+| `{ after: A }`            | The record **didn't** match `A` before, and does now. |
+| `{ before: A }`           | The record matched `A` before, and **doesn't** now.   |
+| `{ before: A, after: B }` | The record matched `A` before, and matches `B` now.   |
+
+Note that the last one isn't a transition. Each side is checked on its own, so `{ before: { paid: true }, after: { paid: true } }` matches any update to a paid record. To catch a specific change, describe both ends, like `{ before: { status: 'PENDING' }, after: { status: 'SHIPPED' } }`.
+
+## What You Can't Filter On
+
+Filters run in JavaScript against a single event, so anything that needs the database isn't available. Relation filters aren't part of the types, and these all throw when the stream is created:
+
+- Relation fields
+- Computed fields
+- `$expr`
+- `fuzzy` and `fts`
+- JSON paths with filter expressions or `.**`
+
+Two comparisons also differ slightly from Postgres. Strings are ordered by code unit and not by your database's collation, which affects `lt` and `gt`, and timestamps are compared to the millisecond.
+
+Basically, filtering behavior matches that of the SQL dialect you are using as closely as possible.

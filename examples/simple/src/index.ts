@@ -1,20 +1,25 @@
-// oxlint-disable one-var
-import { schema } from './schema'
-import { ZenStackLive } from '@visualbravo/zenstack-live'
+// oxlint-disable no-unused-vars
+import { schema } from './zenstack/schema'
+import { ZenStackLive, beforeAfter } from '@visualbravo/zenstack-live'
 import { ZenStackClient } from '@zenstackhq/orm'
-import { PostgresDialect } from 'kysely'
+import { PostgresDialect, MysqlDialect } from 'kysely'
+import { createPool } from 'mysql2'
 import { Pool } from 'pg'
-import Bottleneck from 'bottleneck'
 
 const client = new ZenStackClient(schema, {
   dialect: new PostgresDialect({
     pool: new Pool({
-      connectionString: process.env['POSTGRES_URL'],
+      connectionString: process.env['POSTGRES_URL']!,
     }),
   }),
+
+  // dialect: new MysqlDialect({
+  //   pool: createPool(process.env['MYSQL_URL']!)
+  // }),
 })
 
 const live = new ZenStackLive({
+  id: process.pid.toString(),
   client,
 
   redis: {
@@ -22,46 +27,17 @@ const live = new ZenStackLive({
   },
 })
 
+function log(message: any, ...rest: any[]) {
+  console.log(`[PID ${process.pid}] ${message}`, ...rest)
+}
+
 const userStream = live.stream({
   model: 'User',
-  id: 'all-user-changes',
+  slug: 'all-user-changes',
 })
 
-setInterval(async () => {
-  const user = await client.user.create({
-    data: {
-      enum: 'USER',
-    },
-  })
+log(`Waiting for "User" changes`)
 
-  await client.user.update({
-    data: {
-      string: 'newhello',
-    },
-
-    where: {
-      id: user.id,
-    },
-  })
-
-  await client.user.delete({
-    where: {
-      id: user.id,
-    },
-  })
-}, 5000)
-
-const userStreamLimiter = new Bottleneck({
-  minTime: 2000,
-  id: userStream.hash,
-})
-
-;(async () => {
-  for await (const event of userStream) {
-    await userStreamLimiter.schedule({ id: event.id }, () => {
-      console.log(event.type, event.id)
-
-      return Promise.resolve(true)
-    })
-  }
-})()
+for await (const event of userStream) {
+  log(event.type, event.id, JSON.stringify(beforeAfter(event), null, 2))
+}

@@ -1,0 +1,20 @@
+{
+  "title": "ZenStack LIVE",
+  "pages": [
+    "---Introduction---",
+    "index",
+    "quick-start",
+    "---Basic Usage---",
+    "filtering-events",
+    "reading-events",
+    "error-handling",
+    "---Production Usage---",
+    "scaling",
+    "retention",
+    "pruning",
+    "postgres",
+    "--- ---",
+    "recipes",
+    "api-reference"
+  ]
+}

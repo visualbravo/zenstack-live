@@ -1,0 +1,12 @@
+{
+  "title": "Recipes",
+  "icon": "ChefHat",
+  "pages": [
+    "welcome-emails",
+    "audit-logging",
+    "caching",
+    "moderation",
+    "shipping-notifications",
+    "forwarding-to-serverless"
+  ]
+}

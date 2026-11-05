@@ -21,6 +21,21 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     },
+    "./databases/database": {
+      "@zenstack-live/source": "./src/databases/database.ts",
+      "import": "./dist/databases/database.mjs",
+      "require": "./dist/databases/database.cjs"
+    },
+    "./databases/mysql": {
+      "@zenstack-live/source": "./src/databases/mysql.ts",
+      "import": "./dist/databases/mysql.mjs",
+      "require": "./dist/databases/mysql.cjs"
+    },
+    "./databases/postgres": {
+      "@zenstack-live/source": "./src/databases/postgres.ts",
+      "import": "./dist/databases/postgres.mjs",
+      "require": "./dist/databases/postgres.cjs"
+    },
     "./event-discriminator": {
       "@zenstack-live/source": "./src/event-discriminator.ts",
       "import": "./dist/event-discriminator.mjs",
@@ -44,6 +59,18 @@
         "import": "./dist/index.mjs",
         "require": "./dist/index.cjs"
       },
+      "./databases/database": {
+        "import": "./dist/databases/database.mjs",
+        "require": "./dist/databases/database.cjs"
+      },
+      "./databases/mysql": {
+        "import": "./dist/databases/mysql.mjs",
+        "require": "./dist/databases/mysql.cjs"
+      },
+      "./databases/postgres": {
+        "import": "./dist/databases/postgres.mjs",
+        "require": "./dist/databases/postgres.cjs"
+      },
       "./event-discriminator": {
         "import": "./dist/event-discriminator.mjs",
         "require": "./dist/event-discriminator.cjs"
@@ -64,6 +91,7 @@
     "watch": "tsdown --watch",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix --fix-suggestions",
+    "format": "oxfmt --check",
     "format:fix": "oxfmt",
     "test": "vitest run",
     "test:watch": "vitest --watch"
@@ -79,6 +107,7 @@
     "@types/pg": "catalog:",
     "@zenstack-live/config": "workspace:*",
     "kysely": "catalog:",
+    "mysql2": "catalog:",
     "pg": "catalog:"
   },
   "peerDependencies": {

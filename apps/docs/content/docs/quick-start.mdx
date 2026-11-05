@@ -1,0 +1,166 @@
+---
+title: Quick Start
+description: Run the infrastructure, open a stream, and see your first event.
+icon: Rocket
+---
+
+import { Workflow, WavesHorizontal, ListFilter, Bug } from 'lucide-react'
+import { Step, Steps } from 'fumadocs-ui/components/steps'
+
+We're assuming you have a `docker-compose` file with a database service named `postgres` or `mysql`, which is configured with a `healthcheck`.
+
+<Steps>
+<Step>
+
+## Install LIVE
+
+This must be on a long-running, non-serverless server that will listen for incoming events.
+
+```package-install
+@visualbravo/zenstack-live
+```
+
+</Step>
+<Step>
+
+## Add Zebezium and Redis
+
+We have a pre-configured Debezium image called **Zebezium** that simplifies usage down to two environment variables: `DATABASE_URL` and `REDIS_URL`.
+
+`DATABASE_URL` should be the same one used in your ZenStack client and schema.
+
+Zebezium uses Redis as a database, not a cache, so you'll want to create a new Redis container even if your project already has one. You don't need to
+change `REDIS_URL`.
+
+```yaml title="docker-compose.yaml"
+volumes:
+  zenstack-live-redis-data:
+
+services:
+  zenstack-live-redis:
+    image: redis:7.2
+    volumes:
+      - zenstack-live-redis-data:/data
+    command: redis-server --maxmemory-policy noeviction --appendonly yes
+    networks:
+      - zenstack-live
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping | grep PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  zenstack-live-zebezium:
+    image: visualbravo/zebezium
+    restart: on-failure
+    depends_on:
+      # Uncomment the database you're using.
+
+      # postgres:
+      #   condition: service_healthy
+
+      # mysql:
+      #   condition: service_healthy
+
+      zenstack-live-redis:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=PUT_YOUR_DATABASE_URL_HERE # Don't forget to change this.
+      - REDIS_URL=redis://zenstack-live-redis:6379
+    networks:
+      - zenstack-live
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/q/health']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+```
+
+</Step>
+
+<Step>
+
+## Configure Database Container
+
+Only a handful of lines need to be added.
+
+<Tabs items={['Postgres', 'MySQL']}>
+  <Tab value='postgres'>
+    ```yaml title="docker-compose.yaml"
+    services:
+      postgres:
+        # ...
+        networks:
+          - zenstack-live
+        command:
+          - 'postgres'
+          - '-c'
+          - 'wal_level=logical'
+    ```
+  </Tab>
+
+  <Tab value='MySQL'>
+    ```yaml title="docker-compose.yaml"
+    services:
+      mysql:
+        # ...
+        networks:
+          - zenstack-live
+        command:
+          - --server-id=1
+          - --binlog-format=ROW
+          - --binlog-row-image=FULL
+          - --gtid-mode=ON
+          - --enforce-gtid-consistency=ON
+    ```
+  </Tab>
+</Tabs>
+
+</Step>
+
+<Step>
+
+## Configure Backend Container
+
+Add your backend container to the `zenstack-live` network, then restart all containers.
+
+</Step>
+
+<Step>
+
+## Open a Stream
+
+```typescript title="live.ts"
+import { ZenStackClient } from '@zenstackhq/orm'
+import { ZenStackLive, beforeAfter } from '@visualbravo/zenstack-live'
+import { schema } from './zenstack/schema'
+
+const client = new ZenStackClient(schema, ...)
+
+const live = new ZenStackLive({
+  client,
+
+  redis: {
+    url: process.env.REDIS_URL,
+  },
+})
+
+const stream = live.stream({
+  model: 'User',
+  slug: 'log-user-events',
+})
+
+for await (const event of stream) {
+  console.log(event.type, event.id, JSON.stringify(beforeAfter(event), null, 2))
+}
+```
+
+</Step>
+<Step>
+
+## Act on a `User`
+
+In your app, ZenStack Studio, or any other client, perform an insert/update/delete. It'll be logged in your backend.
+
+</Step>
+</Steps>

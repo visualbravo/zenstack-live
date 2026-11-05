@@ -7,19 +7,27 @@
   "shutdownAction": "stopCompose",
   "postCreateCommand": "npm install -g bun@1.4.4 && bun install --frozen-lockfile",
   "remoteUser": "node",
-  "forwardPorts": [5432, 5540, 6379, 8080, 8083],
+  "forwardPorts": [2311, 3000, 3306, 5432, 5540, 6379, 8080, 8081],
   "customizations": {
     "vscode": {
       "extensions": [
+        "bradlc.vscode-tailwindcss",
         "TypeScriptTeam.native-preview",
         "ms-azuretools.vscode-containers",
         "tamasfe.even-better-toml",
         "oven.bun-vscode",
         "oxc.oxc-vscode",
-        "ckolkman.vscode-postgres",
         "vitest.explorer",
-        "zenstack.zenstack-v3"
+        "zenstack.zenstack-v3",
+        "unifiedjs.vscode-mdx",
+        "ms-azuretools.vscode-docker",
+        "sumneko.lua"
       ]
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:4": {
+      "moby": false
     }
   }
 }
