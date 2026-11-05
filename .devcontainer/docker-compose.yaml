@@ -1,6 +1,3 @@
-# 🟢 represents things you will likely need to add.
-# 🟠 represents things you will likely want to change.
-
 name: zenstack-live
 
 volumes:
@@ -23,7 +20,6 @@ services:
     networks:
       - workspace
 
-    # 🟢
     command:
       - 'postgres'
       - '-c'
@@ -46,7 +42,6 @@ services:
     networks:
       - workspace
 
-    # 🟢
     command:
       - --server-id=1
       - --log-bin=mysql-bin
@@ -61,6 +56,7 @@ services:
       test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-u', 'root', '-p zenstack']
       interval: 5s
       timeout: 5s
+      retries: 5
 
   zebezium-postgres:
     container_name: zenstack-live-zebezium-postgres
@@ -126,7 +122,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Below is dev stuff for the project, you don't need it.
   workspace:
     container_name: zenstack-live-workspace
     image: mcr.microsoft.com/devcontainers/javascript-node:22
