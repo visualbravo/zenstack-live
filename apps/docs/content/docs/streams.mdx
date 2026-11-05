@@ -29,13 +29,13 @@ Only `model` and `slug` are required. All of the options are listed in the [API 
 
 A stream is identified by its `slug`, `model`, and `when`. Together, they decide which consumer group it reads from, and that decides what it has already seen.
 
-| If you...                                 | Then...                                                                                                                      |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Restart with the same options             | The stream picks up where it left off.                                                                                       |
+| If you...                                 | Then...                                                                                                           |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Restart with the same options             | The stream picks up where it left off.                                                                            |
 | Run the same options in several processes | They share the work, and each event goes to [one of them](/docs/scaling).                                         |
-| Use a different slug                      | It's a separate stream that gets its own copy of every event.                                                                |
+| Use a different slug                      | It's a separate stream that gets its own copy of every event.                                                     |
 | Change `when`                             | It's a new stream. It starts from new events, and the old one is left behind until you [prune it](/docs/pruning). |
-| Change `consume` or `timeout`             | Nothing changes. They aren't part of a stream's identity.                                                                    |
+| Change `consume` or `timeout`             | Nothing changes. They aren't part of a stream's identity.                                                         |
 
 <Callout type="warn" title="Keep filters stable">
   Anything computed in `when` becomes part of the stream's identity. A filter like `{ createdAt: { gt: new Date() } }` is different every time your process starts, so you'd get a new stream on every restart, and lose whatever happened while you were down.

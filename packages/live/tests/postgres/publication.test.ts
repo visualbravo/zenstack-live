@@ -192,7 +192,7 @@ describe('publication', () => {
     await sleep(RETENTION + 50)
 
     // @ts-expect-error
-    const {database} = live
+    const { database } = live
     const release = database.releaseTable.bind(database)
 
     vi.spyOn(database, 'releaseTable').mockImplementationOnce(async table => {
