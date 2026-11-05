@@ -92,8 +92,6 @@ jobs:
             --restart on-failure \
             --health-cmd "curl -f http://localhost:8080/q/health" \
             --health-interval 5s --health-timeout 5s --health-retries 12 \
-            -e JAVA_OPTS='-Dnetworkaddress.cache.negative.ttl=0' \
-            -e DEBEZIUM_SINK_REDIS_WAIT_RETRY_ENABLED=true \
             -e DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres \
             -e REDIS_URL=redis://redis:6379 \
             zebezium
@@ -112,8 +110,6 @@ jobs:
         run: |
           docker run -d --name zebezium-mysql --network ${{ job.container.network }} \
             --restart on-failure \
-            -e JAVA_OPTS='-Dnetworkaddress.cache.negative.ttl=0' \
-            -e DEBEZIUM_SINK_REDIS_WAIT_RETRY_ENABLED=true \
             -e DATABASE_URL=mysql://root:mysql@mysql:3306/zenstack \
             -e REDIS_URL=redis://redis:6379 \
             zebezium
