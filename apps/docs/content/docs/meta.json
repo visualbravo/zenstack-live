@@ -9,9 +9,10 @@
     "reading-events",
     "error-handling",
     "---Production Usage---",
-    "postgres",
+    "scaling",
     "retention",
     "pruning",
+    "postgres",
     "--- ---",
     "recipes",
     "api-reference"
