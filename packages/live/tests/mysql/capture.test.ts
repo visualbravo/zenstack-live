@@ -4,7 +4,7 @@ import { schema } from '../common/schema'
 import type { ClientContract } from '@zenstackhq/orm'
 import { Redis } from 'ioredis'
 import { ZenStackLive } from '../../src'
-import { MySqlDatabase } from '../../src/databases/mysql'
+import { MysqlDatabase } from '../../src/databases/mysql'
 import { clearRedis } from '../helpers/clear-redis'
 import { createTestDatabase, mysql, type TestDatabase } from '../helpers/dialects'
 
@@ -53,7 +53,7 @@ describe('capture', () => {
   })
 
   test('reports every table in the database as captured', async () => {
-    const tables = await new MySqlDatabase(client).getCapturedTables()
+    const tables = await new MysqlDatabase(client).getCapturedTables()
 
     expect(tables.toSorted((a, b) => a.tableName.localeCompare(b.tableName))).toEqual([
       {
@@ -101,7 +101,7 @@ describe('binlog', () => {
   }
 
   test('accepts a row-based binlog with full rows', async () => {
-    const mysqlDatabase = new MySqlDatabase(
+    const mysqlDatabase = new MysqlDatabase(
       fakeClient({ logBin: 1, binlogFormat: 'ROW', binlogRowImage: 'FULL' }),
     )
 
@@ -109,7 +109,7 @@ describe('binlog', () => {
   })
 
   test('refuses a binlog without full rows', async () => {
-    const mysqlDatabase = new MySqlDatabase(
+    const mysqlDatabase = new MysqlDatabase(
       fakeClient({ logBin: 1, binlogFormat: 'ROW', binlogRowImage: 'MINIMAL' }),
     )
 
@@ -119,7 +119,7 @@ describe('binlog', () => {
   })
 
   test('refuses a statement-based binlog', async () => {
-    const mysqlDatabase = new MySqlDatabase(
+    const mysqlDatabase = new MysqlDatabase(
       fakeClient({ logBin: 0, binlogFormat: 'STATEMENT', binlogRowImage: 'FULL' }),
     )
 

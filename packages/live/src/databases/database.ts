@@ -1,7 +1,7 @@
 import type { SchemaDef } from '@zenstackhq/schema'
 import type { ClientContract } from '@zenstackhq/orm'
 import type { DebeziumSource } from '../internal'
-import { MySqlDatabase } from './mysql'
+import { MysqlDatabase } from './mysql'
 import { PostgresDatabase } from './postgres'
 
 // A table that Debezium is capturing changes from.
@@ -68,7 +68,7 @@ export function createLiveDatabase<Schema extends SchemaDef>(
     case 'postgresql':
       return new PostgresDatabase(client)
     case 'mysql':
-      return new MySqlDatabase(client)
+      return new MysqlDatabase(client)
     default:
       throw new Error(`ZenStack LIVE doesn't support the "${provider}" provider yet`)
   }

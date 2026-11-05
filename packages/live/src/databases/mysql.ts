@@ -12,7 +12,7 @@ type BinlogSettings = {
 // Debezium reads MySQL's binlog, which holds every table's changes, and captures the database named
 // in its `DATABASE_URL`. Nothing has to be published, and nothing can be released. What LIVE can
 // check is that the binlog holds what it needs, which is set server-wide.
-export class MySqlDatabase<Schema extends SchemaDef> implements LiveDatabase {
+export class MysqlDatabase<Schema extends SchemaDef> implements LiveDatabase {
   public readonly dialect = 'mysql'
   private readonly client: ClientContract<Schema>
   private database?: Promise<string>
