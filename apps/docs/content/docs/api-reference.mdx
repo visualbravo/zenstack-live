@@ -20,16 +20,38 @@ const live = new ZenStackLive({
 })
 ```
 
-| Option      | Type             | Default    | Description                                                                                                 |
-| ----------- | ---------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
-| `client`    | `ClientContract` | Required   | Your ZenStack client. Its schema provides the types, and its database connection is used to publish tables. |
-| `redis.url` | `string`         | Required   | The Redis that Debezium writes to.                                                                          |
-| `id`        | `string`         | `zenstack` | This instance's unique ID. See [Scaling](/docs/deployment/scaling#instance-ids).                            |
-| `retention` | `number`         | 24 hours   | How long events are kept in Redis, in milliseconds. See [Retention](/docs/deployment/retention).            |
+<TypeTable
+  type={{
+    client: {
+      description: 'Your ZenStack client. Its schema provides the types, and its database connection is used to publish tables.',
+      type: 'ClientContract',
+      required: true,
+    },
+    'redis.url': {
+      description: 'The Redis that Debezium writes to.',
+      type: 'string',
+      required: true,
+    },
+    id: {
+      description: (
+        <>This instance's unique ID. See <a href="/docs/deployment/scaling#instance-ids">Scaling</a>.</>
+      ),
+      type: 'string',
+      default: 'zenstack',
+    },
+    retention: {
+      description: (
+        <>How long events are kept in Redis, in milliseconds. See <a href="/docs/retention">Retention</a>.</>
+      ),
+      type: 'number',
+      default: '24 hours',
+    },
+  }}
+/>
 
 ### live.stream()
 
-Creates a [`LiveStream`](#livestream). It throws if a filter is invalid or [unsupported](/docs/guides/filtering#what-you-cant-filter-on).
+Creates a [`LiveStream`](#livestream). It throws if a filter is invalid or [unsupported](/docs/filtering-events#what-you-cant-filter-on).
 
 ```typescript
 const stream = live.stream({
@@ -39,13 +61,41 @@ const stream = live.stream({
 })
 ```
 
-| Option    | Type                          | Default    | Description                                                                                              |
-| --------- | ----------------------------- | ---------- | -------------------------------------------------------------------------------------------------------- |
-| `model`   | `string`                      | Required   | The model to listen to. Autocompleted from your schema.                                                  |
-| `slug`    | `string`                      | Required   | The name of this stream. Part of its [identity](/docs/guides/streams#stream-identity).                   |
-| `when`    | `LiveStreamWhen`              | All events | The events to listen for. See [Filtering Events](/docs/guides/filtering). Part of the stream's identity. |
-| `consume` | `'all' \| 'new' \| 'errored'` | `all`      | Which events to read. See [Choosing What to Consume](/docs/guides/streams#choosing-what-to-consume).     |
-| `timeout` | `number`                      | `30000`    | How long an event can go unacknowledged before it's retried, in milliseconds.                            |
+<TypeTable
+  type={{
+    model: {
+      description: 'The model to listen to. Autocompleted from your schema.',
+      type: 'string',
+      required: true,
+    },
+    slug: {
+      description: (
+        <>The name of this stream. Part of its <a href="/docs/streams#stream-identity">identity</a>.</>
+      ),
+      type: 'string',
+      required: true,
+    },
+    when: {
+      description: (
+        <>The events to listen for. See <a href="/docs/filtering-events">Filtering Events</a>. Part of the stream's identity.</>
+      ),
+      type: 'LiveStreamWhen',
+      default: 'All events',
+    },
+    consume: {
+      description: (
+        <>Which events to read. See <a href="/docs/streams#choosing-what-to-consume">Choosing What to Consume</a>.</>
+      ),
+      type: "'all' | 'new' | 'errored'",
+      default: 'all',
+    },
+    timeout: {
+      description: "How long an event can go unacknowledged before it's retried, in milliseconds.",
+      type: 'number',
+      default: 30000,
+    },
+  }}
+/>
 
 ### live.prune()
 
@@ -58,21 +108,45 @@ const report = await live.prune({
 })
 ```
 
-| Option      | Type      | Default  | Description                                                                                               |
-| ----------- | --------- | -------- | --------------------------------------------------------------------------------------------------------- |
-| `olderThan` | `number`  | Required | How long a stream has to be gone before it's removed, in milliseconds. Can't be shorter than `retention`. |
-| `dryRun`    | `boolean` | `false`  | Reports what would be removed without changing anything.                                                  |
+<TypeTable
+  type={{
+    olderThan: {
+      description: "How long a stream has to be gone before it's removed, in milliseconds. Can't be shorter than `retention`.",
+      type: 'number',
+      required: true,
+    },
+    dryRun: {
+      description: 'Reports what would be removed without changing anything.',
+      type: 'boolean',
+      default: false,
+    },
+  }}
+/>
 
 It returns a `LivePruneReport`:
 
-| Field            | Type               | Description                                                                    |
-| ---------------- | ------------------ | ------------------------------------------------------------------------------ |
-| `dryRun`         | `boolean`          | Whether this was a dry run.                                                    |
-| `streams`        | `PrunedStream[]`   | Streams that were removed.                                                     |
-| `consumers`      | `PrunedConsumer[]` | Consumers that were removed from streams that are still in use.                |
-| `tables`         | `PrunedTable[]`    | Tables dropped from the publication, along with their events.                  |
-| `unknownStreams` | `PrunedStream[]`   | Streams that were kept, because nothing shows when they were last used.        |
-| `allTables`      | `PrunedTable[]`    | Tables with no streams left, kept because the publication is `FOR ALL TABLES`. |
+<TypeTable
+  type={{
+    dryRun: { description: 'Whether this was a dry run.', type: 'boolean' },
+    streams: { description: 'Streams that were removed.', type: 'PrunedStream[]' },
+    consumers: {
+      description: 'Consumers that were removed from streams that are still in use.',
+      type: 'PrunedConsumer[]',
+    },
+    tables: {
+      description: 'Tables dropped from the publication, along with their events.',
+      type: 'PrunedTable[]',
+    },
+    unknownStreams: {
+      description: 'Streams that were kept, because nothing shows when they were last used.',
+      type: 'PrunedStream[]',
+    },
+    allTables: {
+      description: 'Tables with no streams left, kept because the publication is `FOR ALL TABLES`.',
+      type: 'PrunedTable[]',
+    },
+  }}
+/>
 
 ```typescript
 type PrunedStream = {
@@ -105,23 +179,38 @@ Stops background trimming and closes the Redis connections. Streams from this in
 
 Returned by `live.stream()`. It's an `AsyncIterable` of events, typed according to `when`.
 
-| Member                   | Description                                                                                |
-| ------------------------ | ------------------------------------------------------------------------------------------ |
-| `id`                     | A stable hash of the stream's identity. The same across every instance of the same stream. |
-| `[Symbol.asyncIterator]` | Lets you use `for await`. See [Stopping a Stream](/docs/guides/streams#stopping-a-stream). |
+<TypeTable
+  type={{
+    id: {
+      description: "A stable hash of the stream's identity. The same across every instance of the same stream.",
+      type: 'string',
+    },
+    '[Symbol.asyncIterator]': {
+      description: (
+        <>Lets you use <code>for await</code>. See <a href="/docs/streams#stopping-a-stream">Stopping a Stream</a>.</>
+      ),
+      type: 'AsyncIterator',
+    },
+  }}
+/>
 
 ## Events
 
 All events share these fields.
 
-| Field           | Type                                  | Description                                          |
-| --------------- | ------------------------------------- | ---------------------------------------------------- |
-| `type`          | `'created' \| 'updated' \| 'deleted'` | What happened. Use this to narrow the type.          |
-| `id`            | `string`                              | The event's unique ID. Stays the same on redelivery. |
-| `transactionId` | `string`                              | The transaction that made the change.                |
-| `date`          | `Date`                                | When Debezium processed the change.                  |
+<TypeTable
+  type={{
+    type: {
+      description: 'What happened. Use this to narrow the type.',
+      type: "'created' | 'updated' | 'deleted'",
+    },
+    id: { description: "The event's unique ID. Stays the same on redelivery.", type: 'string' },
+    transactionId: { description: 'The transaction that made the change.', type: 'string' },
+    date: { description: 'When Debezium processed the change.', type: 'Date' },
+  }}
+/>
 
-Each event type adds one field, holding the record. See [Reading Events](/docs/guides/events).
+Each event type adds one field, holding the record. See [Reading Events](/docs/events).
 
 | Type                 | `type`    | Field                                |
 | -------------------- | --------- | ------------------------------------ |
@@ -131,7 +220,7 @@ Each event type adds one field, holding the record. See [Reading Events](/docs/g
 
 ## beforeAfter()
 
-Gives every event the same `{ before, after }` shape. See [beforeAfter](/docs/guides/events#beforeafter).
+Gives every event the same `{ before, after }` shape. See [beforeAfter](/docs/events#beforeafter).
 
 ```typescript
 function beforeAfter<Event extends BeforeAfterEvent>(event: Event): BeforeAfterResult<Event>
@@ -139,12 +228,17 @@ function beforeAfter<Event extends BeforeAfterEvent>(event: Event): BeforeAfterR
 
 ## Types
 
-| Type                                  | Description                             |
-| ------------------------------------- | --------------------------------------- |
-| `DatabaseEventType`                   | `'created' \| 'updated' \| 'deleted'`   |
-| `LiveStreamConsumeOption`             | `'new' \| 'errored' \| 'all'`           |
-| `LiveStreamWhen<Schema, Model>`       | The shape of `when`.                    |
-| `RecordEvent<Schema, Model>`          | The union of all three event types.     |
-| `RecordResultMap<Schema, Model>`      | Maps each event type name to its event. |
-| `ZenStackLiveOptions<Schema>`         | The options of `ZenStackLive`.          |
-| `LivePruneOptions`, `LivePruneReport` | The input and output of `prune`.        |
+<TypeTable
+  type={{
+    DatabaseEventType: { type: "'created' | 'updated' | 'deleted'" },
+    LiveStreamConsumeOption: { type: "'new' | 'errored' | 'all'" },
+    'LiveStreamWhen<Schema, Model>': { description: 'The shape of `when`.', type: 'object' },
+    'RecordEvent<Schema, Model>': { description: 'The union of all three event types.', type: 'union' },
+    'RecordResultMap<Schema, Model>': {
+      description: 'Maps each event type name to its event.',
+      type: 'object',
+    },
+    'ZenStackLiveOptions<Schema>': { description: 'The options of `ZenStackLive`.', type: 'object' },
+    'LivePruneOptions, LivePruneReport': { description: 'The input and output of `prune`.', type: 'object' },
+  }}
+/>
