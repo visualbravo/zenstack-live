@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: node:22
-      # Lets a step restart the MySQL Debezium service once GTIDs are on.
+      # Lets steps build and run the Zebezium image.
       volumes:
         - /var/run/docker.sock:/var/run/docker.sock
     services:
@@ -26,48 +26,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-      debezium:
-        image: quay.io/debezium/server:3.7.0.Final
-        options: >-
-          --restart on-failure
-          --health-cmd "curl -f http://localhost:8080/q/health"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-        env:
-          JAVA_OPTS: '-Dnetworkaddress.cache.negative.ttl=0'
-
-          DATABASE_USER: default
-          DEBEZIUM_FORMAT_SCHEMAS_ENABLE: false
-          DEBEZIUM_SINK_REDIS_ADDRESS: redis:6379
-          DEBEZIUM_SINK_REDIS_PASSWORD:
-          DEBEZIUM_SINK_REDIS_SSL_ENABLED: false
-          DEBEZIUM_SINK_REDIS_WAIT_RETRY_ENABLED: true
-          DEBEZIUM_SINK_TYPE: redis
-
-          DEBEZIUM_SOURCE_CONNECTOR_CLASS: io.debezium.connector.postgresql.PostgresConnector
-          DEBEZIUM_SOURCE_DATABASE_DBNAME: postgres
-          DEBEZIUM_SOURCE_DATABASE_HOSTNAME: postgres
-          DEBEZIUM_SOURCE_DATABASE_PASSWORD: postgres
-          DEBEZIUM_SOURCE_DATABASE_PORT: 5432
-          DEBEZIUM_SOURCE_DATABASE_SERVER_NAME: zenstack
-          DEBEZIUM_SOURCE_DATABASE_USER: postgres
-          DEBEZIUM_SOURCE_DECIMAL_HANDLING_MODE: string
-          DEBEZIUM_SOURCE_PLUGIN_NAME: pgoutput
-          DEBEZIUM_SOURCE_PUBLICATION_AUTOCREATE_MODE: no_tables
-          DEBEZIUM_SOURCE_PUBLICATION_NAME: zenstack_live
-
-          DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL: io.debezium.storage.redis.history.RedisSchemaHistory
-          DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS_ADDRESS: redis:6379
-
-          DEBEZIUM_SOURCE_OFFSET_STORAGE: io.debezium.storage.redis.offset.RedisOffsetBackingStore
-          DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY: zenstack.postgres.metadata.offsets
-          DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_ADDRESS: redis:6379
-
-          DEBEZIUM_SOURCE_SNAPSHOT_MODE: no_data
-          DEBEZIUM_SOURCE_TIME_PRECISION_MODE: isostring
-          DEBEZIUM_SOURCE_TOPIC_PREFIX: zenstack.postgres.table
-
       # Binlog is on, row-based and full by default from 8.0. Services can't take server flags, so
       # GTIDs are turned on by a step instead.
       mysql:
@@ -80,48 +38,6 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
-
-      debezium-mysql:
-        image: quay.io/debezium/server:3.7.0.Final
-        options: >-
-          --restart on-failure
-          --health-cmd "curl -f http://localhost:8080/q/health"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-        env:
-          JAVA_OPTS: '-Dnetworkaddress.cache.negative.ttl=0'
-
-          DATABASE_USER: default
-          DEBEZIUM_FORMAT_SCHEMAS_ENABLE: false
-          DEBEZIUM_SINK_REDIS_ADDRESS: redis:6379
-          DEBEZIUM_SINK_REDIS_PASSWORD:
-          DEBEZIUM_SINK_REDIS_SSL_ENABLED: false
-          DEBEZIUM_SINK_REDIS_WAIT_RETRY_ENABLED: true
-          DEBEZIUM_SINK_TYPE: redis
-
-          DEBEZIUM_SOURCE_CONNECTOR_CLASS: io.debezium.connector.mysql.MySqlConnector
-          DEBEZIUM_SOURCE_DATABASE_HOSTNAME: mysql
-          DEBEZIUM_SOURCE_DATABASE_PORT: 3306
-          DEBEZIUM_SOURCE_DATABASE_USER: root
-          DEBEZIUM_SOURCE_DATABASE_PASSWORD: mysql
-          DEBEZIUM_SOURCE_DATABASE_SERVER_ID: 1
-          DEBEZIUM_SOURCE_DATABASE_INCLUDE_LIST: zenstack
-          DEBEZIUM_SOURCE_DATABASE_SERVER_NAME: zenstack
-          DEBEZIUM_SOURCE_DECIMAL_HANDLING_MODE: string
-          DEBEZIUM_SOURCE_INCLUDE_SCHEMA_CHANGES: false
-
-          DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL: io.debezium.storage.redis.history.RedisSchemaHistory
-          DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS_ADDRESS: redis:6379
-          DEBEZIUM_SOURCE_SCHEMA_HISTORY_INTERNAL_REDIS_KEY: zenstack.mysql.metadata.schema_history
-
-          DEBEZIUM_SOURCE_OFFSET_STORAGE: io.debezium.storage.redis.offset.RedisOffsetBackingStore
-          DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_KEY: zenstack.mysql.metadata.offsets
-          DEBEZIUM_SOURCE_OFFSET_STORAGE_REDIS_ADDRESS: redis:6379
-
-          DEBEZIUM_SOURCE_SNAPSHOT_MODE: no_data
-          DEBEZIUM_SOURCE_TIME_PRECISION_MODE: isostring
-          DEBEZIUM_SOURCE_TOPIC_PREFIX: zenstack.mysql.table
 
       redis:
         image: redis:7.2
@@ -166,21 +82,47 @@ jobs:
             await connection.end()
           "
 
-      # Debezium only reads GTIDs if they were on when it connected, which they weren't, since
-      # services start before any step. Without a restart, every event's `source.gtid` is null.
-      # Its health check passes before the connector reaches the binlog, and events written in
-      # between are skipped, so wait for the connector to log that it's streaming instead.
-      - name: Restart MySQL Debezium
+      - name: Build Zebezium
+        run: docker build -t zebezium ./zebezium
+
+      # Started here instead of as services, since services can only use prebuilt images.
+      - name: Start Postgres Zebezium
         run: |
-          container=${{ job.services.debezium-mysql.id }}
-          since=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          docker restart "$container"
+          docker run -d --name zebezium-postgres --network ${{ job.container.network }} \
+            --restart on-failure \
+            --health-cmd "curl -f http://localhost:8080/q/health" \
+            --health-interval 5s --health-timeout 5s --health-retries 12 \
+            -e JAVA_OPTS='-Dnetworkaddress.cache.negative.ttl=0' \
+            -e DEBEZIUM_SINK_REDIS_WAIT_RETRY_ENABLED=true \
+            -e DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres \
+            -e REDIS_URL=redis://redis:6379 \
+            zebezium
           for i in $(seq 1 60); do
-            docker logs --since "$since" "$container" 2>&1 | grep -q 'Connected to .*binlog at' && exit 0
+            [ "$(docker inspect -f '{{.State.Health.Status}}' zebezium-postgres)" = healthy ] && exit 0
             sleep 2
           done
-          echo "Debezium MySQL did not connect to the binlog"
-          docker logs --since "$since" "$container" 2>&1 | tail -100
+          echo "Zebezium Postgres did not become healthy"
+          docker logs zebezium-postgres 2>&1 | tail -100
+          exit 1
+
+      # Debezium only reads GTIDs if they were on when it connected, so this starts after they're
+      # enabled. Its health check passes before the connector reaches the binlog, and events
+      # written in between are skipped, so wait for the connector to log that it's streaming.
+      - name: Start MySQL Zebezium
+        run: |
+          docker run -d --name zebezium-mysql --network ${{ job.container.network }} \
+            --restart on-failure \
+            -e JAVA_OPTS='-Dnetworkaddress.cache.negative.ttl=0' \
+            -e DEBEZIUM_SINK_REDIS_WAIT_RETRY_ENABLED=true \
+            -e DATABASE_URL=mysql://root:mysql@mysql:3306/zenstack \
+            -e REDIS_URL=redis://redis:6379 \
+            zebezium
+          for i in $(seq 1 60); do
+            docker logs zebezium-mysql 2>&1 | grep -q 'Connected to .*binlog at' && exit 0
+            sleep 2
+          done
+          echo "Zebezium MySQL did not connect to the binlog"
+          docker logs zebezium-mysql 2>&1 | tail -100
           exit 1
 
       - name: Test
@@ -194,3 +136,8 @@ jobs:
           MYSQL_URL: mysql://root:mysql@mysql:3306/zenstack
           REDIS_URL: redis://redis:6379
         run: bun run test
+
+      # Detach from the job network so the runner can remove it.
+      - name: Stop Zebezium
+        if: always()
+        run: docker rm -f zebezium-postgres zebezium-mysql || true
