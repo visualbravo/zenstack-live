@@ -13,4 +13,4 @@ jobs:
       - name: Publish image to GitHub
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: cd ./zebezium && docker build -t zebezium . && docker tag zebezium ghcr.io/visualbravo/zebezium:latest
+        run: cd ./zebezium && docker build -t zebezium . && docker tag zebezium ghcr.io/visualbravo/zebezium:latest && docker push ghcr.io/visualbravo/zebezium:latest
