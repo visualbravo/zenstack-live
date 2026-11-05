@@ -5,8 +5,8 @@
   "sideEffects": false,
   "scripts": {
     "dev": "vite dev --host --port 3000",
-    "build": "vite build",
-    "start": "vite preview --host --port 3000",
+    "build": "bun --bun vite build",
+    "preview": "vite preview --host --port 3000",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix --fix-suggestions",
     "format": "oxfmt --check",

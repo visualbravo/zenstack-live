@@ -6,15 +6,15 @@ import { fumadocsMdx } from 'fumadocs-mdx/vite'
 import { nitro } from 'nitro/vite'
 
 export default defineConfig({
-  server: {
-    port: 3000,
-  },
   plugins: [
     fumadocsMdx(),
     tailwindcss(),
     tanstackStart({
-      prerender: {
+      spa: {
         enabled: true,
+        prerender: {
+          enabled: true,
+        },
       },
     }),
     react(),
