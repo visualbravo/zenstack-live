@@ -1,15 +1,21 @@
+// oxlint-disable no-unused-vars
 import { schema } from './zenstack/schema'
 import { ZenStackLive, beforeAfter } from '@visualbravo/zenstack-live'
 import { ZenStackClient } from '@zenstackhq/orm'
-import { PostgresDialect } from 'kysely'
+import { PostgresDialect, MysqlDialect } from 'kysely'
+import { createPool } from 'mysql2'
 import { Pool } from 'pg'
 
 const client = new ZenStackClient(schema, {
   dialect: new PostgresDialect({
     pool: new Pool({
-      connectionString: process.env['POSTGRES_URL'],
+      connectionString: process.env['POSTGRES_URL']!,
     }),
   }),
+
+  // dialect: new MysqlDialect({
+  //   pool: createPool(process.env['MYSQL_URL']!)
+  // }),
 })
 
 const live = new ZenStackLive({
@@ -35,4 +41,3 @@ log(`Waiting for "User" changes`)
 for await (const event of userStream) {
   log(event.type, event.id, JSON.stringify(beforeAfter(event), null, 2))
 }
-

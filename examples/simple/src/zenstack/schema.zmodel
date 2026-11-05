@@ -1,120 +1,30 @@
 datasource db {
   provider = 'postgresql'
   url = env('POSTGRES_URL')
+
+  // provider = 'mysql'
+  // url = env('MYSQL_URL')
 }
 
 model User {
-  id            String     @id @default(cuid())
-  string        String?
-  stringArray   String[]
-  boolean       Boolean?
-  booleanArray  Boolean[]
-  int           Int?
-  intArray      Int[]
-  float         Float?
-  floatArray    Float[]
-  dateTime      DateTime?
-  dateTimeArray DateTime[]
-  bigInt        BigInt?
-  bigIntArray   BigInt[]
-  decimal       Decimal?
-  decimalArray  Decimal[]
-  enum          Role
-  // enumArray     Role[]
-  json          Meta?      @json
-  jsonArray     Meta[]     @json
-  posts         Post[]
-}
-
-model Post {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  title     String
-  content   String
-  published Boolean  @default(false)
-  author    User     @relation(fields: [authorId], references: [id])
-  authorId  String
-}
-
-model Contact with Timestamped {
-  id        String    @id @default(cuid())
-  email     Email
-  emails    Email[]
-  age       Age?
-  balance   Balance?
-  visits    Visits?
-  lastSeen  LastSeen?
-  profile   Profile?  @json
-  addresses Address[] @json
-  metadata  Json?
-  history   Json[]
-  avatar    Bytes?
-  seenAt    DateTime[]
-}
-
-type Timestamped {
-  createdAt DateTime @default(now())
-}
-
-type Email with String {
-  this String @email
-}
-
-type Age with Int {}
-
-type Balance with Decimal {}
-
-type Visits with BigInt {}
-
-type LastSeen with DateTime {}
-
-type Geo {
-  lat Float
-  lng Float
-}
-
-type Address {
-  city    String
-  country String?
-  geo     Geo?
-  tags    String[]
-  role    Role?
-  movedAt DateTime?
-}
-
-type Profile {
-  name      String
-  nickname  Email?
-  age       Age?
-  joinedAt  DateTime?
-  balance   Decimal?
-  address   Address?
-  addresses Address[]
-}
-
-type Meta {
-  string       String?
-  stringArray  String[]
-  boolean      Boolean?
-  booleanArray Boolean[]
-  int          Int?
-  intArray     Int[]
-  float        Float?
-  floatArray   Float[]
-  dateTime      DateTime?
-  dateTimeArray DateTime[]
-  // bigInt        BigInt?
-  // bigIntArray   BigInt[]
-  // decimal       Decimal?
-  // decimalArray  Decimal[]
-  enum         Role
-  // enumArray    Role[]
-  // json          Meta?      @json
-  // jsonArray     Meta[]     @json
+  id         String    @id @default(cuid())
+  name       String
+  role       Role
+  isVerified Boolean   @default(false)
+  age        Int?
+  avatar     Bytes?
+  metadata   Metadata? @json
+  balance    Decimal?
+  hobbies    String[] // Comment this out when using MySQL
+  createdAt  DateTime  @default(now())
 }
 
 enum Role {
   USER
   ADMIN
+}
+
+type Metadata {
+  employer String
+  domains  String[]
 }

@@ -50,6 +50,7 @@
         "@zenstackhq/orm": "catalog:",
         "bottleneck": "^2.19.5",
         "kysely": "catalog:",
+        "mysql2": "catalog:",
         "pg": "catalog:",
       },
       "devDependencies": {

@@ -21,235 +21,51 @@ export class SchemaType implements SchemaDef {
                     attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("cuid") as FieldDefault
                 },
-                string: {
-                    name: "string",
-                    type: "String",
-                    optional: true
+                name: {
+                    name: "name",
+                    type: "String"
                 },
-                stringArray: {
-                    name: "stringArray",
-                    type: "String",
-                    array: true
-                },
-                boolean: {
-                    name: "boolean",
-                    type: "Boolean",
-                    optional: true
-                },
-                booleanArray: {
-                    name: "booleanArray",
-                    type: "Boolean",
-                    array: true
-                },
-                int: {
-                    name: "int",
-                    type: "Int",
-                    optional: true
-                },
-                intArray: {
-                    name: "intArray",
-                    type: "Int",
-                    array: true
-                },
-                float: {
-                    name: "float",
-                    type: "Float",
-                    optional: true
-                },
-                floatArray: {
-                    name: "floatArray",
-                    type: "Float",
-                    array: true
-                },
-                dateTime: {
-                    name: "dateTime",
-                    type: "DateTime",
-                    optional: true
-                },
-                dateTimeArray: {
-                    name: "dateTimeArray",
-                    type: "DateTime",
-                    array: true
-                },
-                bigInt: {
-                    name: "bigInt",
-                    type: "BigInt",
-                    optional: true
-                },
-                bigIntArray: {
-                    name: "bigIntArray",
-                    type: "BigInt",
-                    array: true
-                },
-                decimal: {
-                    name: "decimal",
-                    type: "Decimal",
-                    optional: true
-                },
-                decimalArray: {
-                    name: "decimalArray",
-                    type: "Decimal",
-                    array: true
-                },
-                enum: {
-                    name: "enum",
+                role: {
+                    name: "role",
                     type: "Role"
                 },
-                json: {
-                    name: "json",
-                    type: "Meta",
-                    optional: true,
-                    attributes: [{ name: "@json" }] as readonly AttributeApplication[]
-                },
-                jsonArray: {
-                    name: "jsonArray",
-                    type: "Meta",
-                    array: true,
-                    attributes: [{ name: "@json" }] as readonly AttributeApplication[]
-                },
-                posts: {
-                    name: "posts",
-                    type: "Post",
-                    array: true,
-                    relation: { opposite: "author" }
-                }
-            },
-            idFields: ["id"],
-            uniqueFields: {
-                id: { type: "String" }
-            }
-        },
-        Post: {
-            name: "Post",
-            fields: {
-                id: {
-                    name: "id",
-                    type: "String",
-                    id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
-                },
-                createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
-                },
-                updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
-                    updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
-                },
-                title: {
-                    name: "title",
-                    type: "String"
-                },
-                content: {
-                    name: "content",
-                    type: "String"
-                },
-                published: {
-                    name: "published",
+                isVerified: {
+                    name: "isVerified",
                     type: "Boolean",
                     attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
                     default: false as FieldDefault
                 },
-                author: {
-                    name: "author",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "posts", fields: ["authorId"], references: ["id"] }
-                },
-                authorId: {
-                    name: "authorId",
-                    type: "String",
-                    foreignKeyFor: [
-                        "author"
-                    ] as readonly string[]
-                }
-            },
-            idFields: ["id"],
-            uniqueFields: {
-                id: { type: "String" }
-            }
-        },
-        Contact: {
-            name: "Contact",
-            fields: {
-                createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
-                },
-                id: {
-                    name: "id",
-                    type: "String",
-                    id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
-                },
-                email: {
-                    name: "email",
-                    type: "Email"
-                },
-                emails: {
-                    name: "emails",
-                    type: "Email",
-                    array: true
-                },
                 age: {
                     name: "age",
-                    type: "Age",
+                    type: "Int",
                     optional: true
-                },
-                balance: {
-                    name: "balance",
-                    type: "Balance",
-                    optional: true
-                },
-                visits: {
-                    name: "visits",
-                    type: "Visits",
-                    optional: true
-                },
-                lastSeen: {
-                    name: "lastSeen",
-                    type: "LastSeen",
-                    optional: true
-                },
-                profile: {
-                    name: "profile",
-                    type: "Profile",
-                    optional: true,
-                    attributes: [{ name: "@json" }] as readonly AttributeApplication[]
-                },
-                addresses: {
-                    name: "addresses",
-                    type: "Address",
-                    array: true,
-                    attributes: [{ name: "@json" }] as readonly AttributeApplication[]
-                },
-                metadata: {
-                    name: "metadata",
-                    type: "Json",
-                    optional: true
-                },
-                history: {
-                    name: "history",
-                    type: "Json",
-                    array: true
                 },
                 avatar: {
                     name: "avatar",
                     type: "Bytes",
                     optional: true
                 },
-                seenAt: {
-                    name: "seenAt",
-                    type: "DateTime",
+                metadata: {
+                    name: "metadata",
+                    type: "Metadata",
+                    optional: true,
+                    attributes: [{ name: "@json" }] as readonly AttributeApplication[]
+                },
+                balance: {
+                    name: "balance",
+                    type: "Decimal",
+                    optional: true
+                },
+                hobbies: {
+                    name: "hobbies",
+                    type: "String",
                     array: true
+                },
+                createdAt: {
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 }
             },
             idFields: ["id"],
@@ -259,190 +75,17 @@ export class SchemaType implements SchemaDef {
         }
     } as const;
     typeDefs = {
-        Timestamped: {
-            name: "Timestamped",
+        Metadata: {
+            name: "Metadata",
             fields: {
-                createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
-                }
-            }
-        },
-        Email: {
-            name: "Email",
-            base: "String",
-            fields: {
-                this: {
-                    name: "this",
-                    type: "String",
-                    attributes: [{ name: "@email" }] as readonly AttributeApplication[]
-                }
-            }
-        },
-        Age: {
-            name: "Age",
-            base: "Int",
-            fields: {}
-        },
-        Balance: {
-            name: "Balance",
-            base: "Decimal",
-            fields: {}
-        },
-        Visits: {
-            name: "Visits",
-            base: "BigInt",
-            fields: {}
-        },
-        LastSeen: {
-            name: "LastSeen",
-            base: "DateTime",
-            fields: {}
-        },
-        Geo: {
-            name: "Geo",
-            fields: {
-                lat: {
-                    name: "lat",
-                    type: "Float"
-                },
-                lng: {
-                    name: "lng",
-                    type: "Float"
-                }
-            }
-        },
-        Address: {
-            name: "Address",
-            fields: {
-                city: {
-                    name: "city",
+                employer: {
+                    name: "employer",
                     type: "String"
                 },
-                country: {
-                    name: "country",
-                    type: "String",
-                    optional: true
-                },
-                geo: {
-                    name: "geo",
-                    type: "Geo",
-                    optional: true
-                },
-                tags: {
-                    name: "tags",
+                domains: {
+                    name: "domains",
                     type: "String",
                     array: true
-                },
-                role: {
-                    name: "role",
-                    type: "Role",
-                    optional: true
-                },
-                movedAt: {
-                    name: "movedAt",
-                    type: "DateTime",
-                    optional: true
-                }
-            }
-        },
-        Profile: {
-            name: "Profile",
-            fields: {
-                name: {
-                    name: "name",
-                    type: "String"
-                },
-                nickname: {
-                    name: "nickname",
-                    type: "Email",
-                    optional: true
-                },
-                age: {
-                    name: "age",
-                    type: "Age",
-                    optional: true
-                },
-                joinedAt: {
-                    name: "joinedAt",
-                    type: "DateTime",
-                    optional: true
-                },
-                balance: {
-                    name: "balance",
-                    type: "Decimal",
-                    optional: true
-                },
-                address: {
-                    name: "address",
-                    type: "Address",
-                    optional: true
-                },
-                addresses: {
-                    name: "addresses",
-                    type: "Address",
-                    array: true
-                }
-            }
-        },
-        Meta: {
-            name: "Meta",
-            fields: {
-                string: {
-                    name: "string",
-                    type: "String",
-                    optional: true
-                },
-                stringArray: {
-                    name: "stringArray",
-                    type: "String",
-                    array: true
-                },
-                boolean: {
-                    name: "boolean",
-                    type: "Boolean",
-                    optional: true
-                },
-                booleanArray: {
-                    name: "booleanArray",
-                    type: "Boolean",
-                    array: true
-                },
-                int: {
-                    name: "int",
-                    type: "Int",
-                    optional: true
-                },
-                intArray: {
-                    name: "intArray",
-                    type: "Int",
-                    array: true
-                },
-                float: {
-                    name: "float",
-                    type: "Float",
-                    optional: true
-                },
-                floatArray: {
-                    name: "floatArray",
-                    type: "Float",
-                    array: true
-                },
-                dateTime: {
-                    name: "dateTime",
-                    type: "DateTime",
-                    optional: true
-                },
-                dateTimeArray: {
-                    name: "dateTimeArray",
-                    type: "DateTime",
-                    array: true
-                },
-                enum: {
-                    name: "enum",
-                    type: "Role"
                 }
             }
         }

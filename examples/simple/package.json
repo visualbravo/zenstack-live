@@ -21,7 +21,8 @@
     "@zenstackhq/orm": "catalog:",
     "bottleneck": "^2.19.5",
     "kysely": "catalog:",
-    "pg": "catalog:"
+    "pg": "catalog:",
+    "mysql2": "catalog:"
   },
   "devDependencies": {
     "@types/pg": "catalog:",
