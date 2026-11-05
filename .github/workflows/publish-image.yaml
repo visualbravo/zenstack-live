@@ -1,0 +1,16 @@
+name: Publish Image
+on: [pull_request]
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    container:
+      image: node:22
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v5
+
+      - name: Publish image to GitHub
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: cd ./zebezium && docker build -t zebezium . && docker tag zebezium ghcr.io/visualbravo/zebezium:latest
