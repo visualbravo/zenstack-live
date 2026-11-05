@@ -12,7 +12,7 @@ const LOCK_PUBLICATION = `PERFORM pg_advisory_xact_lock(hashtext(${quoteLiteral(
 // Debezium reads changes through a logical replication slot, which only sees the tables in its
 // publication. `REPLICA IDENTITY FULL` is what puts the whole previous row into updates and deletes.
 export class PostgresDatabase<Schema extends SchemaDef> implements LiveDatabase {
-  public readonly dialect = 'postgres'
+  public readonly dialect = 'postgresql'
   private readonly client: ClientContract<Schema>
 
   public constructor(client: ClientContract<Schema>) {

@@ -91,7 +91,7 @@ beforeAll(async () => {
 })
 
 beforeEach(async () => {
-  await clearRedis(redis, 'postgres')
+  await clearRedis(redis, 'postgresql')
   await client.columnTypes.deleteMany()
 })
 

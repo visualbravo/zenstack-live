@@ -70,7 +70,7 @@ const COMMON_SCHEMA = 'live_common'
 // stops the slot for good, even once it's recreated. Publications and slots belong to a database, so
 // tests that drop the publication run in their own, where they can't reach Debezium's slot.
 export const postgres: TestDialect = {
-  name: 'postgres',
+  name: 'postgresql',
   url: () => process.env['POSTGRES_URL']!,
 
   async createIsolatedDatabase(name) {

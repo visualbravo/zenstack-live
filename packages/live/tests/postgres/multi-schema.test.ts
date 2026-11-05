@@ -72,7 +72,7 @@ beforeAll(async () => {
 
   redis = new Redis(process.env['REDIS_URL']!)
 
-  await clearRedis(redis, 'postgres')
+  await clearRedis(redis, 'postgresql')
   await createTables(client)
 
   // A table is only captured from the moment that a stream publishes it.

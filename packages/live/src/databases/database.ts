@@ -19,7 +19,7 @@ export type CapturedTable = {
 
 // Each dialect gets its own Redis keys, so that one Redis can be shared by Debezium instances
 // capturing different kinds of database. These have to match `zebezium/entrypoint.sh`.
-export type LiveDialect = 'postgres' | 'mysql'
+export type LiveDialect = 'postgresql' | 'mysql'
 
 export type LiveRedisKeys = {
   // Debezium's `topic.prefix`, which every stream is named after: `<prefix>.<schema>.<table>`.

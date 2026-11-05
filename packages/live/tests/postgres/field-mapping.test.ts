@@ -82,7 +82,7 @@ beforeAll(async () => {
 })
 
 beforeEach(async () => {
-  await clearRedis(redis, 'postgres')
+  await clearRedis(redis, 'postgresql')
 })
 
 afterAll(async () => {

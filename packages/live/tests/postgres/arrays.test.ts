@@ -38,7 +38,7 @@ beforeAll(async () => {
 }, 15000)
 
 beforeEach(async () => {
-  await clearRedis(redis, 'postgres')
+  await clearRedis(redis, 'postgresql')
   await client.contact.deleteMany()
 })
 

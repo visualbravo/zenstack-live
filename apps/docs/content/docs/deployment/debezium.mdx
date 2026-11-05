@@ -6,17 +6,17 @@ icon: Radio
 
 Run a single Debezium Server. These settings have to match what LIVE expects, because the names are built into it.
 
-| Setting                                       | Value                     | Why                                                                  |
-| --------------------------------------------- | ------------------------- | -------------------------------------------------------------------- |
-| `DEBEZIUM_SOURCE_PUBLICATION_NAME`            | `zenstack_live`           | LIVE adds tables to this publication.                                |
-| `DEBEZIUM_SOURCE_TOPIC_PREFIX`                | `zenstack.postgres.table` | LIVE looks for events in `zenstack.postgres.table.<schema>.<table>`. |
-| `DEBEZIUM_SOURCE_PUBLICATION_AUTOCREATE_MODE` | `no_tables`               | Tables are published by your streams, not by Debezium.               |
-| `DEBEZIUM_SOURCE_PLUGIN_NAME`                 | `pgoutput`                | The decoding plugin built into Postgres.                             |
-| `DEBEZIUM_SOURCE_SNAPSHOT_MODE`               | `no_data`                 | Existing rows aren't turned into events.                             |
-| `DEBEZIUM_SOURCE_DECIMAL_HANDLING_MODE`       | `string`                  | `Decimal` values keep their scale in every column type.              |
-| `DEBEZIUM_SOURCE_TIME_PRECISION_MODE`         | `isostring`               | `DateTime` values read the same in every column type.                |
-| `DEBEZIUM_FORMAT_SCHEMAS_ENABLE`              | `false`                   | LIVE reads plain events, without a schema attached.                  |
-| `DEBEZIUM_SINK_TYPE`                          | `redis`                   | LIVE reads from Redis.                                               |
+| Setting                                       | Value                       | Why                                                                    |
+| --------------------------------------------- | --------------------------- | ---------------------------------------------------------------------- |
+| `DEBEZIUM_SOURCE_PUBLICATION_NAME`            | `zenstack_live`             | LIVE adds tables to this publication.                                  |
+| `DEBEZIUM_SOURCE_TOPIC_PREFIX`                | `zenstack.postgresql.table` | LIVE looks for events in `zenstack.postgresql.table.<schema>.<table>`. |
+| `DEBEZIUM_SOURCE_PUBLICATION_AUTOCREATE_MODE` | `no_tables`                 | Tables are published by your streams, not by Debezium.                 |
+| `DEBEZIUM_SOURCE_PLUGIN_NAME`                 | `pgoutput`                  | The decoding plugin built into Postgres.                               |
+| `DEBEZIUM_SOURCE_SNAPSHOT_MODE`               | `no_data`                   | Existing rows aren't turned into events.                               |
+| `DEBEZIUM_SOURCE_DECIMAL_HANDLING_MODE`       | `string`                    | `Decimal` values keep their scale in every column type.                |
+| `DEBEZIUM_SOURCE_TIME_PRECISION_MODE`         | `isostring`                 | `DateTime` values read the same in every column type.                  |
+| `DEBEZIUM_FORMAT_SCHEMAS_ENABLE`              | `false`                     | LIVE reads plain events, without a schema attached.                    |
+| `DEBEZIUM_SINK_TYPE`                          | `redis`                     | LIVE reads from Redis.                                                 |
 
 The offset and schema history settings in the [Quick Start](/docs/quick-start#start-postgres-debezium-and-redis) keep Debezium's state in Redis, so it doesn't need a volume of its own.
 

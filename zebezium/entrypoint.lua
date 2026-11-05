@@ -129,7 +129,7 @@ if databaseUrl ~= '' then
     local dialect
 
     if url.scheme == 'postgres' or url.scheme == 'postgresql' then
-        dialect = 'postgres'
+        dialect = 'postgresql'
 
         set(
             'DEBEZIUM_SOURCE_CONNECTOR_CLASS',

@@ -20,7 +20,7 @@ Postgres ──▶ Debezium ──▶ Redis ──▶ LIVE ──▶ your for aw
 
 "Stream" means two things here. A **LIVE stream** is what `live.stream()` returns. A **Redis stream** is the log that events are stored in. There's one Redis stream per table, and any number of LIVE streams can read from it.
 
-`<dialect>` is `postgres` or `mysql`, so that a single Redis can serve databases of both kinds without their keys overlapping.
+`<dialect>` is `postgresql` or `mysql`, so that a single Redis can serve databases of both kinds without their keys overlapping.
 
 | Name                                               | What it is                                                                      |
 | -------------------------------------------------- | ------------------------------------------------------------------------------- |

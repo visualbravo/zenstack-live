@@ -11,8 +11,8 @@ import { postgres } from '../helpers/dialects'
 
 const PUBLICATION = 'zenstack_live'
 const RETENTION = 300
-const USER_STREAM = 'zenstack.postgres.table.public.User'
-const CONTACT_STREAM = 'zenstack.postgres.table.public.Contact'
+const USER_STREAM = 'zenstack.postgresql.table.public.User'
+const CONTACT_STREAM = 'zenstack.postgresql.table.public.Contact'
 
 let client: ClientContract<typeof schema>
 let redis: Redis
@@ -77,7 +77,7 @@ beforeAll(async () => {
 })
 
 beforeEach(async () => {
-  await clearRedis(redis, 'postgres')
+  await clearRedis(redis, 'postgresql')
   await client.$queryRawUnsafe(`DROP PUBLICATION IF EXISTS ${PUBLICATION}`)
 })
 
@@ -89,7 +89,7 @@ afterEach(() => {
 
 afterAll(async () => {
   await client.$queryRawUnsafe(`DROP PUBLICATION IF EXISTS ${PUBLICATION}`)
-  await clearRedis(redis, 'postgres')
+  await clearRedis(redis, 'postgresql')
   redis.disconnect()
   await client.$disconnect()
 })
@@ -140,7 +140,7 @@ describe('publication', () => {
 
     expect(await isPublished('User')).toBe(false)
     expect(await redis.exists(USER_STREAM)).toBe(0)
-    expect(await redis.hlen('zenstack.postgres.metadata.streams')).toBe(0)
+    expect(await redis.hlen('zenstack.postgresql.metadata.streams')).toBe(0)
   })
 
   test('captures a table again when a stream comes back', async () => {
