@@ -27,6 +27,7 @@ MySQL has no publication. The binlog holds every table's changes, and Debezium c
 - `DATABASE_URL` has to include the database, and it has to be the one your `client` connects to.
 - A stream doesn't change your database.
 - Streams are named `zenstack.mysql.table.<database>.<table>`.
+- A stream's filters match events the way the same `where` matches rows in MySQL. Strings ignore case and accents, as under the default `utf8mb4_0900_ai_ci` collation, which your columns are assumed to use. `mode: 'insensitive'` isn't available. JSON paths only find keys in objects, and a path with a wildcard selects an array of every match.
 - Every table counts as captured, the way it does for a publication that's `FOR ALL TABLES`. `prune` removes streams and consumers, but never stops capturing a table, and reports tables without streams under `allTables`.
 
 Keep your tables out of the `mysql` database. Debezium skips it, so nothing in it ever reaches a stream.

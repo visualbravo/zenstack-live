@@ -22,7 +22,7 @@ type Verdict = boolean | null
 // `undefined` is SQL's NULL. Inside of JSON, `null` is a JSON null.
 type Predicate = (value: unknown) => Verdict
 
-// The hydrated value, and the JSON that Postgres would see.
+// The hydrated value, and the JSON that the database would see.
 type JsonReceiver = { value: unknown; raw: unknown }
 type JsonPredicate = (receiver: JsonReceiver) => Verdict
 
@@ -75,7 +75,7 @@ function isNumeric(value: unknown) {
 }
 
 // Values only differ in type inside of JSON, where this is how Postgres orders `jsonb`.
-function jsonbRank(value: unknown) {
+function postgresJsonRank(value: unknown) {
   if (value === null) {
     return 0
   }
@@ -95,7 +95,32 @@ function jsonbRank(value: unknown) {
   return Array.isArray(value) ? 4 : 5
 }
 
-function compareValues(left: any, right: any): number {
+// How MySQL orders JSON values of different types, from lowest to highest.
+function mysqlJsonRank(value: unknown) {
+  if (value === null) {
+    return 0
+  }
+
+  if (isNumeric(value)) {
+    return 1
+  }
+
+  if (typeof value === 'string' || value instanceof Date) {
+    return 2
+  }
+
+  if (typeof value === 'boolean') {
+    return 5
+  }
+
+  return Array.isArray(value) ? 4 : 3
+}
+
+function compareValues(
+  left: any,
+  right: any,
+  jsonRank: (value: unknown) => number = postgresJsonRank,
+): number {
   if (left instanceof Uint8Array && right instanceof Uint8Array) {
     return Buffer.compare(left, right)
   }
@@ -104,7 +129,7 @@ function compareValues(left: any, right: any): number {
     return left.getTime() - right.getTime()
   }
 
-  const rank = jsonbRank(left) - jsonbRank(right)
+  const rank = jsonRank(left) - jsonRank(right)
 
   if (rank !== 0) {
     return rank
@@ -122,6 +147,10 @@ function compareValues(left: any, right: any): number {
 }
 
 const valuesEqual = (left: unknown, right: unknown) => compareValues(left, right) === 0
+
+// MySQL's default collation, `utf8mb4_0900_ai_ci`, ignores case and accents. Columns are assumed to
+// use it, and text cast from JSON always does.
+const mysqlCollator = new Intl.Collator('und', { sensitivity: 'base' })
 
 function castFilterValue(type: string, value: any) {
   switch (type) {
@@ -153,16 +182,72 @@ function compileLike(operation: string, search: string, insensitive: boolean) {
   }
 }
 
-// `trim(jsonb::text, '"')`, which is how ZenStack reads strings and enums inside of JSON.
-function jsonText(value: unknown) {
-  return value === undefined ? undefined : JSON.stringify(value).replace(/^"+|"+$/g, '')
+// MySQL's `LIKE` compares one character at a time under the collation, so unlike `=`, it doesn't
+// match "ß" to "ss".
+function compileMysqlLike(operation: string, search: string) {
+  const needle = Array.from(search)
+
+  return (text: string) => {
+    const haystack = Array.from(text)
+    const matchesAt = (start: number) =>
+      needle.every((char, index) => mysqlCollator.compare(haystack[start + index]!, char) === 0)
+    const last = haystack.length - needle.length
+
+    if (last < 0) {
+      return false
+    }
+
+    switch (operation) {
+      case 'startsWith':
+        return matchesAt(0)
+      case 'endsWith':
+        return matchesAt(last)
+      default:
+        return Array.from({ length: last + 1 }, (_, start) => start).some(matchesAt)
+    }
+  }
 }
 
-function jsonKey(value: unknown, key: string): unknown {
+// MySQL stores an object's keys shortest first, and then by their bytes.
+function mysqlKeys(value: Record<string, unknown>) {
+  return Object.keys(value).toSorted((left, right) => {
+    const a = Buffer.from(left)
+    const b = Buffer.from(right)
+
+    return a.length - b.length || Buffer.compare(a, b)
+  })
+}
+
+// `CAST(json AS CHAR)` on MySQL, which puts spaces after separators.
+function mysqlJsonString(value: unknown): string {
   if (Array.isArray(value)) {
-    return value.map(item => jsonKey(item, key)).find(item => item !== undefined)
+    return `[${value.map(mysqlJsonString).join(', ')}]`
   }
 
+  if (isPlainObject(value)) {
+    return `{${mysqlKeys(value)
+      .map(key => `${JSON.stringify(key)}: ${mysqlJsonString(value[key])}`)
+      .join(', ')}}`
+  }
+
+  return JSON.stringify(value)
+}
+
+// `trim(json::text, '"')`, which is how ZenStack reads strings and enums inside of JSON.
+function trimJsonText(value: unknown, stringify: (value: unknown) => string) {
+  return value === undefined ? undefined : stringify(value).replace(/^"+|"+$/g, '')
+}
+
+// Postgres's lax mode looks through arrays when finding keys.
+function laxJsonKey(value: unknown, key: string): unknown {
+  if (Array.isArray(value)) {
+    return value.map(item => laxJsonKey(item, key)).find(item => item !== undefined)
+  }
+
+  return isPlainObject(value) ? value[key] : undefined
+}
+
+function strictJsonKey(value: unknown, key: string): unknown {
   return isPlainObject(value) ? value[key] : undefined
 }
 
@@ -201,7 +286,7 @@ function parseJsonPath(path: string) {
 
 // Follows the lax mode of `jsonb_path_query_first`, which looks through arrays when finding keys,
 // and treats anything else as an array of one when indexing.
-function selectJsonPath(value: unknown, steps: JsonPathStep[]) {
+function selectLaxJsonPath(value: unknown, steps: JsonPathStep[]) {
   let values = [value]
 
   for (const step of steps) {
@@ -229,23 +314,72 @@ function selectJsonPath(value: unknown, steps: JsonPathStep[]) {
   return values[0]
 }
 
+// MySQL's `JSON_EXTRACT`, which only finds keys in objects, and treats anything else as an array of
+// one when indexing. A path with a wildcard selects an array of every match.
+function selectMysqlJsonPath(value: unknown, steps: JsonPathStep[]) {
+  let values = [value]
+
+  for (const step of steps) {
+    values = values.flatMap(item => {
+      switch (step.type) {
+        case 'key':
+          return isPlainObject(item) && step.key in item ? [item[step.key]] : []
+        case 'wildcard':
+          return isPlainObject(item) ? mysqlKeys(item).map(key => item[key]) : []
+        case 'elements':
+          return Array.isArray(item) ? item : []
+        case 'index': {
+          const items = Array.isArray(item) ? item : [item]
+          const index = step.index === 'last' ? items.length - 1 : step.index
+
+          return index >= 0 && index < items.length ? [items[index]] : []
+        }
+      }
+    })
+  }
+
+  if (values.length === 0) {
+    return undefined
+  }
+
+  return steps.some(({ type }) => type === 'wildcard' || type === 'elements') ? values : values[0]
+}
+
 // The `@>` operator.
-function jsonbContains(container: unknown, contained: unknown): boolean {
+function postgresJsonContains(container: unknown, contained: unknown): boolean {
   if (Array.isArray(container) && Array.isArray(contained)) {
-    return contained.every(item => container.some(other => jsonbContains(other, item)))
+    return contained.every(item => container.some(other => postgresJsonContains(other, item)))
   }
 
   if (isPlainObject(container) && isPlainObject(contained)) {
     return Object.entries(contained).every(
-      ([key, item]) => key in container && jsonbContains(container[key], item),
+      ([key, item]) => key in container && postgresJsonContains(container[key], item),
     )
   }
 
   return isDeepStrictEqual(container, contained)
 }
 
-function jsonValueClause(expected: unknown): Predicate {
-  if (expected === null || expected instanceof DbNullClass) {
+// `JSON_CONTAINS`, which unlike `@>` also finds a value inside of any array.
+function mysqlJsonContains(container: unknown, contained: unknown): boolean {
+  if (Array.isArray(container)) {
+    return Array.isArray(contained)
+      ? contained.every(item => mysqlJsonContains(container, item))
+      : container.some(item => mysqlJsonContains(item, contained))
+  }
+
+  if (isPlainObject(container) && isPlainObject(contained)) {
+    return Object.entries(contained).every(
+      ([key, item]) => key in container && mysqlJsonContains(container[key], item),
+    )
+  }
+
+  return !Array.isArray(contained) && isDeepStrictEqual(container, contained)
+}
+
+// JSON nulls and SQL's NULL, which every database compares the same way.
+function jsonNullClause(expected: unknown): Predicate | undefined {
+  if (expected instanceof DbNullClass) {
     return isNull
   }
 
@@ -257,7 +391,14 @@ function jsonValueClause(expected: unknown): Predicate {
     return value => value === undefined || value === null
   }
 
-  return value => (value === undefined ? null : isDeepStrictEqual(value, expected))
+  return undefined
+}
+
+function jsonValueClause(expected: unknown): Predicate {
+  return (
+    jsonNullClause(expected) ??
+    (value => (value === undefined ? null : isDeepStrictEqual(value, expected)))
+  )
 }
 
 // Array filters store their value as `jsonb`, so a null means a JSON null, and not a missing value.
@@ -272,15 +413,90 @@ function jsonArrayElementClause(expected: unknown, select: (value: unknown) => u
   }
 }
 
+// Where the databases that ZenStack compiles a filter for disagree on what it means.
+type DialectRules = {
+  // Strings in a column, and text cast from JSON.
+  compareText: (left: string, right: string) => number
+  compileLike: (
+    operation: string,
+    search: string,
+    insensitive: boolean,
+  ) => (text: string) => boolean
+  jsonRank: (value: unknown) => number
+  jsonString: (value: unknown) => string
+  jsonKey: (value: unknown, key: string) => unknown
+  selectJsonPath: (value: unknown, steps: JsonPathStep[]) => unknown
+
+  // A plain JSON filter's `equals`, which isn't one of the JSON nulls.
+  jsonEquals: (expected: unknown) => Predicate
+  jsonContains: (container: unknown, contained: unknown) => boolean
+  firstElement: (json: unknown) => unknown
+  lastElement: (json: unknown) => unknown
+}
+
+const postgresRules: DialectRules = {
+  compareText: (left, right) => (left < right ? -1 : left > right ? 1 : 0),
+  compileLike,
+  jsonRank: postgresJsonRank,
+  jsonString: value => JSON.stringify(value),
+  jsonKey: laxJsonKey,
+  selectJsonPath: selectLaxJsonPath,
+
+  // ZenStack compares a JSON null with `IS NULL` here.
+  jsonEquals: expected => (expected === null ? isNull : jsonValueClause(expected)),
+  jsonContains: postgresJsonContains,
+  firstElement: json => (Array.isArray(json) ? json[0] : laxJsonKey(json, '0')),
+  lastElement: json => (Array.isArray(json) ? json.at(-1) : undefined),
+}
+
+const mysqlRules: DialectRules = {
+  compareText: (left, right) => mysqlCollator.compare(left, right),
+
+  // ZenStack doesn't take `mode` on MySQL, where the collation already ignores case.
+  compileLike: (operation, search) => compileMysqlLike(operation, search),
+  jsonRank: mysqlJsonRank,
+  jsonString: mysqlJsonString,
+  jsonKey: strictJsonKey,
+  selectJsonPath: selectMysqlJsonPath,
+
+  // ZenStack compares with `JSON_CONTAINS` both ways, where a JSON null is a value like any other.
+  jsonEquals: expected => value =>
+    value === undefined
+      ? null
+      : mysqlJsonContains(value, expected) && mysqlJsonContains(expected, value),
+  jsonContains: mysqlJsonContains,
+  firstElement: json => (Array.isArray(json) ? json[0] : json),
+
+  // `JSON_LENGTH` counts an object's keys, and is 1 for anything else that isn't an array.
+  lastElement: json =>
+    Array.isArray(json)
+      ? json.at(-1)
+      : isPlainObject(json)
+        ? Object.keys(json).length === 1
+          ? json
+          : undefined
+        : json,
+}
+
 export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels<Schema>> {
   private readonly options: QueryCompilerOptions<Schema, ModelName>
   private readonly validator: InputValidator<Schema>
+  private readonly rules: DialectRules
 
   public constructor(options: QueryCompilerOptions<Schema, ModelName>) {
     this.options = options
     this.validator = new InputValidator(options.client, {
       enabled: options.client.$options.validateInput !== false,
     })
+    this.rules = options.client.$schema.provider.type === 'mysql' ? mysqlRules : postgresRules
+  }
+
+  private compare(left: unknown, right: unknown) {
+    if (typeof left === 'string' && typeof right === 'string') {
+      return this.rules.compareText(left, right)
+    }
+
+    return compareValues(left, right, this.rules.jsonRank)
   }
 
   private get schema() {
@@ -445,7 +661,10 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
       const predicate = this.compileTypedJsonField(typeDef.fields[key]!, value)
 
       predicates.push(({ value: hydrated, raw }) =>
-        predicate({ value: jsonKey(hydrated, key), raw: jsonKey(raw, key) }),
+        predicate({
+          value: this.rules.jsonKey(hydrated, key),
+          raw: this.rules.jsonKey(raw, key),
+        }),
       )
     }
 
@@ -471,7 +690,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     const predicate = this.compilePrimitive(field.type, filter)
 
     if (type === 'String' || this.schema.enums?.[type]) {
-      return ({ value }) => predicate(jsonText(value))
+      return ({ value }) => predicate(trimJsonText(value, this.rules.jsonString))
     }
 
     return ({ value }) => predicate(value)
@@ -525,13 +744,13 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
       switch (key) {
         case 'equals':
           if (value !== undefined) {
-            predicates.push(jsonValueClause(value))
+            predicates.push(jsonNullClause(value) ?? this.rules.jsonEquals(value))
           }
 
           break
         case 'not':
           if (value !== undefined) {
-            const clause = jsonValueClause(value)
+            const clause = jsonNullClause(value) ?? this.rules.jsonEquals(value)
             predicates.push(json => not(clause(json)))
           }
 
@@ -544,7 +763,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
             string_starts_with: 'startsWith',
             string_ends_with: 'endsWith',
           }[key]
-          const like = compileLike(operation, value as string, insensitive)
+          const like = this.rules.compileLike(operation, value as string, insensitive)
 
           predicates.push(json =>
             json === undefined
@@ -557,21 +776,16 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
         case 'array_contains': {
           const contained = Array.isArray(value) ? value : [value]
 
-          predicates.push(json => (json === undefined ? null : jsonbContains(json, contained)))
+          predicates.push(json =>
+            json === undefined ? null : this.rules.jsonContains(json, contained),
+          )
           break
         }
         case 'array_starts_with':
-          predicates.push(
-            jsonArrayElementClause(value, json =>
-              Array.isArray(json) ? json[0] : jsonKey(json, '0'),
-            ),
-          )
-
+          predicates.push(jsonArrayElementClause(value, this.rules.firstElement))
           break
         case 'array_ends_with':
-          predicates.push(
-            jsonArrayElementClause(value, json => (Array.isArray(json) ? json.at(-1) : undefined)),
-          )
+          predicates.push(jsonArrayElementClause(value, this.rules.lastElement))
 
           break
       }
@@ -579,7 +793,8 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
 
     const predicate = all(predicates)
 
-    return ({ raw }) => predicate(raw === undefined ? undefined : selectJsonPath(raw, steps))
+    return ({ raw }) =>
+      predicate(raw === undefined ? undefined : this.rules.selectJsonPath(raw, steps))
   }
 
   private compileArray(field: FieldDef, filter: any): Predicate {
@@ -657,7 +872,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
         const search = payload[operation]
 
         if (typeof search === 'string') {
-          const like = compileLike(operation, search, insensitive)
+          const like = this.rules.compileLike(operation, search, insensitive)
 
           predicates.push(value => (value === undefined ? null : like(value as string)))
         }
@@ -681,7 +896,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
     const comparison =
       (test: (order: number) => boolean, right: unknown): Predicate =>
       value =>
-        value === undefined ? null : test(compareValues(prepare(value), right))
+        value === undefined ? null : test(this.compare(prepare(value), right))
 
     if (!isPlainObject(payload)) {
       return comparison(order => order === 0, cast(payload))
@@ -709,7 +924,7 @@ export class QueryCompiler<Schema extends SchemaDef, ModelName extends GetModels
               ? false
               : value === undefined
                 ? null
-                : items.some(item => valuesEqual(prepare(value), item))
+                : items.some(item => this.compare(prepare(value), item) === 0)
 
           predicates.push(
             operator === 'in'

@@ -1,4 +1,4 @@
-import type { SchemaDef } from '@zenstackhq/schema'
+import type { FieldDef, SchemaDef } from '@zenstackhq/schema'
 import { ZenStackClient, type ClientContract } from '@zenstackhq/orm'
 import { MysqlDialect, PostgresDialect } from 'kysely'
 import { Client, Pool } from 'pg'
@@ -30,6 +30,30 @@ function getTables(schema: SchemaDef) {
 
     return mapped?.kind === 'literal' ? String(mapped.value) : model.name
   })
+}
+
+// A list of scalars, which MySQL can't store. Lists of custom types are stored as JSON instead.
+export function isScalarList(field: FieldDef) {
+  return Boolean(
+    field.array && !field.relation && !field.attributes?.some(({ name }) => name === '@json'),
+  )
+}
+
+function withoutScalarLists(schema: SchemaDef): SchemaDef {
+  return {
+    ...schema,
+    models: Object.fromEntries(
+      Object.entries(schema.models).map(([name, model]) => [
+        name,
+        {
+          ...model,
+          fields: Object.fromEntries(
+            Object.entries(model.fields).filter(([, field]) => !isScalarList(field)),
+          ),
+        },
+      ]),
+    ),
+  }
 }
 
 function withDatabase(url: string, name: string) {
@@ -67,7 +91,7 @@ export const postgres: TestDialect = {
   // `$pushSchema` creates tables wherever the search path points, while queries go to the default
   // schema, so both are set for a schema that has one.
   connect: (schema, url) => {
-    const {defaultSchema} = schema.provider
+    const { defaultSchema } = schema.provider
 
     return new ZenStackClient(schema, {
       dialect: new PostgresDialect({
@@ -117,7 +141,7 @@ export const mysql: TestDialect = {
       dialect: new MysqlDialect({ pool: createPool({ uri: url, connectionLimit: 5 }) }),
     }),
 
-  moveSchema: schema => ({ ...schema, provider: { type: 'mysql' } }),
+  moveSchema: schema => ({ ...withoutScalarLists(schema), provider: { type: 'mysql' } }),
 
   schemaName: url => decodeURIComponent(new URL(url).pathname.slice(1)),
 
